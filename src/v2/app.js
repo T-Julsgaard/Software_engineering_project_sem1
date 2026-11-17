@@ -84,6 +84,8 @@
     ui.lastKey = key; ui.lastNav = { tab: ui.tab, page: ui.page };
     ui.fresh.clear();
     bindCharts(content);
+    bindSwipes(content);
+    if (!navigated) monthEnter(content); else ui.monthMotion = null;
     updateLive();
     emitRender();
   }
@@ -197,6 +199,61 @@
   const seg = (key, options, cls = '') => `<div class="seg ${cls}" role="group">${options.map(([v, label]) => `<button data-a="seg" data-key="${key}" data-val="${v}" aria-pressed="${ui[key] === v}">${label}</button>`).join('')}</div>`;
   const sectionHead = (title, meta = '') => `<div class="section-head"><h2>${title}</h2>${meta ? `<span class="meta">${meta}</span>` : ''}</div>`;
 
+  /* ---------- browsing earlier months ----------
+     Usage and prices can go back a year: arrows, or drag the chart sideways (right for earlier). */
+  const MONTHS_BACK = 12;
+  function monthBounds() { const cur = P.thisMonth(s); return [H.addMonths(cur, -MONTHS_BACK), cur]; }
+  /* ui[key] holds an earlier month, or null for this month. */
+  function shownMonth(key) { const [lo, hi] = monthBounds(), m = ui[key]; if (!m || m < lo || m >= hi) { ui[key] = null; return hi; } return m; }
+  function canStep(key, dir) { const [lo, hi] = monthBounds(), n = H.addMonths(shownMonth(key), dir); return n >= lo && n <= hi; }
+  function stepMonth(key, dir) {
+    if (!canStep(key, dir)) return;
+    const n = H.addMonths(shownMonth(key), dir);
+    ui[key] = n === monthBounds()[1] ? null : n; ui.monthMotion = { key, dir }; render();
+  }
+  function monthNav(key, m) {
+    const [lo, hi] = monthBounds(), back = (+hi.slice(0, 4) - +m.slice(0, 4)) * 12 + (+hi.slice(5) - +m.slice(5));
+    return `<div class="month-nav"><button class="icon-btn" data-a="month-step" data-key="${key}" data-d="-1"${m <= lo ? ' disabled' : ''} aria-label="Earlier month">${ic('ChevronLeft')}</button>
+      <div class="month-label" aria-live="polite"><b>${H.monthName(m)} ${m.slice(0, 4)}</b><span>${back ? `${back} month${back > 1 ? 's' : ''} ago` : 'This month · drag for earlier'}</span></div>
+      <button class="icon-btn" data-a="month-step" data-key="${key}" data-d="1"${m >= hi ? ' disabled' : ''} aria-label="Later month">${ic('ChevronRight')}</button></div>`;
+  }
+  /* Drag sideways on a month card to change month. Vertical drags still scroll the page. */
+  function bindSwipes(root) {
+    for (const el of $$('[data-swipe]', root)) {
+      const track = $('.swipe-track', el) || el, key = el.dataset.swipe;
+      let x0 = null, y0 = 0, dx = 0, axis = null, pid = null;
+      el.addEventListener('pointerdown', (e) => { if (e.button || e.target.closest('button, a, select, input')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; axis = null; pid = e.pointerId; });
+      el.addEventListener('pointermove', (e) => {
+        if (x0 === null || e.pointerId !== pid) return;
+        const mx = e.clientX - x0, my = e.clientY - y0;
+        if (!axis && Math.hypot(mx, my) > 8) {
+          axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+          if (axis === 'x') { try { el.setPointerCapture(pid); } catch { /* not capturable */ } track.getAnimations().forEach((a) => a.cancel()); track.style.transition = 'none'; el.classList.add('dragging'); }
+        }
+        if (axis !== 'x') return;
+        dx = canStep(key, mx > 0 ? -1 : 1) ? mx : mx * 0.25; // rubber band at either end
+        track.style.transform = `translateX(${dx * 0.7}px)`; track.style.opacity = String(1 - Math.min(0.45, Math.abs(dx) / 360));
+      });
+      const up = () => {
+        if (x0 === null) return; x0 = null; el.classList.remove('dragging');
+        if (axis !== 'x') return;
+        ui.swipedAt = Date.now();
+        const dir = dx > 0 ? -1 : 1;
+        if (Math.abs(dx) > 56 && canStep(key, dir)) { if (window.PBFX) { PBFX.play('tap'); PBFX.vibrate(6); } stepMonth(key, dir); return; }
+        track.style.transition = 'transform .3s var(--spring), opacity .3s'; track.style.transform = ''; track.style.opacity = '';
+      };
+      el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+    }
+  }
+  /* The new month slides in from the side it came from. */
+  function monthEnter(content) {
+    const mv = ui.monthMotion; ui.monthMotion = null;
+    if (!mv || reduceMotion()) return;
+    const track = $(`[data-swipe="${mv.key}"] .swipe-track`, content); if (!track) return;
+    track.animate([{ opacity: 0, transform: `translateX(${mv.dir * 40}px)` }, { opacity: 1, transform: 'none' }], { duration: 380, easing: 'cubic-bezier(.16,1,.3,1)' });
+    $$('.chart', track).forEach((c) => c.classList.add('grow'));
+  }
+
   /* ---------- home ---------- */
   function missingMonth() {
     const last = H.addMonths(P.thisMonth(s), -1);
@@ -291,6 +348,7 @@
     for (const chart of $$('[data-chart]', root)) {
       const svg = $('svg', chart), tip = $('.chart-tip', chart);
       const show = (el) => {
+        if (Date.now() - (ui.swipedAt || 0) < 600) return; // not right after dragging to another month
         const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = box.width / vb.width;
         const [title, ...rest] = el.dataset.tip.split('|');
         tip.innerHTML = `<b>${esc(title)}</b>${rest.map((r) => `<br>${esc(r)}`).join('')}`;
@@ -307,21 +365,29 @@
   /* ---------- usage ---------- */
   function viewUsage() {
     const r = ui.usageRes, cls = r === 'water' ? 'bar-w' : 'bar-e', m = P.thisMonth(s), k = r === 'water' ? 'w' : 'e';
-    let chart, stats, title;
+    let chart, stats, title, nav = '', note = '';
     if (ui.usageRange === 'month') {
-      const dim = H.daysIn(m), t = P.today(s), typ = P.typicalMonth(s.profile, r, m) / dim, bars = [];
+      const mm = shownMonth('usageMonth'), isCur = mm === m, dim = H.daysIn(mm), t = P.today(s), typ = P.typicalMonth(s.profile, r, mm) / dim, bars = [];
+      const hist = isCur ? null : P.monthDays(s, r, mm), x = r === 'water' ? 1000 : 1, est = hist && hist.source === 'split';
       for (let i = 1; i <= dim; i++) {
-        const d = `${m}-${String(i).padStart(2, '0')}`, isToday = d === t, past = d < t;
-        const v = past ? (s.days[d] ? s.days[d][k] : null) : isToday ? P.todaySoFar(s, r) : null;
+        const d = `${mm}-${String(i).padStart(2, '0')}`, isToday = isCur && d === t, past = isCur ? d < t : true;
+        const v = !isCur ? hist.values[i - 1] : past ? (s.days[d] ? s.days[d][k] : null) : isToday ? P.todaySoFar(s, r) : null;
         const full = isToday ? P.dayValue(s, r, d) : null;
-        bars.push({ value: v, proj: isToday ? full : null, cls, label: [1, 8, 15, 22, 29].includes(i) ? String(i) : '', missing: past && v === null,
-          tip: v !== null ? `${dateShort(d)}${isToday ? ' (so far)' : ''}|${fmtRes(r, r === 'water' ? v * 1000 : v)} ${r === 'water' ? 'litres' : 'kWh'}|Typical: ${r === 'water' ? fmt(typ * 1000) + ' litres' : fmt(typ, 1) + ' kWh'}` : null });
+        bars.push({ value: v === null ? null : v * x, proj: full === null ? null : full * x, cls, label: [1, 8, 15, 22, 29].includes(i) ? String(i) : '', missing: past && v === null,
+          tip: v !== null ? `${dateShort(d)}${isToday ? ' (so far)' : est ? ' (estimated)' : ''}|${fmtRes(r, v * x)} ${r === 'water' ? 'litres' : 'kWh'}|Typical: ${r === 'water' ? fmt(typ * 1000) + ' litres' : fmt(typ, 1) + ' kWh'}` : null });
       }
-      if (r === 'water') bars.forEach((b) => { if (b.value) b.value *= 1000; if (b.proj) b.proj *= 1000; });
-      title = `${H.monthName(m)}, day by day`;
-      chart = barChart({ bars, typical: r === 'water' ? typ * 1000 : typ, desc: `${resName(r)} per day in ${H.monthName(m)}` });
-      const so = P.monthSoFar(s, r), pr = P.projected(s, r);
-      stats = [['So far', `${fmtRes(r, so)} ${unit(r)}`], ['Heading for', `${fmtRes(r, pr)} ${unit(r)}`], ['Cost so far', kr(P.cost(s, r, so))]];
+      title = 'Day by day';
+      nav = monthNav('usageMonth', mm);
+      chart = barChart({ bars, typical: typ * x, desc: `${resName(r)} per day in ${H.monthName(mm)} ${mm.slice(0, 4)}` });
+      if (isCur) {
+        const so = P.monthSoFar(s, r), pr = P.projected(s, r);
+        stats = [['So far', `${fmtRes(r, so)} ${unit(r)}`], ['Heading for', `${fmtRes(r, pr)} ${unit(r)}`], ['Cost so far', kr(P.cost(s, r, so))]];
+      } else {
+        const total = s.months[mm] ? s.months[mm][k] : null, vsTyp = total === null ? null : (total / P.typicalMonth(s.profile, r, mm) - 1) * 100;
+        stats = [['Used', total === null ? '–' : `${fmtRes(r, total)} ${unit(r)}`], ['vs homes like yours', signed(vsTyp)], ['Cost', total === null ? '–' : kr(P.cost(s, r, total))]];
+        if (total === null) note = `<div class="alert info">${ic('Receipt', 'sm')}<span>${H.monthName(mm)} isn't logged yet.</span><button class="link" data-a="reading" data-month="${mm}" style="margin-left:auto;padding:0">Add it</button></div>`;
+        else if (est) note = `<p class="hint">Your bill gives the month's total. The daily split is estimated from your usual pattern.</p>`;
+      }
     } else {
       const bars = [], typs = [];
       for (let i = 12; i >= 0; i--) {
@@ -341,11 +407,12 @@
     const SRC = { bill: 'From bill', manual: 'Entered', meter: 'Meter', sample: 'Sample' };
     const readings = months.map((mm) => { const x = s.months[mm]; return `<div class="row"><div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${x ? `${fmt(x.e)} kWh · ${fmt(x.w, 1)} m³` : 'Missing'}</div></div>${x ? `<span class="tag">${SRC[x.src] || x.src}</span>` : `<button class="btn secondary small" data-a="reading" data-month="${mm}">Add</button>`}</div>`; }).join('');
     return `<section class="section">${seg('usageRes', [['electricity', 'Electricity'], ['water', 'Water']])}</section>
-      <section class="section">${sectionHead(title, '')}${seg('usageRange', [['month', 'This month'], ['year', '12 months']], 'small')}
-        <div class="card" style="margin-top:12px">
+      <section class="section">${sectionHead(title, '')}${seg('usageRange', [['month', 'Month'], ['year', '12 months']], 'small')}
+        <div class="card" style="margin-top:12px"${nav ? ' data-swipe="usageMonth"' : ''}>${nav}<div class="swipe-track">
           <div class="headline-stat">${stats.map(([a, b]) => `<div><span>${a}</span><b class="num">${b}</b></div>`).join('')}</div>
           ${chart}
           <div class="legend"><span><i style="background:var(--${r === 'water' ? 'water' : 'elec'})"></i>Your ${r === 'water' ? 'water' : 'electricity'}</span><span><i class="dash"></i>Homes like yours</span>${ui.usageRange === 'year' ? '<span><i style="border:1px dashed var(--line-2);background:none"></i>Not logged</span>' : ''}</div>
+          ${note}</div>
         </div></section>
       <section class="section">${sectionHead('Where it probably goes', 'per month, estimated')}<div class="card"><div class="breakdown">${breakdown}</div>
         <p class="hint" style="margin-top:12px">Based on ${esc(P.describeHome(s.profile))}.</p><button class="link" data-a="household">Edit your household</button></div></section>
@@ -353,6 +420,23 @@
   }
 
   /* ---------- plan ---------- */
+  /* What electricity cost in an earlier month: the average price per day, against the month's average. */
+  function priceHistory() {
+    const m = shownMonth('priceMonth'), t = P.today(s), dim = H.daysIn(m), days = [];
+    for (let i = 1; i <= dim; i++) { const d = `${m}-${String(i).padStart(2, '0')}`; days.push(d <= t ? { d, ...P.priceDay(s, d) } : { d }); }
+    const known = days.filter((x) => x.avg !== undefined), avg = H.sum(known.map((x) => x.avg)) / known.length;
+    const lo = known.reduce((a, b) => (b.avg < a.avg ? b : a)), hi = known.reduce((a, b) => (b.avg > a.avg ? b : a));
+    const pm = H.addMonths(m, -1), pd = Array.from({ length: H.daysIn(pm) }, (_, i) => P.priceDay(s, `${pm}-${String(i + 1).padStart(2, '0')}`).avg), pAvg = H.sum(pd) / pd.length, vs = (avg / pAvg - 1) * 100;
+    const hh = (h) => String(h).padStart(2, '0') + ':00';
+    const bars = days.map((x, i) => ({ value: x.avg === undefined ? null : x.avg, cls: x.avg !== undefined && x.avg <= avg ? 'bar-e' : 'bar-gray', label: [1, 8, 15, 22, 29].includes(i + 1) ? String(i + 1) : '',
+      tip: x.avg === undefined ? null : `${dateShort(x.d)}${x.d === t ? ' (today)' : ''}|Average ${fmt(x.avg, 2)} kr/kWh|Cheapest ${hh(x.minH)} · ${fmt(x.min, 2)} kr|Priciest ${hh(x.maxH)} · ${fmt(x.max, 2)} kr` }));
+    return `<div class="card" data-swipe="priceMonth">${monthNav('priceMonth', m)}<div class="swipe-track">
+      <div class="headline-stat"><div><span>${m === P.thisMonth(s) ? 'Average so far' : 'Average'}</span><b class="num">${fmt(avg, 2)} kr</b></div><div><span>Cheapest day</span><b class="num">${dateShort(lo.d)}</b></div><div><span>Priciest day</span><b class="num">${dateShort(hi.d)}</b></div></div>
+      ${barChart({ bars, typical: avg, height: 150, desc: `Average electricity price per day in ${H.monthName(m)} ${m.slice(0, 4)}` })}
+      <div class="legend"><span><i style="background:var(--elec)"></i>Below the month's average</span><span><i style="background:#C9CFC6"></i>Above</span><span><i class="dash"></i>Average</span></div>
+      <p class="small muted" style="margin-top:8px">${fmt(Math.abs(vs), vs > -1 && vs < 1 ? 1 : 0)}% ${vs <= 0 ? 'cheaper' : 'dearer'} on average than ${H.monthName(pm)}. Cheapest day ${fmt(lo.avg, 2)} kr, priciest ${fmt(hi.avg, 2)} kr per kWh.</p>
+    </div></div>`;
+  }
   function finishOptions() {
     const n = P.now(s), at = (dayOffset, h) => { const d = new Date(n); d.setDate(d.getDate() + dayOffset); d.setHours(h, 0, 0, 0); return d; };
     const tonight = n.getHours() < 20 ? at(0, 22) : at(1, 22);
@@ -361,7 +445,8 @@
   function viewPlan() {
     const n = P.now(s), isToday = ui.planDay === 'today', day = isToday ? P.today(s) : H.addDays(P.today(s), 1);
     let priceBlock;
-    if (!isToday && !P.tomorrowReady(s)) priceBlock = `<div class="card"><div class="alert info" style="margin:0">${ic('Clock', 'sm')}<span>Tomorrow's prices are published around 13:00.</span></div></div>`;
+    if (ui.planDay === 'history') priceBlock = priceHistory();
+    else if (!isToday && !P.tomorrowReady(s)) priceBlock = `<div class="card"><div class="alert info" style="margin:0">${ic('Clock', 'sm')}<span>Tomorrow's prices are published around 13:00.</span></div></div>`;
     else {
       const list = P.prices(s, day), green = P.greenHours(list), h = n.getHours(), cheapest = list.indexOf(Math.min(...list));
       const bars = list.map((v, i) => ({ value: v, cls: green.has(i) ? 'bar-e' : 'bar-gray', label: i % 6 === 0 ? String(i).padStart(2, '0') : '', tip: `${String(i).padStart(2, '0')}:00-${String(i + 1).padStart(2, '0')}:00|${fmt(v, 2)} kr/kWh${green.has(i) ? '|Green hour' : ''}` }));
@@ -394,7 +479,7 @@
       <div class="saving"><span class="tag brand">≈ ${kr(r.saveKr)} / month</span>${r.saveE ? `<span class="tag">${fmt(r.saveE, r.saveE < 10 ? 1 : 0)} kWh</span>` : ''}${r.saveW ? `<span class="tag">${fmt(Math.round(r.saveW * 100) * 10)} L</span>` : ''}${r.costOnly ? '<span class="tag">Saves money, not energy</span>' : ''}</div>
       <div class="btn-row"><button class="btn primary small" data-a="rec-accept" data-id="${r.id}">We'll do this</button><button class="btn secondary small" data-a="rec-dismiss" data-id="${r.id}">Not for us</button></div></div>`;
     const doingRow = (r) => { const since = s.recs[r.id].at, days = Math.max(0, (P.now(s) - new Date(since)) / 864e5); const saved = r.costOnly ? `${kr(r.saveKr / 30 * days)} saved` : r.saveE ? `${fmt(r.saveE / 30 * days, 1)} kWh saved` : `${fmt(r.saveW / 30 * days * 1000)} L saved`; return `<div class="row"><span class="chip-icon brand">${ic('Check')}</span><div class="row-main"><div class="row-title">${esc(r.title)}</div><div class="row-sub">Since ${dateShort(since)} · about ${saved}</div></div>${r.goal && !s.goals.some((g) => g.status === 'active' && g.source === r.id) ? `<button class="btn secondary small" data-a="goal" data-rec="${r.id}">Make goal</button>` : `<button class="btn ghost small" data-a="rec-stop" data-id="${r.id}">Stop</button>`}</div>`; };
-    return `<section class="section">${sectionHead('Electricity price', 'Illustrative prices')}${seg('planDay', [['today', 'Today'], ['tomorrow', 'Tomorrow']], 'small')}<div style="margin-top:12px">${priceBlock}</div></section>
+    return `<section class="section">${sectionHead('Electricity price', 'Illustrative prices')}${seg('planDay', [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['history', 'Past months']], 'small')}<div style="margin-top:12px">${priceBlock}</div></section>
       <section class="section">${sectionHead('Plan a run', 'Cheapest start')}${planner}${planList}</section>
       ${doing.length ? `<section class="section">${sectionHead("What you're doing", `${doing.length}`)}<div class="list">${doing.map(doingRow).join('')}</div></section>` : ''}
       <section class="section">${sectionHead('Ideas for your home', `${open.length} left`)}${open.length ? `<div class="list">${open.slice(0, 4).map(recCard).join('')}</div>` : '<div class="card empty">You have been through every idea for now.</div>'}</section>`;
@@ -719,7 +804,7 @@
   function missingMonths() { const out = []; for (let i = 1; i <= 12; i++) { const m = H.addMonths(P.thisMonth(s), -i); if (!s.months[m] || s.months[m].src !== 'meter') out.push(m); } return out; }
   const SHEETS = {
     notes() {
-      const items = s.notes, fresh = items.filter((n) => !n.read), older = items.filter((n) => n.read);
+      const items = s.notes;
       const row = (n) => {
         const { title, body } = noteText(n), isNew = !n.read;
         const lead = n.actor ? avatar(n.actor) : `<span class="chip-icon ${n.kind === 'tip' ? 'elec' : n.kind === 'call' ? 'bad' : isNew ? 'brand' : ''}">${ic(n.icon || 'Bell')}</span>`;
@@ -728,8 +813,8 @@
         if (n.action === 'callback') return `<div class="row note${isNew ? ' unread' : ''}">${inner}<button class="btn primary small" data-a="callback" data-id="${n.id}">${ic('Phone', 'sm')}Call back</button></div>`;
         return n.go ? `<button class="row note${isNew ? ' unread' : ''}" data-a="note-go" data-go="${n.go}" data-id="${n.id}">${inner}${dot}</button>` : `<div class="row note${isNew ? ' unread' : ''}" data-a="note-read" data-id="${n.id}">${inner}${dot}</div>`;
       };
-      const list = (rows) => `<div class="list">${rows.map(row).join('')}</div>`;
-      return ['Notifications', `${items.length ? `${fresh.length ? `<div class="note-group-row"><p class="note-group">New · ${fresh.length}</p><button class="note-readall" data-a="notes-read">${ic('CheckCheck', 'xs')}Read all</button></div>${list(fresh)}` : ''}${older.length ? `<p class="note-group">${fresh.length ? 'Earlier' : 'Recent'}</p>${list(older)}` : ''}` : '<div class="empty">Nothing yet.</div>'}
+      // One list, newest first. Unread rows are marked in place, so reading them never regroups the list.
+      return ['Notifications', `${items.length ? `${noteHead()}<div class="list">${items.map(row).join('')}</div>` : '<div class="empty">Nothing yet.</div>'}
         <div class="btn-row"><button class="btn secondary" data-a="settings">${ic('Settings', 'sm')}Notification settings</button></div>`];
     },
     estimate() {
@@ -954,7 +1039,8 @@
 
   /* ---------- actions ---------- */
   const A = {
-    tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) ui.usageRes = el.dataset.res; render(); $('#content').scrollTop = 0; },
+    tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) { ui.usageRes = el.dataset.res; ui.usageRange = 'month'; ui.usageMonth = null; } render(); $('#content').scrollTop = 0; },
+    'month-step'(el) { stepMonth(el.dataset.key, +el.dataset.d); },
     seg(el) {
       const k = el.dataset.key; if (ui[k] === el.dataset.val) return;
       const opts = $$(`.seg [data-key="${k}"]`).map((b) => b.dataset.val);
@@ -1031,14 +1117,20 @@
   };
   function refreshHeader() { const h = $('.top'); if (h && !ui.page) h.outerHTML = header(); }
   function markRead(id) { const n = s.notes.find((x) => x.id === id); if (!n || n.read) return false; n.read = true; save(); refreshHeader(); return true; }
-  /* The dots fade and the rows settle before the list regroups. */
+  function noteHead() {
+    const unread = s.notes.filter((n) => !n.read).length;
+    return `<div class="note-group-row"><p class="note-group">${unread ? `${unread} new` : 'Recent'}</p>${unread ? `<button class="note-readall" data-a="notes-read">${ic('CheckCheck', 'xs')}Read all</button>` : ''}</div>`;
+  }
+  /* The dots fade and the highlight settles. The list stays where it is: nothing is rebuilt. */
   function readAllAnimated(rows) {
     if (window.PBFX) PBFX.play('tap');
-    const done = () => { if (ui.sheet && ui.sheet.type === 'notes') { const b = $('.sheet-body'), top = b ? b.scrollTop : 0; ui.sheet.noFocus = true; renderSheet(); const nb = $('.sheet-body'); if (nb) nb.scrollTop = top; } };
-    if (reduceMotion() || !rows.length) return done();
+    const unread = s.notes.filter((n) => !n.read).length, label = $('#sheet .note-group'), btn = $('#sheet .note-readall');
+    if (label) label.textContent = unread ? `${unread} new` : 'Recent';
+    if (btn && !unread) { btn.classList.add('gone'); btn.disabled = true; setTimeout(() => btn.remove(), 260); }
+    const settle = () => rows.forEach((r) => { r.classList.remove('unread', 'reading'); r.style.removeProperty('--i'); const d = $('.dot', r); if (d) d.remove(); const c = $(':scope > .chip-icon.brand', r); if (c) c.classList.remove('brand'); });
+    if (reduceMotion() || !rows.length) return settle();
     rows.forEach((r, i) => { r.style.setProperty('--i', i); r.classList.add('reading'); });
-    const btn = $('#sheet .note-readall'); if (btn && rows.length > 1) btn.classList.add('gone');
-    setTimeout(done, 380 + Math.min(rows.length, 8) * 35);
+    setTimeout(settle, 380 + Math.min(rows.length, 8) * 35);
   }
   function currentDraft() { return ui.ob ? ui.ob.d : ui.sheet.d; }
   function rerenderDraft() { if (ui.ob) { const b = $('#ob-body'), top = b ? b.scrollTop : 0; render(); const nb = $('#ob-body'); if (nb) nb.scrollTop = top; } else { const b = $('.sheet-body'), top = b.scrollTop; ui.sheet.noFocus = true; renderSheet(); $('.sheet-body').scrollTop = top; } }
@@ -1120,11 +1212,18 @@
         { label: 'Show a friend update now', run: () => pushNotification('friend', true) },
         { label: 'Show a price tip now', run: () => pushNotification('tip', true) },
         { label: s.live ? 'Pause live data' : 'Resume live data', run: () => { s.live = !s.live; save(); render(); } },
-        { label: 'Start over with onboarding', hint: 'Clears this household from the browser', run: () => { s = null; save(); closeSheet(); ui.ob = { step: 0, d: OB_DEFAULT(), errors: {} }; render(); } },
-        { label: 'Reset the demo home', run: () => { s = P.demo(); ui.ob = null; ui.page = null; ui.tab = 'home'; closeSheet(); save(); render(); seedSpark(); } }
+        { label: 'Reset app', hint: 'Back to onboarding, where you can set up a home or skip to the demo. Feedback comments are kept.', run: resetApp }
       ];
     }
   };
+
+  /* A fresh start: clears the household and restarts the visit, so Thomas calls again. */
+  function resetApp() {
+    s = null; save(); closeSheet(true);
+    ui.ob = { step: 0, d: OB_DEFAULT(), errors: {} }; ui.page = null; ui.tab = 'home'; ui.usageMonth = null; ui.priceMonth = null;
+    if (window.PBCall) PBCall.reset();
+    render();
+  }
 
   /* Where the visitor is, as a stable key and a readable label. The feedback tool files comments under it. */
   const SHEET_NAMES = { notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add a reading', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };

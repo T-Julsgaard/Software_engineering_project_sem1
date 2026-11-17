@@ -15,13 +15,15 @@ The gear in the top-right corner of the page switches between versions.
 | **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, a live simulated meter, goals, challenges, points, sustainable partner rewards, the monthly Green draw, badges, friends, comparison and a feed. |
 | V1 | `outputs/powerbuddy-v1.html` | The original prototype, kept unchanged for comparison. |
 
-In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update or a price tip, pause live data, restart onboarding, reset the demo home, get the call from Thomas now, or reset the call and feedback tool.
+In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update or a price tip, pause live data, or **Reset app**. Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
+
+Usage (day by day) and the electricity price (Past months) can go back a year: use the arrows, or drag the chart sideways. Months logged from a bill only have a monthly total, so their daily split is estimated from the household's usual pattern and marked as such.
 
 The gamification rules V2 implements are written up in [GAMIFICATION.md](GAMIFICATION.md).
 
 ## The call from Thomas and the feedback tool (V2)
 
-After about three minutes of use (time with the page visible), the phone rings: an incoming call from Thomas, with a ringtone, vibration and the phone frame buzzing. Accepting plays his recorded message (`src/v2/assets/thomas-call.wav`, 16 kHz mono, embedded in the build). At 11 seconds the feedback tool appears with a spotlight while the call screen stays up until the call ends; the spotlight fades when the recording ends. Declining opens the feedback tool straight away. Declining or missing the call also leaves a "Call back" notification, and he tries once more two minutes later.
+The **Feedback** button is always in the bottom-right corner, from the first onboarding screen on, so visitors can comment before they have set anything up. Thomas's call points it out. After about three minutes of use (time with the page visible), the phone rings: an incoming call from Thomas, with a ringtone, vibration and the phone frame buzzing. Accepting plays his recorded message (`src/v2/assets/thomas-call.wav`, 16 kHz mono, embedded in the build). At 11 seconds the feedback panel opens with a spotlight while the call screen stays up until the call ends; the spotlight fades when the recording ends. Declining opens the feedback panel straight away. Declining or missing the call also leaves a "Call back" notification, and he tries once more two minutes later.
 
 The feedback tool lets visitors press **Comment on something** (or `C`), click any element in the phone, and leave a note: change this text to ..., a bug, an idea or "remove this". Comments are filed under the page or sheet the visitor is on, pinned to their element, and listed per page in the panel, which sits in the top-right corner under the prototype gear while the phone stays centred. On narrower screens the panel becomes a drawer (closed until opened) or a bottom sheet.
 

@@ -15,7 +15,7 @@
   const FALLBACK_LENGTH = 23.25;
   const CALLER = { name: 'Thomas', initial: 'T', sub: 'mobile' };
 
-  const fresh = () => ({ used: 0, status: 'waiting', unlocked: false, attempts: 0, missedAt: 0 });
+  const fresh = () => ({ used: 0, status: 'waiting', attempts: 0, missedAt: 0 });
   let st = fresh();
   try { st = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY) || '{}')); } catch { /* storage unavailable */ }
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch { /* ignore */ } };
@@ -90,7 +90,7 @@
     const opts = { icon: 'PhoneMissed', text: `<b>Missed call</b> · ${CALLER.name}`, sub: 'Tap to call back', sound: 'notify', onTap: () => callBack() };
     if (window.PowerBuddy) PowerBuddy.note({ kind: 'call', icon: 'PhoneMissed', title: `Missed call from ${CALLER.name}`, body: declined ? 'You declined. He wanted to show you something in the app.' : 'He wanted to show you something in the app.', action: 'callback' }, opts);
     // Declining skips the message, so the feedback tool opens fully straight away.
-    if (declined) { st.unlocked = true; save(); setTimeout(() => { if (window.PBFeedback) PBFeedback.reveal({ open: true, spotlight: true, brief: true }); }, 350); }
+    if (declined) setTimeout(() => { if (window.PBFeedback) PBFeedback.reveal({ open: true, spotlight: true, brief: true }); }, 350);
   }
 
   /* ---------- the call ---------- */
@@ -153,7 +153,7 @@
   }
   /* 11 s in: the feedback tool appears beside the phone with a spotlight. The call screen stays up until the call ends. */
   function cue() {
-    cued = true; st.unlocked = true; save();
+    cued = true;
     if (window.PBFeedback) PBFeedback.reveal({ spotlight: true });
   }
   function minimize() {
@@ -183,7 +183,7 @@
     if (audio) { audio.pause(); audio = null; }
     analyser = null; freq = null;
     fx('hangup');
-    st.status = 'done'; st.unlocked = true; save();
+    st.status = 'done'; save();
     setBody('');
     if (minimized) {
       island.classList.add('ended');
@@ -236,26 +236,14 @@
     else if (st.status === 'missed' && st.attempts < 2 && st.used - st.missedAt >= RETRY_AFTER) ring();
   }, 1000);
 
-  // A call that was accepted earlier (even if the page was reloaded mid-call) keeps the tool unlocked.
-  if (st.status === 'done' && !st.unlocked) { st.unlocked = true; save(); }
-
-  /* ---------- prototype menu ---------- */
-  const base = window.PB_PROTOTYPE && window.PB_PROTOTYPE.actions;
-  if (window.PB_PROTOTYPE) {
-    window.PB_PROTOTYPE.actions = () => {
-      const left = Math.max(0, RING_AFTER - st.used) / 1000;
-      return [...(base ? base() : []),
-        { label: `Get the call from ${CALLER.name} now`, hint: st.status === 'waiting' ? `Otherwise it rings after 3 minutes of use (${mmss(left)} left)` : 'Rings the phone again', run: () => { if (!phase) ring(); } },
-        { label: 'Reset the call and feedback tool', hint: 'Locks the tool again and restarts the 3-minute timer. Comments are kept.', run: () => { reset(); } }];
-    };
-  }
+  /* Reset app starts the visit over, so the call comes again after 3 minutes of use. */
   function reset() {
     stopRinging(); cancelAnimationFrame(raf);
     if (audio) { audio.pause(); audio = null; }
+    if (window.PBFeedback) PBFeedback.endSpotlight();
     phase = null; minimized = false; cued = false; setBody(''); root.hidden = true; resetIsland();
     st = fresh(); save();
-    if (window.PBFeedback) PBFeedback.lock();
   }
 
-  window.PBCall = { busy: () => phase === 'incoming' || phase === 'outgoing' || phase === 'active', ring, callBack, unlocked: () => st.unlocked, state: () => ({ ...st, phase, minimized, cued }) };
+  window.PBCall = { busy: () => phase === 'incoming' || phase === 'outgoing' || phase === 'active', ring, callBack, reset, state: () => ({ ...st, phase, minimized, cued }) };
 })();

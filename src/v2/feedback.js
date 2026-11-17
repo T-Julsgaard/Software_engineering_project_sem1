@@ -1,11 +1,11 @@
 /* PowerBuddy V2 feedback tool.
-   Unlocked by Thomas's call. Visitors click "Comment on something", then click any element in the
+   Always available behind its Feedback button; Thomas's call points it out. Visitors click "Comment on something", then click any element in the
    phone and leave a note (for example "change this text to ..."). Comments are filed per page and
    pinned to their element. Stored in this browser for now through a small adapter, so an online
    store (Supabase) can replace it later without touching the UI. Exposes window.PBFeedback. */
 (() => {
   'use strict';
-  const LS = { comments: 'pb.v2.feedback.comments', author: 'pb.v2.feedback.author', open: 'pb.v2.feedback.open', unlocked: 'pb.v2.feedback.unlocked', session: 'pb.v2.feedback.session' };
+  const LS = { comments: 'pb.v2.feedback.comments', author: 'pb.v2.feedback.author', open: 'pb.v2.feedback.open', session: 'pb.v2.feedback.session' };
   const read = (k, d) => { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } };
   const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage unavailable */ } };
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
@@ -55,8 +55,9 @@
 
   /* ---------- state ---------- */
   const S = {
-    unlocked: !!read(LS.unlocked, false) || !!(window.PBCall && PBCall.unlocked()),
-    open: read(LS.open, true), mode: 'idle', filter: 'page', comments: [], page: appPage(),
+    // Always available, from the first onboarding screen. Starts behind its button until opened or until Thomas's call reveals it.
+    unlocked: true,
+    open: read(LS.open, false), mode: 'idle', filter: 'page', comments: [], page: appPage(),
     hover: null, hoverTrail: [], target: null, targetEl: null, editing: null, type: 'other', spotlight: false, flashId: null, undo: null
   };
 
@@ -378,7 +379,6 @@
 
   /* ---------- spotlight (during Thomas's call) ---------- */
   function reveal({ spotlight = false, brief = false, open = false } = {}) {
-    S.unlocked = true; write(LS.unlocked, true);
     // On wide screens the panel opens itself. On smaller ones it would cover the app, so it waits behind its button,
     // unless asked to open (the call was declined, so nothing else is on screen).
     if (open || layout() === 'dock') { S.open = true; write(LS.open, true); panel.classList.remove('fbx-enter'); void panel.offsetWidth; panel.classList.add('fbx-enter'); }
@@ -548,10 +548,8 @@
   addEventListener('resize', () => applyLayout());
   setInterval(() => { if (S.unlocked && S.mode === 'idle') renderList(); }, 60000); // keeps "2 min ago" fresh
 
-  function lock() { stopPick(); closePop(false); endSpotlight(); S.unlocked = false; write(LS.unlocked, false); el.pins.innerHTML = ''; pinEls.clear(); applyLayout(); }
-
   window.PBFeedback = {
-    reveal, endSpotlight, lock,
+    reveal, endSpotlight,
     isBusy: () => S.mode !== 'idle',
     setStore(adapter) { store = adapter; return load(); },
     comments: () => S.comments.slice()

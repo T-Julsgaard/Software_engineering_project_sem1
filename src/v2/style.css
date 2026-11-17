@@ -508,3 +508,15 @@ div.row.note.unread{cursor:pointer}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
 }
+
+/* ---------- earlier months (usage and prices) ---------- */
+.month-nav{display:flex;align-items:center;gap:6px;margin:-6px -8px 10px}
+.month-nav .icon-btn{width:38px;height:38px}
+.month-nav .icon-btn:disabled{opacity:.28;pointer-events:none}
+.month-label{flex:1;min-width:0;text-align:center;line-height:1.25}
+.month-label b{display:block;font-size:15px;font-weight:650}
+.month-label span{font-size:12px;color:var(--muted)}
+[data-swipe]{touch-action:pan-y;overflow:hidden}
+[data-swipe] .swipe-track{cursor:grab;-webkit-user-select:none;user-select:none}
+[data-swipe].dragging .swipe-track{cursor:grabbing}
+[data-swipe] .alert{margin:10px 0 0}

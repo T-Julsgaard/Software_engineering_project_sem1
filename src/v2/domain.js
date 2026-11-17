@@ -202,6 +202,21 @@ const PBD = (() => {
     const k = key(resource);
     return sum(Object.keys(s.days).filter((d) => d.startsWith(m)).map((d) => s.days[d][k])) + (m === thisMonth(s) ? todaySoFar(s, resource) : 0);
   }
+  /* Day by day for an earlier month. Meter days where we have them; otherwise the logged monthly total
+     spread over its days in the household's usual daily pattern (an estimate, marked 'split'). */
+  function monthDays(s, resource, m) {
+    const k = key(resource), days = Array.from({ length: daysIn(m) }, (_, i) => `${m}-${String(i + 1).padStart(2, '0')}`);
+    if (days.some((d) => s.days[d])) return { source: 'meter', days, values: days.map((d) => (s.days[d] ? s.days[d][k] : null)) };
+    const total = s.months[m] && s.months[m][k];
+    if (!total) return { source: null, days, values: days.map(() => null) };
+    const w = days.map((d) => dayValue(s, resource, d)), sw = sum(w);
+    return { source: 'split', days, values: w.map((x) => x / sw * total) };
+  }
+  /* One day's prices in brief: average, cheapest and priciest hour. */
+  function priceDay(s, day) {
+    const list = prices(s, day), lo = Math.min(...list), hi = Math.max(...list);
+    return { avg: sum(list) / 24, min: lo, max: hi, minH: list.indexOf(lo), maxH: list.indexOf(hi) };
+  }
   function recentDaily(s, resource) {
     const k = key(resource), last = Object.keys(s.days).sort().slice(-7);
     return last.length ? sum(last.map((d) => s.days[d][k])) / last.length : typicalMonth(s.profile, resource, thisMonth(s)) / daysIn(thisMonth(s)) * s.profile.level;
@@ -812,8 +827,8 @@ const PBD = (() => {
     VERSION, KEY, REGIONS, HOUSING, HEATING, HOT_WATER, APPLIANCES, CHALLENGES, REWARDS, PRIZES, PARTNER_TEST, BADGES, FRIENDS, DIRECTORY, CO2_PER_KWH, DEMO_PROFILE,
     helpers: { ymd, mkey, addMonths, addDays, daysIn, monthName, round, clamp, sum, rng, hash, parseDay, hourOf },
     now, today, thisMonth, estimate, typicalMonth, describeHome, persons,
-    prices, tomorrowReady, greenHours, priceLevel, priceAt, bestStart,
-    sync, dayValue, todaySoFar, monthSoFar, projected, monthValue, usual, change, vsTypical, rate, cost, liveWatts, cumShare,
+    prices, tomorrowReady, greenHours, priceLevel, priceAt, bestStart, priceDay,
+    sync, dayValue, monthDays, todaySoFar, monthSoFar, projected, monthValue, usual, change, vsTypical, rate, cost, liveWatts, cumShare,
     available, lifetime, award, note, post, validateReading, logReading, loggedStreak,
     recommendations, setRec, efficient, goalPoints, goalProgress, createGoal, goalLabel, goalMonths,
     tplOf, isActive, joinChallenge, checkIn, canCheckIn, challengeProgress, participants, teamReduction,
