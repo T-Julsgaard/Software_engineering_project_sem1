@@ -652,11 +652,13 @@ body.fbx-pickmode .fbx-picking-note{display:flex}
 .fbx-group-head span{font-size:11.5px;color:var(--fb);font-weight:600}
 .fbx-group-head button{display:inline-flex;align-items:center;gap:2px;border:0;background:none;color:var(--fb);font-size:12.5px;font-weight:600;padding:2px 0}
 .fbx-foot{border-top:1px solid #EEF0EC;padding:12px 16px 14px;background:#FCFCFA}
-.fbx-name span{display:block;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:5px}
+.fbx-name-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px}
+.fbx-name label{font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .fbx-name input{width:100%;height:36px;padding:0 10px;border:1px solid var(--line-2);border-radius:9px;font-size:13.5px;background:#fff}
 .fbx-name input:focus{outline:2px solid var(--fb);outline-offset:-1px;border-color:var(--fb)}
-.fbx-foot-row{display:flex;align-items:center;gap:4px;margin-top:9px}
-.fbx-saved{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--muted);margin-right:auto}
+.fbx-foot-row{display:flex;align-items:center;gap:4px;margin:9px -8px 0}
+.fbx-foot-row [data-fb="copy"]{margin-right:auto}
+.fbx-saved{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--muted)}
 .fbx-foot-row button{display:inline-flex;align-items:center;gap:5px;border:0;background:none;padding:5px 8px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink-2)}
 .fbx-foot-row button:hover{background:var(--sunken)}
 .fbx-snack{position:absolute;left:14px;right:14px;bottom:124px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-radius:12px;background:#1C2722;color:#fff;font-size:13px;box-shadow:0 10px 24px #0003}
@@ -3361,8 +3363,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
       <div class="fbx-list" role="list"></div>
     </div>
     <footer class="fbx-foot">
-      <label class="fbx-name"><span>Your name</span><input type="text" data-fb-input="author" maxlength="40" placeholder="Optional, shown with your comments" autocomplete="name"></label>
-      <div class="fbx-foot-row"><span class="fbx-saved">${icon('ShieldCheck', 'xs')}Saved in this browser</span><button type="button" data-fb="copy">${icon('Copy', 'xs')}Copy</button><button type="button" data-fb="export">${icon('Download', 'xs')}Export</button></div>
+      <div class="fbx-name"><div class="fbx-name-row"><label for="fbx-author">Your name</label><span class="fbx-saved">${icon('ShieldCheck', 'xs')}Saved in this browser</span></div><input type="text" id="fbx-author" data-fb-input="author" maxlength="40" placeholder="Optional, shown with your comments" autocomplete="name"></div>
+      <div class="fbx-foot-row"><button type="button" data-fb="copy" title="Copy all comments as text">${icon('Copy', 'xs')}Copy all</button><button type="button" data-fb="export-csv" title="Download for Excel or Google Sheets">${icon('Download', 'xs')}CSV</button><button type="button" data-fb="export" title="Download everything as JSON">${icon('Download', 'xs')}JSON</button></div>
     </footer>
     <div class="fbx-snack" role="status" aria-live="polite" hidden></div>`;
 
@@ -3469,7 +3471,35 @@ if (typeof module !== 'undefined') module.exports = PBD;
   function textOf(n) {
     if (/INPUT|TEXTAREA/.test(n.tagName)) return squash(n.value || n.placeholder || n.getAttribute('aria-label'));
     if (n.tagName === 'SELECT') return squash(n.options[n.selectedIndex] ? n.options[n.selectedIndex].text : '');
-    return squash(n.getAttribute('aria-label') && !n.innerText.trim() ? n.getAttribute('aria-label') : n.innerText || n.textContent).slice(0, 160);
+    return squash(n.getAttribute('aria-label') && !(n.innerText || '').trim() ? n.getAttribute('aria-label') : n.innerText || n.textContent).slice(0, 300);
+  }
+  const firstLine = (n) => squash(String(n.innerText || n.textContent || '').split('\n').find((l) => l.trim()) || '').slice(0, 80);
+  /* Readable "where": the cards, sections and sheets around the element, named by their first line (outermost first). */
+  function areaOf(n, own) {
+    const names = [];
+    for (let x = n.parentElement; x && x !== phone && phone.contains(x); x = x.parentElement) {
+      if (!x.matches('.card, section, header, nav, form, .sheet, .ob-body, .welcome')) continue;
+      const name = firstLine(x);
+      if (name && name !== own && !names.includes(name)) names.unshift(name);
+    }
+    return names.slice(-2).join(' › ');
+  }
+  /* The text right around the element, for short labels like "+11%" or "in use right now" that need their row to make
+     sense: grows outwards while it stays short, and stops at the row, button or list item that holds the element. */
+  function nearbyOf(n, own) {
+    let best = '';
+    for (let x = n.parentElement, i = 0; x && x !== phone && phone.contains(x) && i < 4; x = x.parentElement, i++) {
+      const t = squash(x.innerText || x.textContent);
+      if (t.length > 160) break;
+      if (t !== own) best = t;
+      if (x.matches('button, a, li, label, tr, [role="button"], [role="switch"], [role="listitem"]')) break;
+    }
+    return best;
+  }
+  /* Where it sat in the phone screen, in CSS pixels, at the scroll position it was picked at. */
+  function boxOf(n) {
+    const r = n.getBoundingClientRect(), p = phone.getBoundingClientRect(), R = Math.round;
+    return { x: R(r.left - p.left), y: R(r.top - p.top), w: R(r.width), h: R(r.height), screenW: R(p.width), screenH: R(p.height) };
   }
   function kindOf(n) {
     const t = n.tagName.toLowerCase();
@@ -3483,7 +3513,15 @@ if (typeof module !== 'undefined') module.exports = PBD;
     if ([...n.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim())) return 'Text';
     return 'Block';
   }
-  function describe(n) { const scope = scopeOf(n); return { selector: cssPath(n, scope), scope, tag: n.tagName.toLowerCase(), kind: kindOf(n), text: textOf(n) }; }
+  function describe(n) {
+    const scope = scopeOf(n), text = textOf(n);
+    return { selector: cssPath(n, scope), scope, tag: n.tagName.toLowerCase(), kind: kindOf(n), text };
+  }
+  /* Extra detail saved with a new comment (not used to find the element again). */
+  function details(n) {
+    const text = textOf(n), cls = typeof n.className === 'string' ? squash(n.className) : (n.getAttribute('class') || '');
+    return { area: areaOf(n, text) || null, nearby: nearbyOf(n, text) || null, ariaLabel: n.getAttribute('aria-label') || null, classes: cls || null, box: boxOf(n) };
+  }
   /* Find a comment's element again after the app re-renders: exact path and text first, then the same text anywhere nearby, then the path alone (live numbers change). */
   function resolve(c) {
     let byPath = null;
@@ -3594,7 +3632,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
   async function post() {
     if (!S.target || !validate()) return;
     const f = readFields(el.pop), page = S.page, now = new Date().toISOString();
-    const c = { id: uid(), page: page.key, pageLabel: page.label, ...S.target, type: f.type, changeTo: f.changeTo || null, body: f.body || null, author: squash(el.author.value) || null, createdAt: now, updatedAt: now, session: SESSION, app: 'powerbuddy-v2', viewport: `${innerWidth}x${innerHeight}`, status: 'open' };
+    const n = S.targetEl && S.targetEl.isConnected ? S.targetEl : resolve(S.target), more = n ? details(n) : {};
+    const c = { id: uid(), page: page.key, pageLabel: page.label, pageBase: page.base || null, ...S.target, ...more, type: f.type, changeTo: f.changeTo || null, body: f.body || null, author: squash(el.author.value) || null, createdAt: now, updatedAt: now, session: SESSION, app: 'powerbuddy-v2', viewport: `${innerWidth}x${innerHeight}`, status: 'open' };
     await store.add(c);
     S.comments.push(c); S.flashId = c.id;
     fx('send'); if (window.PBFX) PBFX.vibrate(12);
@@ -3731,15 +3770,58 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
 
   /* ---------- export ---------- */
-  function asText() {
-    const groups = new Map();
-    for (const c of S.comments) { if (!groups.has(c.pageLabel)) groups.set(c.pageLabel, []); groups.get(c.pageLabel).push(c); }
-    return [...groups].map(([label, list]) => `${label}\n` + list.map((c, i) => `  ${i + 1}. [${typeName(c.type)}] ${c.kind}${c.text ? ` "${short(c.text, 60)}"` : ''}${c.changeTo ? ` -> "${c.changeTo}"` : ''}${c.body ? `\n     ${c.body}` : ''}${c.author ? `\n     (${c.author})` : ''}`).join('\n')).join('\n\n');
+  /* All three formats carry the comment (type, new wording, text, author, time) and what was selected
+     (page, element type, its text, the card it sits in, the text around it, its place on screen, and a selector).
+     The number (#) is the same as the comment's pin number on its page. */
+  const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
+  const boxText = (b) => (b ? `x ${b.x}, y ${b.y}, ${b.w}×${b.h} px (screen ${b.screenW}×${b.screenH})` : '');
+  function numbered() {
+    const seen = new Map();
+    return [...S.comments].sort((a, b) => a.createdAt.localeCompare(b.createdAt)).map((c) => { const n = (seen.get(c.page) || 0) + 1; seen.set(c.page, n); return { n, c }; });
   }
-  function download() {
-    const blob = new Blob([JSON.stringify({ app: 'powerbuddy-v2', exportedAt: new Date().toISOString(), comments: S.comments }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `powerbuddy-feedback-${new Date().toISOString().slice(0, 10)}.json`;
+  function asText() {
+    const rows = numbered(), groups = new Map();
+    for (const r of rows) { if (!groups.has(r.c.pageLabel)) groups.set(r.c.pageLabel, []); groups.get(r.c.pageLabel).push(r); }
+    const head = `PowerBuddy feedback: ${rows.length} comment${rows.length === 1 ? '' : 's'}, copied ${when(new Date().toISOString())}`;
+    return head + '\n\n' + [...groups].map(([label, list]) => `${label}\n` + list.map(({ n, c }) => [
+      `  #${n} ${typeName(c.type)} on ${c.kind}${c.text ? ` "${c.text}"` : ' (no text)'}`,
+      c.area ? `     In: ${c.area}` : '',
+      c.nearby ? `     Around it: "${c.nearby}"` : '',
+      c.changeTo ? `     Change the text to: "${c.changeTo}"` : '',
+      c.body ? `     Comment: ${c.body}` : '',
+      `     ${c.author ? `By ${c.author}, ` : ''}${when(c.createdAt)}`
+    ].filter(Boolean).join('\n')).join('\n\n')).join('\n\n');
+  }
+  const CSV_COLS = [
+    ['#', (n) => n], ['Page', (n, c) => c.pageLabel], ['Comment type', (n, c) => typeName(c.type)], ['Comment', (n, c) => c.body], ['Change text to', (n, c) => c.changeTo],
+    ['Selected element', (n, c) => c.kind], ['Selected text', (n, c) => c.text], ['In (card / section)', (n, c) => c.area], ['Text around it', (n, c) => c.nearby],
+    ['Author', (n, c) => c.author], ['Created', (n, c) => when(c.createdAt)], ['Edited', (n, c) => (c.updatedAt && c.updatedAt !== c.createdAt ? when(c.updatedAt) : '')],
+    ['Position on screen', (n, c) => boxText(c.box)], ['Viewport', (n, c) => c.viewport], ['Page key', (n, c) => c.page], ['Opened from', (n, c) => c.pageBase],
+    ['Element tag', (n, c) => c.tag], ['Aria label', (n, c) => c.ariaLabel], ['Classes', (n, c) => c.classes], ['Selector', (n, c) => c.selector],
+    ['Comment ID', (n, c) => c.id], ['Session', (n, c) => c.session]
+  ];
+  /* Semicolons, a byte-order mark and CRLF so Excel with Danish (and most European) settings opens it in columns with æ, ø and å intact.
+     Cells that start like a formula are prefixed with ' so Excel shows them as text (plain values like "+11%" are left alone). */
+  function asCSV() {
+    const formula = (s) => /^[=@\t\r]/.test(s) || (/^[+-]/.test(s) && !/^[+-][\d\s.,%]*$/.test(s));
+    const cell = (v) => { let s = v == null ? '' : String(v); if (formula(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+    const lines = [CSV_COLS.map(([h]) => cell(h)).join(';'), ...numbered().map(({ n, c }) => CSV_COLS.map(([, f]) => cell(f(n, c))).join(';'))];
+    return '﻿' + lines.join('\r\n') + '\r\n';
+  }
+  function fileName(ext) {
+    const who = squash(el.author.value).toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24);
+    return `powerbuddy-feedback-${who ? who + '-' : ''}${new Date().toISOString().slice(0, 10)}.${ext}`;
+  }
+  function download(name, text, type) {
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
     document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  function exportAs(kind) {
+    if (!S.comments.length) { snack('No comments to export yet'); return; }
+    if (kind === 'csv') { download(fileName('csv'), asCSV(), 'text/csv;charset=utf-8'); snack('Downloaded as CSV'); return; }
+    const comments = numbered().map(({ n, c }) => ({ number: n, ...c }));
+    download(fileName('json'), JSON.stringify({ app: 'powerbuddy-v2', exportedAt: new Date().toISOString(), count: comments.length, comments }, null, 2), 'application/json');
+    snack('Downloaded as JSON');
   }
 
   /* ---------- events ---------- */
@@ -3769,8 +3851,13 @@ if (typeof module !== 'undefined') module.exports = PBD;
     else if (a === 'delete') remove(b.dataset.id);
     else if (a === 'undo') undo();
     else if (a === 'goto') { if (window.PowerBuddy && PowerBuddy.navigate(b.dataset.page)) { S.filter = 'page'; fx('tap'); } }
-    else if (a === 'export') { download(); snack('Downloaded as JSON'); }
-    else if (a === 'copy') { navigator.clipboard.writeText(asText() || 'No comments yet.').then(() => snack('Copied all comments'), () => snack('Copy is blocked here. Use Export.')); }
+    else if (a === 'export') exportAs('json');
+    else if (a === 'export-csv') exportAs('csv');
+    else if (a === 'copy') {
+      if (!S.comments.length) { snack('No comments to copy yet'); return; }
+      const done = () => snack('Copied all comments'), fail = () => snack('Copy is blocked here. Use CSV or JSON.');
+      try { navigator.clipboard.writeText(asText()).then(done, fail); } catch { fail(); }
+    }
   }, true);
   el.list.addEventListener('click', (e) => { const it = e.target.closest('.fbx-item'); if (!it || e.target.closest('button, input, textarea') || it.classList.contains('editing')) return; focusComment(it.dataset.id); });
   el.list.addEventListener('keydown', (e) => { const it = e.target.closest('.fbx-item'); if (it && e.target === it && e.key === 'Enter') focusComment(it.dataset.id); });
@@ -3834,7 +3921,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
     reveal, endSpotlight,
     isBusy: () => S.mode !== 'idle',
     setStore(adapter) { store = adapter; return load(); },
-    comments: () => S.comments.slice()
+    comments: () => S.comments.slice(),
+    exportText: asText, exportCSV: asCSV
   };
   if (S.unlocked) { if (layout() !== 'dock') S.open = false; applyLayout(); load(); }
 })();
