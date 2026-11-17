@@ -39,28 +39,58 @@
   function save() { try { if (s) localStorage.setItem(P.KEY, JSON.stringify(s)); else localStorage.removeItem(P.KEY); } catch { /* storage unavailable: keep running in memory */ } }
   let s = load();
   const OB_DEFAULT = () => ({ name: '', region: 'capital', housing: 'apartment', area: 70, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv'], payment: 'bills', billE: '', billW: '', sample: true, terms: false, data: false });
-  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', usageRange: 'month', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, spark: [], spike: null, fresh: new Set(), toasts: [], lastDay: null, nextEvent: Date.now() + 9000, nextCheer: Date.now() + 26000, nextSpike: Date.now() + 15000 };
-  if (s) P.sync(s);
+  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', usageRange: 'month', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, spark: [], spike: null, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, nextSpike: Date.now() + 15000, sheetToken: 0 };
+  if (s) { P.ensureNotify(s); P.sync(s); }
 
   /* ---------- render ---------- */
+  const TAB_ORDER = ['home', 'usage', 'plan', 'goals', 'friends'];
+  const PAGE_DEPTH = { profile: 1, settings: 2 };
+  /* How the screen should animate in, given where we were: push/pop for pages, slide for tabs. */
+  function navMotion(prev, next) {
+    if (!prev) return 'fade';
+    if (prev.page !== next.page) return (PAGE_DEPTH[next.page] || 0) > (PAGE_DEPTH[prev.page] || 0) ? 'push' : 'pop';
+    if (prev.tab !== next.tab) return TAB_ORDER.indexOf(next.tab) > TAB_ORDER.indexOf(prev.tab) ? 'right' : 'left';
+    return 'fade';
+  }
   function render() {
     const app = $('#app');
-    if (!s) { app.innerHTML = viewOnboarding(); focusOb(); return; }
+    if (!s) {
+      const obKey = 'ob' + (ui.ob ? ui.ob.step : '');
+      app.innerHTML = viewOnboarding();
+      if (obKey !== ui.lastKey) { const b = $('.ob-body, .welcome'); if (b && ui.lastKey) b.classList.add('enter', ui.ob && ui.lastObStep > ui.ob.step ? 'enter-pop' : 'enter-push'); }
+      ui.lastObStep = ui.ob ? ui.ob.step : 0; ui.lastKey = obKey;
+      focusOb(); emitRender(); return;
+    }
     const key = ui.page || ui.tab + (ui.tab === 'goals' ? ui.goalsSeg : ui.tab === 'friends' ? ui.friendsSeg : '');
-    const prev = $('#content'), top = prev ? prev.scrollTop : 0;
+    const prev = $('#content'), top = prev ? prev.scrollTop : 0, navigated = key !== ui.lastKey;
     app.innerHTML = header() + `<main class="content" id="content" tabindex="-1">${view()}</main>` + (ui.page ? '' : tabs());
-    if (key === ui.lastKey) $('#content').scrollTop = top;
-    ui.lastKey = key;
+    const content = $('#content');
+    if (!navigated) content.scrollTop = top;
+    else if (ui.lastKey) {
+      const motion = navMotion(ui.lastNav, { tab: ui.tab, page: ui.page });
+      $$(':scope > .section, :scope > .profile-head', content).forEach((el, i) => el.style.setProperty('--i', Math.min(i, 8)));
+      content.classList.add('enter', 'enter-' + motion);
+      $$('.chart', content).forEach((c) => c.classList.add('grow'));
+      if (motion === 'push' || motion === 'pop') { const t = $('.top-title'); if (t) t.classList.add('enter-title'); }
+      const cur = $('.tab[aria-current="page"]'); if (cur && (motion === 'left' || motion === 'right')) cur.classList.add('just');
+      setTimeout(() => content.classList.remove('enter', 'enter-' + motion), 950);
+    }
+    ui.lastKey = key; ui.lastNav = { tab: ui.tab, page: ui.page };
     ui.fresh.clear();
-    bindCharts($('#content'));
+    bindCharts(content);
     updateLive();
+    emitRender();
   }
+  /* Lets the prototype layers (call, feedback tool) follow page changes. */
+  function emitRender() { document.dispatchEvent(new CustomEvent('pb:render')); }
   function view() {
     if (ui.page === 'profile') return viewProfile();
+    if (ui.page === 'settings') return viewSettings();
     return { home: viewHome, usage: viewUsage, plan: viewPlan, goals: viewGoals, friends: viewFriends }[ui.tab]();
   }
   function header() {
-    if (ui.page === 'profile') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Profile</h1><p>Visible to your friends: name, badges and progress</p></div></header>`;
+    if (ui.page === 'profile') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Profile</h1><p>Visible to your friends: name, badges and goals</p></div><button class="icon-btn" data-a="settings" aria-label="Settings">${ic('Settings')}</button></header>`;
+    if (ui.page === 'settings') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Settings</h1><p>Notifications, privacy and your household</p></div></header>`;
     const region = P.REGIONS.find((r) => r.id === s.profile.region);
     const t = {
       home: [`${s.profile.name}'s home`, `${region.name} · price area ${region.area}`],
@@ -92,8 +122,8 @@
     const m = P.thisMonth(s), n = P.now(s), dim = H.daysIn(m), dayN = n.getDate();
     const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m), vt = P.vsTypical(s, 'electricity', m);
     const live = `<section class="section"><div class="card live ${s.live ? '' : 'paused'}">
-      <div class="live-head"><span class="pulse"></span>${s.live ? 'Live' : 'Paused'}<span class="muted" style="font-weight:450">· simulated meter</span></div>
-      <div class="live-main"><div><div class="big-num num"><span data-live="watts">–</span><small>W</small></div><div class="small muted">in use right now<span class="spike" data-live="spike"></span></div></div>
+      <div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Current household power consumption</span><span class="sr-only">${s.live ? '(live)' : '(paused)'}</span>${s.live ? '' : '<span class="tag">Paused</span>'}</div>
+      <div class="live-main"><div><div class="big-num num"><span data-live="watts">–</span><small>W</small></div><div class="small muted live-sub">in use right now</div></div>
       <svg class="spark" data-live="spark" viewBox="0 0 150 52" preserveAspectRatio="none" aria-hidden="true"></svg></div>
       <div class="live-stats">
         <div><span>Today</span><b class="num" data-live="todayE">–</b> <em>kWh</em></div>
@@ -118,14 +148,8 @@
       if (rec) todo = `<section class="section"><div class="card todo"><span class="chip-icon ${rec.resource === 'water' ? 'water' : 'elec'}">${ic(rec.icon)}</span><div style="flex:1"><h3>${esc(rec.title)}</h3><p>${savingText(rec)}</p>
         <div class="btn-row"><button class="btn secondary small" data-a="tab" data-tab="plan">See ideas for your home</button></div></div></div></section>`;
     }
-    const goals = s.goals.filter((g) => g.status === 'active');
-    const chs = s.ch.filter((c) => c.joined && P.isActive(s, c));
-    const progress = goals.length || chs.length ? `<section class="section">${sectionHead('In progress', `<button class="link" data-a="tab" data-tab="goals">All goals</button>`)}
-      <div class="list">${goals.map(goalRow).join('')}${chs.map(challengeRow).join('')}</div></section>`
-      : `<section class="section"><div class="card todo"><span class="chip-icon brand">${ic('Target')}</span><div style="flex:1"><h3>Set a goal for ${H.monthName(m)}</h3><p>Pick how much to cut. We'll show the points it's worth.</p><div class="btn-row"><button class="btn primary small" data-a="goal">New goal</button></div></div></div></section>`;
-    const feed = visibleFeed().filter((f) => f.actor !== 'me').slice(0, 2);
-    const friends = feed.length ? `<section class="section">${sectionHead('From friends', `<button class="link" data-a="tab" data-tab="friends">Open feed</button>`)}<div class="list">${feed.map(feedItem).join('')}</div></section>` : '';
-    return live + month + todo + progress + friends;
+    // Kept deliberately short: goals, challenges and the friends feed live in their own tabs.
+    return live + month + todo;
   }
   function savingText(r) {
     if (r.costOnly) return `Saves about ${kr(r.saveKr)} a month. Same energy, lower price.`;
@@ -169,8 +193,8 @@
     bars.forEach((b, i) => {
       const x = padL + i * slot + (slot - bw) / 2;
       if (b.missing) g += `<rect class="bar-missing" x="${x + 0.5}" y="${y(max * 0.3)}" width="${bw - 1}" height="${y(0) - y(max * 0.3)}" rx="3"/>`;
-      if (b.proj && b.proj > (b.value || 0)) g += `<path class="${b.cls} bar-proj" d="${topRounded(x, y(b.proj), bw, y(0) - y(b.proj), 4)}"/>`;
-      if (b.value) g += `<path class="${b.cls}" d="${topRounded(x, y(b.value), bw, y(0) - y(b.value), 4)}"/>`;
+      if (b.proj && b.proj > (b.value || 0)) g += `<path class="${b.cls} bar-proj" style="--bi:${i}" d="${topRounded(x, y(b.proj), bw, y(0) - y(b.proj), 4)}"/>`;
+      if (b.value) g += `<path class="${b.cls}" style="--bi:${i}" d="${topRounded(x, y(b.value), bw, y(0) - y(b.value), 4)}"/>`;
       if (b.label) g += `<text class="axis-text" x="${x + bw / 2}" y="${height - 5}" text-anchor="middle">${esc(b.label)}</text>`;
     });
     if (typs.length === 1) g += `<line class="typical" x1="${padL}" x2="${W}" y1="${y(typs[0])}" y2="${y(typs[0])}"/>`;
@@ -376,15 +400,32 @@
   function viewProfile() {
     const pinned = P.BADGES.filter((b) => s.badges[b.id] && s.badges[b.id].pinned);
     const earned = Object.keys(s.badges).length;
-    const priv = [['feed', 'Show my activity in friends\' feeds', 'Goals, challenges and badges. Never numbers.'], ['percent', 'Share % change with friends', 'Used for the ranking and comparisons.'], ['exact', 'Share exact usage per person', 'Only shown to friends who share theirs too.'], ['league', "Appear in Friends' league invites", 'Friends can add you to their team.']];
     return `<div class="profile-head">${avatar('me', 'lg')}<h2>${esc(s.profile.name)}</h2><p>${esc(P.describeHome(s.profile))}</p>
         ${pinned.length ? `<div class="pinned">${pinned.map((b) => `<span class="medal" title="${esc(b.name)}">${ic(b.icon)}</span>`).join('')}</div>` : ''}</div>
       <section class="section"><div class="card"><div class="share"><div style="flex:1"><span class="small muted">Your friend code</span><div class="num" style="font-size:22px;font-weight:700;letter-spacing:.04em">${esc(s.profile.code)}</div><p class="hint">Friends add you with this code. Friendship is mutual: nothing is shared until you both accept.</p></div></div><div class="btn-row"><button class="btn secondary small" data-a="copy-code">${ic('Copy', 'sm')}Copy</button><button class="btn secondary small" data-a="share">${ic('QrCode', 'sm')}Show QR</button></div></div></section>
       <section class="section"><div class="stats"><div><span>Points earned</span><b class="num">${fmt(P.lifetime(s))}</b></div><div><span>Months logged</span><b class="num">${Object.keys(s.months).length}</b></div><div><span>Goals reached</span><b class="num">${s.goals.filter((g) => g.status === 'reached').length}</b></div><div><span>Challenges done</span><b class="num">${challengesDone()}</b></div></div></section>
       <section class="section">${sectionHead('Badges', `${earned} of ${P.BADGES.length}`)}<div class="card"><div class="badges">${[...P.BADGES].sort((a, b) => !!s.badges[b.id] - !!s.badges[a.id]).map(badgeTile).join('')}</div><p class="hint" style="margin-top:8px">Tap a badge to see how it's earned. Pin up to three to the top of your profile.</p></div></section>
       <section class="section">${sectionHead('Household', `<button class="link" data-a="household">Edit</button>`)}<div class="list"><div class="row"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">${esc(P.HOUSING.find((h) => h.id === s.profile.housing).name)}, ${s.profile.area} m²</div><div class="row-sub">${esc(P.APPLIANCES.filter((a) => s.profile.appliances.includes(a.id)).map((a) => a.name).join(', ') || 'No appliances listed')}</div></div></div></div></section>
-      <section class="section">${sectionHead('Privacy')}<div class="list">${priv.map(([k, t, d]) => `<div class="toggle-row"><div class="row-main"><div class="row-title" style="font-size:14.5px">${t}</div><div class="row-sub">${d}</div></div><button class="switch" role="switch" aria-checked="${!!s.privacy[k]}" aria-label="${t}" data-a="privacy" data-key="${k}"></button></div>`).join('')}</div><p class="hint">Bills, kroner amounts and your address are never shared.</p></section>
+      <section class="section"><div class="list"><button class="row" data-a="settings"><span class="chip-icon">${ic('Settings')}</span><div class="row-main"><div class="row-title">Settings</div><div class="row-sub">Notifications, privacy, sounds and household</div></div>${ic('ChevronRight')}</button></div></section>
       <section class="section">${sectionHead('Points history', `${fmt(P.available(s))} available`)}<div class="list">${s.ledger.slice(-12).reverse().map((l) => `<div class="ledger-row"><span>${esc(l.reason)}<span class="muted"> · ${dateShort(l.at)}</span></span><b class="num ${l.amount < 0 ? 'neg' : 'pts'}">${l.amount > 0 ? '+' : '−'}${Math.abs(l.amount)}</b></div>`).join('')}</div></section>`;
+  }
+
+  /* ---------- settings ---------- */
+  const switchBtn = (on, label, attrs) => `<button class="switch" role="switch" aria-checked="${!!on}" aria-label="${esc(label)}" ${attrs}></button>`;
+  const toggleRow = (title, sub, on, attrs, lead = '') => `<div class="toggle-row">${lead}<div class="row-main"><div class="row-title" style="font-size:14.5px">${title}</div>${sub ? `<div class="row-sub">${sub}</div>` : ''}</div>${switchBtn(on, stripTags(title), attrs)}</div>`;
+  function viewSettings() {
+    const n = s.notify, friends = P.mutualFriends(s), muted = friends.filter((f) => !P.wantsFriend(s, f.id)).length;
+    const priv = [['feed', 'Show my activity in friends\' feeds', 'Goals, challenges and badges. Never numbers.'], ['percent', 'Share % change with friends', 'Used for the ranking and comparisons.'], ['exact', 'Share exact usage per person', 'Only shown to friends who share theirs too.'], ['league', "Appear in Friends' league invites", 'Friends can add you to their team.']];
+    return `<section class="section">${sectionHead('Notifications')}<div class="list">
+        ${toggleRow('Price and saving tips', 'Cheap hours, price peaks and how your month is going', n.tips, 'data-a="notify" data-key="tips"', `<span class="chip-icon elec">${ic('Moon', 'sm')}</span>`)}
+        ${toggleRow('Cheers on your posts', 'When a friend cheers something you did', n.cheers, 'data-a="notify" data-key="cheers"', `<span class="chip-icon">${ic('Heart', 'sm')}</span>`)}
+      </div></section>
+      <section class="section">${sectionHead('From friends', friends.length ? `<button class="link" data-a="notify-all" data-on="${muted ? 1 : 0}">${muted ? 'Turn all on' : 'Turn all off'}</button>` : '')}
+        ${friends.length ? `<div class="list">${friends.map((f) => toggleRow(esc(f.name), P.wantsFriend(s, f.id) ? '' : 'Muted · still shown in your feed', P.wantsFriend(s, f.id), `data-a="notify-friend" data-id="${f.id}"`, avatar(f.id, 'sm'))).join('')}</div>` : '<div class="card empty">Add a friend to choose their notifications.</div>'}
+        <p class="hint">Muting a friend only stops their notifications. Their updates stay in your feed.</p></section>
+      <section class="section">${sectionHead('Sound')}<div class="list">${toggleRow('Sound effects', 'Taps, notifications and calls. Vibration where the phone supports it.', window.PBFX ? PBFX.enabled() : false, 'data-a="sound"', `<span class="chip-icon">${ic('Volume2', 'sm')}</span>`)}</div></section>
+      <section class="section">${sectionHead('Privacy')}<div class="list">${priv.map(([k, t, d]) => toggleRow(t, d, s.privacy[k], `data-a="privacy" data-key="${k}"`)).join('')}</div><p class="hint">Bills, kroner amounts and your address are never shared.</p></section>
+      <section class="section">${sectionHead('Household')}<div class="list"><button class="row" data-a="household"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">Edit your household</div><div class="row-sub">${esc(P.describeHome(s.profile))}</div></div>${ic('ChevronRight')}</button></div><p class="hint">Changing this updates the "homes like yours" comparison.</p></section>`;
   }
 
   /* ---------- live data ---------- */
@@ -400,18 +441,27 @@
     if (!s) return;
     const n = P.now(s), set = (k, v) => { for (const el of $$(`[data-live="${k}"]`)) if (el.textContent !== v) el.textContent = v; };
     const last = ui.spark[ui.spark.length - 1];
-    if (last !== undefined) set('watts', fmt(last));
+    if (last !== undefined) for (const el of $$('[data-live="watts"]')) tweenNum(el, last);
     set('todayE', fmt(P.todaySoFar(s, 'electricity'), 2));
     set('todayW', fmt(P.todaySoFar(s, 'water') * 1000));
     set('price', fmt(P.priceAt(s, n), 2));
     set('so-electricity', fmt(P.monthSoFar(s, 'electricity')));
     set('so-water', fmt(P.monthSoFar(s, 'water'), 1));
     const sp = $('[data-live="spark"]'); if (sp) sp.innerHTML = sparkPath(ui.spark);
-    const spike = $('[data-live="spike"]');
-    if (spike) { spike.textContent = ui.spike ? ` · ${ui.spike.name}? +${fmt(ui.spike.w / 1000, 1)} kW` : ''; spike.classList.toggle('on', !!ui.spike); }
     $('#clock').textContent = clock(n);
   }
-  const SPIKES = [{ name: 'Kettle', w: 2000, s: 40 }, { name: 'Microwave', w: 900, s: 50 }, { name: 'Hair dryer', w: 1400, s: 60 }, { name: 'Oven', w: 1800, s: 120, needs: 'cooking' }, { name: 'Washing machine heating', w: 1900, s: 90, needs: 'washer' }, { name: 'Vacuum cleaner', w: 700, s: 70 }];
+  /* Count smoothly to a new reading, like a real meter display. */
+  const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function tweenNum(el, to) {
+    const from = Number(el.dataset.v);
+    if (!Number.isFinite(from) || reduceMotion()) { el.dataset.v = to; el.textContent = fmt(to); return; }
+    el.dataset.v = to;
+    const t0 = performance.now(), dur = 700;
+    const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3; if (el.dataset.v !== String(to)) return; el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); };
+    requestAnimationFrame(step);
+  }
+  /* Short load spikes make the live number realistic. The app can't tell which appliance it is, so it doesn't say. */
+  const SPIKES = [{ w: 2000, s: 40 }, { w: 900, s: 50 }, { w: 1400, s: 60 }, { w: 1800, s: 120, needs: 'cooking' }, { w: 1900, s: 90, needs: 'washer' }, { w: 700, s: 70 }];
   function tick() {
     if (!s) return;
     const results = P.sync(s);
@@ -427,11 +477,12 @@
       }
       const w = P.liveWatts(s, P.now(s).getTime()) + (ui.spike ? ui.spike.w * (0.95 + Math.random() * 0.1) : 0);
       ui.spark.push(Math.round(w)); if (ui.spark.length > 40) ui.spark.shift();
-      if (t > ui.nextEvent) { ui.nextEvent = t + 25000 + Math.random() * 30000; friendActivity(); }
-      if (t > ui.nextCheer) { ui.nextCheer = t + 30000 + Math.random() * 40000; const c = P.friendCheers(s, Math.random); if (c) { toast({ who: c.friend.id, text: `<b>${esc(c.friend.name)}</b> cheered you`, sub: stripTags(feedText(c.item)), go: 'friends' }); softRender(); save(); } }
+      // One stream of incoming notifications, paused while a call is on screen.
+      if (callBusy()) ui.nextNotify = Math.max(ui.nextNotify, t + 15000); // quiet during a call and just after it
+      else if (t > ui.nextNotify) { ui.nextNotify = t + NOTIFY_GAP[0] + Math.random() * (NOTIFY_GAP[1] - NOTIFY_GAP[0]); pushNotification(NOTIFY_PATTERN[ui.notifySeq++ % NOTIFY_PATTERN.length]); }
       for (const f of s.friends.filter((x) => x.status === 'outgoing' && P.now(s).getTime() - new Date(x.at).getTime() > 7000)) {
         const res = P.acceptFriend(s, f.id);
-        toast({ who: f.id, text: `<b>${esc(P.friendName(f.id))}</b> accepted your request`, sub: 'You can now compare progress', go: 'friends' });
+        toast({ who: f.id, text: `<b>${esc(P.friendName(f.id))}</b> accepted your request`, sub: 'You can now compare progress', go: 'friends', sound: 'notify' });
         if (res.length) celebrate(res);
         softRender(); save();
       }
@@ -441,12 +492,44 @@
   }
   const stripTags = (h) => h.replace(/<[^>]+>/g, '');
   function seedSpark() { if (!s) return; ui.spark = []; for (let i = 0; i < 24; i++) ui.spark.push(Math.round(P.liveWatts(s, P.now(s).getTime() - (24 - i) * 2000))); updateLive(); }
-  function friendActivity() {
-    const ev = P.friendEvent(s, Math.random);
-    if (!ev) return;
-    ui.fresh.add(ev.id);
-    toast({ who: ev.actor, text: feedText(ev), sub: 'Just now · tap to open the feed', go: 'friends' });
-    softRender(); save();
+  /* ---------- incoming notifications ----------
+     Earlier builds sent a friend update every 25-55 s and a cheer every 30-70 s (one every ~22 s).
+     This sends one every 26-42 s (~34 s on average, about 35% fewer), and the second is always a
+     household tip, so it isn't only friends. Each one also lands in the bell's list. */
+  const NOTIFY_GAP = [26000, 42000];
+  const NOTIFY_PATTERN = ['friend', 'tip', 'cheer', 'friend', 'friend', 'tip', 'cheer', 'friend'];
+  const callBusy = () => !!(window.PBCall && PBCall.busy()) || !!(window.PBFeedback && PBFeedback.isBusy());
+  function ringBell() { const b = $('[data-a="notes"]'); if (b) { b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } }
+  function addNote(n, toastOpts) {
+    const item = P.note(s, n);
+    if (toastOpts) toast({ ...toastOpts, sound: toastOpts.sound || (n.kind === 'tip' ? 'tip' : 'notify') });
+    softRender(); ringBell(); save();
+    return item;
+  }
+  function pushNotification(kind, force = false) {
+    if (!s) return;
+    if (kind === 'friend') {
+      const ev = P.friendEvent(s, Math.random);
+      if (!ev) return;
+      ui.fresh.add(ev.id);
+      if (!force && !P.wantsFriend(s, ev.actor)) { softRender(); save(); return; } // muted: feed only
+      addNote({ kind: 'friend', actor: ev.actor, feedId: ev.id, icon: 'Users', go: 'friends' }, { who: ev.actor, text: feedText(ev), sub: 'Just now · tap to open the feed', go: 'friends' });
+    } else if (kind === 'cheer') {
+      if (!force && !s.notify.cheers) return;
+      const c = P.friendCheers(s, Math.random);
+      if (!c) return;
+      if (!force && !P.wantsFriend(s, c.friend.id)) { save(); return; }
+      addNote({ kind: 'cheer', actor: c.friend.id, icon: 'Heart', title: `${c.friend.name} cheered you`, body: stripTags(feedText(c.item)), go: 'friends' }, { who: c.friend.id, text: `<b>${esc(c.friend.name)}</b> cheered you`, sub: stripTags(feedText(c.item)), go: 'friends' });
+    } else if (kind === 'tip') {
+      if (!force && !s.notify.tips) return;
+      const tip = P.nextTip(s);
+      addNote(tip, { icon: tip.icon, text: `<b>${esc(tip.title)}</b>`, sub: tip.body, go: tip.go, tone: 'tip' });
+    }
+  }
+  /* Notification text for the bell list. Friend notes are worded from their feed item. */
+  function noteText(n) {
+    if (n.kind === 'friend') { const f = s.feed.find((x) => x.id === n.feedId); return { title: f ? stripTags(feedText(f)) : `${P.friendName(n.actor)} has an update`, body: '' }; }
+    return { title: n.title || '', body: n.body || '' };
   }
   /* Re-render only when it won't disturb typing or an open sheet. */
   function softRender() {
@@ -457,38 +540,103 @@
   }
 
   /* ---------- toast ---------- */
-  function toast(t) { ui.toasts.push(t); if (ui.toasts.length > 3) ui.toasts.shift(); if (!ui.toastOn) nextToast(); }
+  /* Banners drop in like a phone notification, slide away up, and can be swiped up to dismiss. */
+  function toast(t) {
+    if (document.body.dataset.call === 'ringing' || document.body.dataset.call === 'active') return; // a full-screen call hides banners
+    ui.toasts.push(t); if (ui.toasts.length > 3) ui.toasts.shift();
+    if (!ui.toastOn) nextToast();
+  }
+  function hideToast(then) {
+    const el = $('#toast');
+    clearTimeout(ui.toastTimer);
+    if (el.hidden || reduceMotion()) { el.hidden = true; return then(); }
+    el.classList.add('out');
+    setTimeout(() => { el.classList.remove('out'); el.style.transform = ''; el.hidden = true; then(); }, 240);
+  }
   function nextToast() {
     const el = $('#toast'), t = ui.toasts.shift();
     if (!t) { el.hidden = true; ui.toastOn = false; return; }
     ui.toastOn = true;
-    el.innerHTML = `${t.who ? avatar(t.who) : `<span class="chip-icon brand" style="width:32px;height:32px">${ic(t.icon || 'Check', 'sm')}</span>`}<div>${t.text}${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div>`;
-    el.hidden = false; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
-    el.onclick = () => { if (t.go && s) { ui.page = null; ui.tab = t.go; if (t.go === 'friends') ui.friendsSeg = 'feed'; closeSheet(); render(); } clearTimeout(ui.toastTimer); nextToast(); };
-    clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(nextToast, 4200);
+    el.innerHTML = `${t.who ? avatar(t.who) : `<span class="toast-icon${t.tone === 'tip' ? ' tip' : ''}">${ic(t.icon || 'Check', 'sm')}</span>`}<div class="toast-text"><span class="toast-app">PowerBuddy<em>now</em></span>${t.text}${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div>`;
+    el.hidden = false; el.classList.remove('out'); el.style.transform = ''; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+    if (t.sound && window.PBFX) { PBFX.play(t.sound); PBFX.vibrate(t.sound === 'notify' || t.sound === 'tip' ? [12, 60, 12] : 8); }
+    el.onclick = () => {
+      if (ui.toastSwiped) { ui.toastSwiped = false; return; }
+      if (t.onTap) { hideToast(nextToast); t.onTap(); return; }
+      if (t.go && s) { ui.page = null; ui.tab = t.go; if (t.go === 'friends') ui.friendsSeg = 'feed'; closeSheet(true); render(); }
+      hideToast(nextToast);
+    };
+    clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(() => hideToast(nextToast), 4600);
     $('#announcer').textContent = stripTags(t.text);
   }
+  (() => {
+    const el = $('#toast'); let y0 = null, dy = 0;
+    el.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; el.style.transition = 'none'; });
+    window.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.min(0, e.clientY - y0); el.style.transform = `translateY(${dy}px)`; });
+    window.addEventListener('pointerup', () => {
+      if (y0 === null) return; y0 = null; el.style.transition = '';
+      if (dy < -24) { ui.toastSwiped = true; setTimeout(() => { ui.toastSwiped = false; }, 400); hideToast(nextToast); } else el.style.transform = '';
+    });
+  })();
 
   /* ---------- sheets ---------- */
-  function openSheet(type, data = {}) { ui.sheet = { type, ...data }; renderSheet(); }
-  function closeSheet() { ui.sheet = null; const el = $('#sheet'); el.hidden = true; el.innerHTML = ''; }
+  function openSheet(type, data = {}) {
+    const el = $('#sheet'), wasOpen = !el.hidden && !el.classList.contains('closing');
+    ui.sheet = { type, ...data }; renderSheet();
+    if (!wasOpen) { el.classList.remove('anim'); void el.offsetWidth; el.classList.add('anim'); if (window.PBFX) PBFX.play('open'); }
+  }
+  /* Slides the sheet down before removing it. instant skips the animation (e.g. when navigating away). */
+  function closeSheet(instant) {
+    const had = !!ui.sheet; ui.sheet = null;
+    const el = $('#sheet'), token = ++ui.sheetToken;
+    if (el.hidden) return;
+    const done = () => { if (token !== ui.sheetToken) return; el.classList.remove('closing', 'anim'); el.hidden = true; el.innerHTML = ''; emitRender(); };
+    if (instant === true || reduceMotion()) return done();
+    if (had && window.PBFX) PBFX.play('close');
+    el.classList.add('closing');
+    setTimeout(done, 230);
+  }
   function renderSheet() {
     const el = $('#sheet'), sh = ui.sheet;
     if (!sh) return closeSheet();
+    ++ui.sheetToken; el.classList.remove('closing');
     const [title, body] = SHEETS[sh.type](sh);
-    el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-grip"></div><div class="sheet-head"><h2 id="sheet-title">${title}</h2><button class="icon-btn" data-a="close" aria-label="Close">${ic('X')}</button></div><div class="sheet-body">${body}</div></div>`;
+    el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-grip" aria-hidden="true"></div><div class="sheet-head"><h2 id="sheet-title">${title}</h2><button class="icon-btn" data-a="close" aria-label="Close">${ic('X')}</button></div><div class="sheet-body">${body}</div></div>`;
     el.hidden = false;
+    bindSheetDrag(el);
+    emitRender();
     bindCharts(el);
     const first = $('.sheet-body input, .sheet-body select, .sheet-body button', el) || $('[data-a="close"]', el);
     if (first && !sh.noFocus) first.focus({ preventScroll: true });
     if (sh.type === 'goal') updateGoalSheet();
   }
+  /* Pull the sheet down by its grip or title bar to dismiss it. */
+  function bindSheetDrag(layer) {
+    const sheet = $('.sheet', layer), handle = [$('.sheet-grip', layer), $('.sheet-head', layer)];
+    let y0 = null, dy = 0;
+    const down = (e) => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; sheet.style.transition = 'none'; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not capturable */ } };
+    const move = (e) => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; };
+    const up = () => {
+      if (y0 === null) return; y0 = null; sheet.style.transition = 'transform .28s var(--spring)';
+      if (dy > 110) { sheet.style.transform = 'translateY(100%)'; closeSheet(); } else sheet.style.transform = '';
+    };
+    for (const h of handle) { if (!h) continue; h.addEventListener('pointerdown', down); h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up); }
+  }
   function field(label, html, error) { return `<label class="field"><span>${label}</span>${html}${error ? `<span class="field-error">${esc(error)}</span>` : ''}</label>`; }
   function missingMonths() { const out = []; for (let i = 1; i <= 12; i++) { const m = H.addMonths(P.thisMonth(s), -i); if (!s.months[m] || s.months[m].src !== 'meter') out.push(m); } return out; }
   const SHEETS = {
-    notes() {
-      const items = s.notes;
-      return ['Notifications', items.length ? `<div class="list">${items.map((n) => `<div class="row" style="${n.read ? '' : 'background:#FBFBF7'}"><span class="chip-icon ${n.read ? '' : 'brand'}">${ic(n.icon || 'Bell')}</span><div class="row-main"><div class="row-title">${esc(n.title)}</div><div class="row-sub">${esc(n.body)}</div><div class="row-sub">${ago(n.at)}</div></div></div>`).join('')}</div>` : '<div class="empty">Nothing new.</div>'];
+    notes(sh) {
+      const items = s.notes, fresh = items.filter((n) => sh.unread.includes(n.id)), older = items.filter((n) => !sh.unread.includes(n.id));
+      const row = (n) => {
+        const { title, body } = noteText(n), isNew = sh.unread.includes(n.id);
+        const lead = n.actor ? avatar(n.actor) : `<span class="chip-icon ${n.kind === 'tip' ? 'elec' : n.kind === 'call' ? 'bad' : isNew ? 'brand' : ''}">${ic(n.icon || 'Bell')}</span>`;
+        const inner = `${lead}<div class="row-main"><div class="row-title note-title">${esc(title)}</div>${body ? `<div class="row-sub">${esc(body)}</div>` : ''}<div class="row-sub note-when">${ago(n.at)}</div></div>`;
+        if (n.action === 'callback') return `<div class="row note${isNew ? ' unread' : ''}">${inner}<button class="btn primary small" data-a="callback">${ic('Phone', 'sm')}Call back</button></div>`;
+        return n.go ? `<button class="row note${isNew ? ' unread' : ''}" data-a="note-go" data-go="${n.go}">${inner}${isNew ? '<span class="dot" aria-label="New"></span>' : ''}</button>` : `<div class="row note${isNew ? ' unread' : ''}">${inner}</div>`;
+      };
+      const list = (rows) => `<div class="list">${rows.map(row).join('')}</div>`;
+      return ['Notifications', `${items.length ? `${fresh.length ? `<p class="note-group">New</p>${list(fresh)}` : ''}${older.length ? `<p class="note-group">${fresh.length ? 'Earlier' : 'Recent'}</p>${list(older)}` : ''}` : '<div class="empty">Nothing yet.</div>'}
+        <div class="btn-row"><button class="btn secondary" data-a="settings">${ic('Settings', 'sm')}Notification settings</button></div>`];
     },
     estimate() {
       const p = s.profile, est = P.estimate(p), m = P.thisMonth(s);
@@ -562,6 +710,7 @@
         ${exact ? row('kWh per person', H.round(P.projected(s, 'electricity') / P.persons(s.profile)), f.perE, true) : ''}
         </tbody></table>
         ${exact ? '' : `<div class="alert info">${ic('EyeOff', 'sm')}<span>Exact usage is hidden. It's only shown when you both turn on <b>Share exact usage</b>${f.share ? ` (${esc(f.name)} has)` : ''}.</span></div>`}
+        ${isFriend ? `<div class="list" style="margin-top:14px">${toggleRow(`Notifications from ${esc(f.name)}`, 'Their goals, challenges and badges. The feed always shows them.', P.wantsFriend(s, f.id), `data-a="notify-friend" data-id="${f.id}"`, `<span class="chip-icon">${ic('Bell', 'sm')}</span>`)}</div>` : ''}
         ${isFriend ? `<div class="btn-row"><button class="btn secondary" data-a="league-with" data-id="${f.id}">${ic('Users', 'sm')}Start a Friends' league</button></div>` : ''}`];
     },
     addFriend(sh) {
@@ -642,7 +791,8 @@
   function obProfile(d) { return { name: d.name.trim() || 'You', region: d.region, housing: d.housing, area: +d.area, adults: +d.adults, children: +d.children, heating: d.heating, hotWater: d.hotWater, appliances: d.appliances, payment: d.payment }; }
   function obEstimateLine(d) {
     const p = obProfile(d), m = H.mkey(new Date());
-    return `${ic('Gauge', 'sm')}<span>Homes like this use about <b>${fmt(P.typicalMonth(p, 'electricity', m))} kWh</b> and <b>${fmt(P.typicalMonth(p, 'water', m), 1)} m³</b> in ${H.monthName(m)}.</span>`;
+    const w = P.typicalMonth(p, 'water', m);
+    return `${ic('Gauge', 'sm')}<span>Homes like this use about <b>${fmt(P.typicalMonth(p, 'electricity', m))} kWh</b> of electricity and <b>${fmt(w, 1)} m³</b> of water (${fmt(Math.round(w * 10) * 100)} litres) in ${H.monthName(m)}.</span>`;
   }
   function viewOnboarding() {
     const ob = ui.ob, d = ob.d, step = OB_STEPS[ob.step], e = ob.errors || {};
@@ -665,11 +815,11 @@
         <label class="consent"><input type="checkbox" data-check="terms"${d.terms ? ' checked' : ''}><span>I accept the terms of use.</span></label>
         <label class="consent"><input type="checkbox" data-check="data"${d.data ? ' checked' : ''}><span>PowerBuddy may use my household details and readings to estimate usage and give suggestions. I can delete them at any time.</span></label>
         ${e.consent ? `<span class="field-error">${esc(e.consent)}</span>` : ''}
-        <p class="hint" style="margin-top:14px">Friends only see your name, badges and % changes. You can change this in your profile.</p>`,
+        <p class="hint" style="margin-top:14px">Friends only see your name, badges and goals. You can change this in the settings.</p>`,
       result: (() => { const p = obProfile(d), m = H.mkey(new Date()), est = P.estimate(p); return `<div class="result-hero">${MARK.replace('class="mark"', 'class="mark" style="width:44px;height:44px;color:var(--brand)"')}<h1 style="margin-top:12px">Homes like yours</h1><p class="lead" style="margin-top:6px">${esc(P.describeHome(p))}</p>
         <div class="pair"><div><b class="num">${fmt(P.typicalMonth(p, 'electricity', m))}</b><span>kWh in ${H.monthName(m)}</span></div><div><b class="num">${fmt(P.typicalMonth(p, 'water', m), 1)}</b><span>m³ water in ${H.monthName(m)}</span></div></div></div>
         <p class="small" style="font-weight:600;margin-top:18px">Where electricity usually goes</p><div class="breakdown" style="margin-top:10px">${est.electricity.parts.slice(0, 4).map((x) => `<div class="bd-row"><span>${esc(x.name)}</span><span class="num muted">${fmt(x.kwh / est.electricity.year * 100)}%</span><div class="bar thin elec"><i style="width:${x.kwh / est.electricity.parts[0].kwh * 100}%"></i></div></div>`).join('')}</div>
-        <p class="hint" style="margin-top:14px">We'll compare your own numbers with this every month.</p>`; })()
+        <p class="hint" style="margin-top:14px">We'll compare your own numbers with this every month. If something changes, you can update your household in the settings.</p>`; })()
     };
     const nextLabel = step === 'result' ? 'Go to my home' : step === 'consent' ? 'Create my profile' : 'Continue';
     return `<div class="ob"><div class="ob-top"><button class="icon-btn" data-a="ob-back" aria-label="Back">${ic('ChevronLeft')}</button>${step !== 'result' ? `<div class="ob-steps" aria-label="Step ${ob.step} of ${OB_STEPS.length - 2}">${progress}</div>` : '<div style="flex:1"></div>'}</div>
@@ -702,8 +852,8 @@
   function celebrate(results) {
     const big = results.filter((r) => r.type !== 'checkin');
     const pts = H.sum(results.filter((r) => r.type === 'checkin').map((r) => r.points || 0));
-    if (big.length) openSheet('celebrate', { items: big, noFocus: false });
-    else if (pts) toast({ icon: 'Check', text: `<b>+${pts} points</b>`, sub: 'Checked in. Keep it going.' });
+    if (big.length) { openSheet('celebrate', { items: big, noFocus: false }); if (window.PBFX) { setTimeout(() => PBFX.play('success'), 120); PBFX.vibrate([10, 40, 18]); } }
+    else if (pts) toast({ icon: 'Check', text: `<b>+${pts} points</b>`, sub: 'Checked in. Keep it going.', sound: 'success' });
   }
 
   /* ---------- actions ---------- */
@@ -711,8 +861,24 @@
     tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) ui.usageRes = el.dataset.res; render(); $('#content').scrollTop = 0; },
     seg(el) { ui[el.dataset.key] = el.dataset.val; render(); },
     profile() { ui.page = 'profile'; render(); $('#content').scrollTop = 0; },
-    back() { ui.page = null; render(); },
-    notes() { openSheet('notes'); s.notes.forEach((n) => { n.read = true; }); save(); const h = $('.top'); if (h) h.outerHTML = header(); },
+    settings() { closeSheet(true); if (ui.page !== 'settings') ui.backTo = ui.page; ui.page = 'settings'; render(); $('#content').scrollTop = 0; },
+    back() { ui.page = ui.page === 'settings' ? ui.backTo || null : null; ui.backTo = null; render(); },
+    notes() { const unread = s.notes.filter((n) => !n.read).map((n) => n.id); openSheet('notes', { unread }); s.notes.forEach((n) => { n.read = true; }); save(); const h = $('.top'); if (h) h.outerHTML = header(); },
+    'note-go'(el) { closeSheet(true); ui.page = null; ui.tab = el.dataset.go; if (ui.tab === 'friends') ui.friendsSeg = 'feed'; render(); },
+    callback() { closeSheet(true); if (window.PBCall) PBCall.callBack(); },
+    notify(el) { s.notify[el.dataset.key] = !s.notify[el.dataset.key]; save(); el.setAttribute('aria-checked', s.notify[el.dataset.key]); },
+    'notify-friend'(el) {
+      const on = !P.wantsFriend(s, el.dataset.id); P.setFriendMuted(s, el.dataset.id, !on); save(); el.setAttribute('aria-checked', on);
+      if (ui.page === 'settings' && !ui.sheet) {
+        const main = el.closest('.toggle-row').querySelector('.row-main'); let sub = main.querySelector('.row-sub');
+        if (on && sub) sub.remove();
+        else if (!on && !sub) { sub = document.createElement('div'); sub.className = 'row-sub'; sub.textContent = 'Muted · still shown in your feed'; main.appendChild(sub); }
+        const all = $('[data-a="notify-all"]'), muted = P.mutualFriends(s).some((f) => !P.wantsFriend(s, f.id));
+        if (all) { all.dataset.on = muted ? 1 : 0; all.textContent = muted ? 'Turn all on' : 'Turn all off'; }
+      }
+    },
+    'notify-all'(el) { const on = el.dataset.on === '1'; for (const f of P.mutualFriends(s)) P.setFriendMuted(s, f.id, !on); save(); render(); },
+    sound(el) { if (!window.PBFX) return; PBFX.setEnabled(!PBFX.enabled()); el.setAttribute('aria-checked', PBFX.enabled()); },
     estimate() { openSheet('estimate'); },
     close() { closeSheet(); },
     reading(el) { openSheet('reading', { month: el.dataset.month }); },
@@ -789,8 +955,14 @@
     const el = e.target.closest('[data-a]');
     if (!el || el.disabled) return;
     const fn = A[el.dataset.a];
-    if (fn) { e.preventDefault(); fn(el); }
+    if (fn) { e.preventDefault(); feedback(el); fn(el); }
   });
+  /* A soft tick for taps and a two-note click for switches, plus a short vibration on phones that support it. */
+  function feedback(el) {
+    if (!window.PBFX) return;
+    if (el.classList.contains('switch')) { PBFX.play('toggle', el.getAttribute('aria-checked') !== 'true'); PBFX.vibrate(10); return; }
+    if (el.matches('.tab, .seg button, .btn, .choice, .app-chips button, .icon-btn, .cheer, .row, .rank-row, .badge, .link')) { PBFX.play('tap'); PBFX.vibrate(6); }
+  }
   document.addEventListener('submit', (e) => { const f = e.target.closest('[data-form]'); if (!f) return; e.preventDefault(); FORMS[f.dataset.form](f); });
   document.addEventListener('input', (e) => {
     const el = e.target;
@@ -822,7 +994,8 @@
       return [
         { label: 'Jump to next month', hint: 'Closes this month: goals, challenges and the Green draw settle', run: () => { closeSheet(); const res = P.advanceToNextMonth(s); save(); render(); celebrate(res); toast({ icon: 'CalendarDays', text: `<b>It's now ${P.now(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b>`, sub: `${H.monthName(H.addMonths(P.thisMonth(s), -1))} is closed. Check your notifications.` }); } },
         { label: 'Skip ahead 6 hours', hint: 'Prices, live meter and today\'s total move on', run: () => { P.advanceHours(s, 6); save(); render(); } },
-        { label: 'Show a friend update now', run: () => friendActivity() },
+        { label: 'Show a friend update now', run: () => pushNotification('friend', true) },
+        { label: 'Show a price tip now', run: () => pushNotification('tip', true) },
         { label: s.live ? 'Pause live data' : 'Resume live data', run: () => { s.live = !s.live; save(); render(); } },
         { label: 'Start over with onboarding', hint: 'Clears this household from the browser', run: () => { s = null; save(); closeSheet(); ui.ob = { step: 0, d: OB_DEFAULT(), errors: {} }; render(); } },
         { label: 'Reset the demo home', run: () => { s = P.demo(); ui.ob = null; ui.page = null; ui.tab = 'home'; closeSheet(); save(); render(); seedSpark(); } }
@@ -830,8 +1003,46 @@
     }
   };
 
-  // Debug/inspection hook for tests.
-  window.PowerBuddy = { state: () => s, ui: () => ui, domain: P };
+  /* Where the visitor is, as a stable key and a readable label. The feedback tool files comments under it. */
+  const SHEET_NAMES = { notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add a reading', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
+  const SEG_NAMES = { goals: 'Goals', challenges: 'Challenges', rewards: 'Rewards', feed: 'Feed', ranking: 'Ranking' };
+  function pageInfo() {
+    if (!s) { const step = ui.ob ? OB_STEPS[ui.ob.step] : 'welcome'; return { key: 'onboarding/' + step, label: 'Onboarding · ' + step.charAt(0).toUpperCase() + step.slice(1) }; }
+    let key, label;
+    if (ui.page) { key = ui.page; label = ui.page === 'profile' ? 'Profile' : 'Settings'; }
+    else {
+      const seg = ui.tab === 'goals' ? ui.goalsSeg : ui.tab === 'friends' ? ui.friendsSeg : null;
+      key = ui.tab + (seg ? '/' + seg : ''); label = ui.tab.charAt(0).toUpperCase() + ui.tab.slice(1) + (seg ? ' · ' + SEG_NAMES[seg] : '');
+    }
+    if (ui.sheet) return { key: 'sheet/' + ui.sheet.type, label: 'Sheet · ' + (SHEET_NAMES[ui.sheet.type] || ui.sheet.type), base: key };
+    return { key, label };
+  }
+  /* Jump to a page by its key (used by the feedback tool's "go to" links). Sheets and onboarding steps can't be reopened. */
+  function navigate(key) {
+    if (!s || !key || /^(sheet|onboarding)\//.test(key)) return false;
+    const [a, b] = key.split('/');
+    closeSheet(true);
+    if (a === 'profile' || a === 'settings') ui.page = a;
+    else if (TAB_ORDER.includes(a)) { ui.page = null; ui.tab = a; if (a === 'goals' && b) ui.goalsSeg = b; if (a === 'friends' && b) ui.friendsSeg = b; }
+    else return false;
+    render(); return true;
+  }
+  /* For other prototype layers (the call) to add a notification. */
+  function externalNote(n, toastOpts) { if (!s) { if (toastOpts) toast(toastOpts); return; } addNote(n, toastOpts); }
+
+  // Inspection hook for tests and the prototype layers.
+  window.PowerBuddy = { state: () => s, ui: () => ui, domain: P, pageInfo, navigate, note: externalNote, toast: (t) => toast(t) };
+
+  /* App launch: the icon's mark opens up into the app, like starting a phone app. */
+  (() => {
+    if (reduceMotion()) return;
+    const l = document.createElement('div');
+    l.className = 'launch'; l.setAttribute('aria-hidden', 'true');
+    l.innerHTML = MARK;
+    $('#phone').appendChild(l);
+    setTimeout(() => l.classList.add('go'), 420);
+    setTimeout(() => l.remove(), 1100);
+  })();
 
   render();
   seedSpark();

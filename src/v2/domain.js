@@ -545,14 +545,15 @@ const PBD = (() => {
     { id: 'mikael', name: 'Mikael', home: '1 person · apartment', city: 'Nørrebro', e: -11, w: -2, streak: 5, pts: 910, perE: 118, perW: 3.4, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'ten-club', 'off-peak', 'company'], done: 8 },
     { id: 'piotr', name: 'Piotr', home: '3 people · house', city: 'Valby', e: -4, w: -8, streak: 2, pts: 480, perE: 101, perW: 3.1, share: false, badges: ['first-reading', 'ten-club', 'company'], done: 4 },
     { id: 'vi', name: 'Vi', home: '2 people · apartment', city: 'Østerbro', e: -12, w: -5, streak: 6, pts: 1120, perE: 84, perW: 2.6, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'ten-club', 'balance', 'off-peak', 'company', 'team'], done: 11 },
-    { id: 'thomas', name: 'Thomas', home: '3 people · apartment', city: 'Amager', e: -7, w: -3, streak: 4, pts: 720, perE: 97, perW: 3.0, share: true, badges: ['first-reading', 'steady', 'balance', 'company', 'team'], done: 6 },
-    { id: 'mathias', name: 'Mathias', home: '1 person · apartment', city: 'Vesterbro', e: 2, w: -4, streak: 1, pts: 260, perE: 131, perW: 3.6, share: false, badges: ['first-reading', 'company', 'team'], done: 2 },
+    // Thomas (who built this mockup) is the one friend above his usual. Everyone else is cutting back.
+    { id: 'thomas', name: 'Thomas', home: '3 people · apartment', city: 'Amager', e: 6, w: 4, streak: 1, pts: 190, perE: 139, perW: 3.9, share: false, badges: ['first-reading', 'company'], done: 1 },
+    { id: 'mathias', name: 'Mathias', home: '1 person · apartment', city: 'Vesterbro', e: -7, w: -3, streak: 4, pts: 720, perE: 97, perW: 3.0, share: true, badges: ['first-reading', 'steady', 'balance', 'company', 'team'], done: 6 },
     { id: 'maninder', name: 'Maninder', home: '4 people · house', city: 'Roskilde', e: -5, w: -6, streak: 4, pts: 830, perE: 88, perW: 2.8, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'balance', 'company'], done: 7 },
     { id: 'konstantina', name: 'Konstantina', home: '2 people · apartment', city: 'Christianshavn', e: -9, w: -1, streak: 2, pts: 540, perE: 95, perW: 3.2, share: true, badges: ['first-reading', 'comeback', 'company'], done: 4 }
   ];
   const DIRECTORY = [
     { id: 'signe', name: 'Signe', home: '2 people · terraced house', city: 'Aarhus', e: -3, w: -7, streak: 2, pts: 310, perE: 104, perW: 3.3, share: true, badges: ['first-reading', 'company'], done: 2, code: 'SIGNE-3307' },
-    { id: 'jonas', name: 'Jonas', home: '1 person · student room', city: 'Odense', e: -8, w: 1, streak: 3, pts: 450, perE: 76, perW: 3.0, share: false, badges: ['first-reading', 'steady', 'company'], done: 3, code: 'JONAS-5120' }
+    { id: 'jonas', name: 'Jonas', home: '1 person · student room', city: 'Odense', e: -8, w: -2, streak: 3, pts: 450, perE: 76, perW: 3.0, share: false, badges: ['first-reading', 'steady', 'company'], done: 3, code: 'JONAS-5120' }
   ];
   for (const f of FRIENDS) f.code = f.name.toUpperCase() + '-' + (1000 + (hash(f.id) % 9000));
   const people = () => [...FRIENDS, ...DIRECTORY];
@@ -597,7 +598,9 @@ const PBD = (() => {
   function friendEvent(s, r) {
     const friends = mutualFriends(s); if (!friends.length) return null;
     for (let tries = 0; tries < 6; tries++) {
-      const f = friends[Math.floor(r() * friends.length)], ev = EVENT_POOL[Math.floor(r() * EVENT_POOL.length)](f);
+      // Thomas only joins things or logs readings: no badges or completed challenges for him.
+      const f = friends[Math.floor(r() * friends.length)], pool = f.id === 'thomas' ? [EVENT_POOL[0], EVENT_POOL[4]] : EVENT_POOL;
+      const ev = pool[Math.floor(r() * pool.length)](f);
       if (!ev) continue;
       if (ev.kind === 'challenge') ev.pts = Object.values(CHALLENGES).find((c) => c.title === ev.title).points;
       const dup = s.feed.slice(0, 25).some((x) => x.actor === f.id && x.kind === ev.kind && x.title === ev.title);
@@ -624,9 +627,73 @@ const PBD = (() => {
     return { friend: f, item };
   }
 
+  /* ---------- notifications: settings, history and tips ---------- */
+  function defaultNotify() { return { tips: true, cheers: true, muted: [] }; }
+  const wantsFriend = (s, id) => !(s.notify && s.notify.muted.includes(id));
+  function setFriendMuted(s, id, muted) {
+    ensureNotify(s);
+    s.notify.muted = s.notify.muted.filter((x) => x !== id);
+    if (muted) s.notify.muted.push(id);
+  }
+  /* Older saves (from before notification settings) get defaults and a short history built from the feed. */
+  function ensureNotify(s) {
+    if (s.notify && Array.isArray(s.notify.muted)) return false;
+    s.notify = defaultNotify(); s.tipSeq = s.tipSeq || 0;
+    seedNotes(s);
+    return true;
+  }
+  function seedNotes(s) {
+    const fromFeed = s.feed.filter((f) => f.actor !== 'me').slice(0, 5).map((f) => ({ id: 'n-' + f.id, at: f.at, read: true, kind: 'friend', actor: f.actor, feedId: f.id, icon: 'Users', go: 'friends' }));
+    const y = new Date(now(s).getTime() - DAY); y.setHours(19, 40, 0, 0);
+    const tip = { id: 'n-seed-tip', at: y.toISOString(), read: true, kind: 'tip', icon: 'Moon', title: 'Cheap electricity overnight', body: 'Prices were lowest between 01:00 and 05:00. A good time for the dishwasher or washing machine on a delay timer.', go: 'plan' };
+    const seen = new Set();
+    s.notes = [...s.notes, ...fromFeed, tip].filter((n) => (seen.has(n.id) ? false : seen.add(n.id))).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 60);
+  }
+  /* Cheapest run of `hours` consecutive hours from 21:00 tonight (or the next hour, if later) until 07:00. */
+  function cheapWindow(s, hours = 3) {
+    const n = now(s), h = n.getHours(), late = h >= 21 || h < 4;
+    const from = new Date(n); from.setMinutes(0, 0, 0);
+    if (late) from.setHours(from.getHours() + 1); else from.setHours(21);
+    const until = new Date(from); if (from.getHours() >= 7) until.setDate(until.getDate() + 1); until.setHours(7, 0, 0, 0);
+    let best = null;
+    for (let t = new Date(from); t.getTime() + hours * 36e5 <= until.getTime(); t.setHours(t.getHours() + 1)) {
+      let c = 0; const step = new Date(t);
+      for (let i = 0; i < hours; i++) { c += priceAt(s, step); step.setHours(step.getHours() + 1); }
+      if (!best || c / hours < best.avg) best = { start: t.getTime(), avg: c / hours };
+    }
+    if (!best) best = { start: from.getTime(), avg: priceAt(s, from) };
+    const peak = Math.max(...prices(s, ymd(n)).slice(17, 21));
+    return { ...best, late, peak, below: Math.max(0, round((1 - best.avg / peak) * 100)) };
+  }
+  const hh = (ts) => pad(new Date(ts).getHours()) + ':00';
+  /* Household tips, rotated. The first one is always the cheap-tonight nudge. */
+  function nextTip(s) {
+    const p = s.profile, has = (id) => p.appliances.includes(id), i = (s.tipSeq || 0) % 4, m = thisMonth(s);
+    s.tipSeq = (s.tipSeq || 0) + 1;
+    if (i === 0) {
+      const w = cheapWindow(s, has('dishwasher') ? 3 : 2);
+      const what = has('dishwasher') ? 'Consider starting the dishwasher before you go to bed, with the delay timer set.'
+        : has('washer') ? 'Consider loading the washing machine before bed and setting its delay timer.'
+        : has('ev') ? 'A good time to charge the car.' : 'A good time to charge laptops and phones.';
+      return { kind: 'tip', icon: 'Moon', title: w.late ? 'Electricity is cheap right now' : 'Electricity is cheap tonight', body: `From ${hh(w.start)} it's about ${w.avg.toFixed(2)} kr/kWh, ${w.below}% below this evening's peak. ${what}`, go: 'plan' };
+    }
+    if (i === 1) {
+      const late = now(s).getHours() >= 20, list = prices(s, late ? addDays(today(s), 1) : today(s)), top = list.indexOf(Math.max(...list));
+      return { kind: 'tip', icon: 'Clock', title: late ? 'Prices peak tomorrow evening' : 'Prices peak this evening', body: `Up to ${list[top].toFixed(2)} kr/kWh around ${pad(top)}:00. If you can, wait with laundry and the oven until after 21:00.`, go: 'plan' };
+    }
+    if (i === 2) {
+      const c = change(s, 'electricity', m) || 0, below = c <= 0;
+      return below
+        ? { kind: 'tip', icon: 'TrendingDown', title: `${round(Math.abs(c))}% below your usual`, body: `Your electricity this ${monthName(m)} is heading under your usual. Keep it going.`, go: 'home' }
+        : { kind: 'tip', icon: 'Activity', title: `${round(c)}% above your usual`, body: `Your electricity this ${monthName(m)} is heading over your usual. The Plan tab has ideas for your home.`, go: 'plan' };
+    }
+    const people = persons(p);
+    return { kind: 'tip', icon: 'ShowerHead', title: 'One minute less in the shower', body: `For ${people} ${people === 1 ? 'person' : 'people'} that saves about ${round(people * 200, -1).toLocaleString('en-GB')} litres of water a month.`, go: 'plan' };
+  }
+
   /* ---------- creating state ---------- */
   function base(profile, seed, offset = 0) {
-    return { v: VERSION, seed, offset, seq: 1, profile, privacy: { feed: true, percent: true, exact: false, league: true }, months: {}, days: {}, closed: [], lastSync: null, feedStart: null, recs: {}, plans: [], greenRuns: 0, goals: [], ch: [], ledger: [], redemptions: [], tickets: [], draws: [], badges: {}, friends: [], feed: [], notes: [], live: true };
+    return { v: VERSION, seed, offset, seq: 1, profile, privacy: { feed: true, percent: true, exact: false, league: true }, months: {}, days: {}, closed: [], lastSync: null, feedStart: null, recs: {}, plans: [], greenRuns: 0, goals: [], ch: [], ledger: [], redemptions: [], tickets: [], draws: [], badges: {}, friends: [], feed: [], notes: [], live: true, notify: defaultNotify(), tipSeq: 0 };
   }
   function friendCode(name, seed) { return (name || 'HOME').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10) + '-' + (1000 + (hash(name + seed) % 9000)); }
   function seedSocial(s, includePending = true) {
@@ -639,9 +706,9 @@ const PBD = (() => {
       ['piotr', 'join', 'Ten percent month', null, null, 26 * h, 2],
       ['akshi', 'join', 'Five-minute showers', null, null, 30 * h, 2],
       ['maninder', 'streak', '4-month logging streak', null, null, 50 * h, 4],
-      ['thomas', 'team', "Friends' league", null, null, 54 * h, 7, ['mathias']],
+      ['mathias', 'team', "Friends' league", null, null, 54 * h, 7, ['vi']],
       ['konstantina', 'badge', 'Comeback', null, null, 74 * h, 8],
-      ['mathias', 'challenge', 'Standby sweep', null, 30, 98 * h, 1],
+      ['thomas', 'reading', 'a meter reading', null, null, 98 * h, 1],
       ['vi', 'goal', `Electricity −12% in ${prev}`, null, 115, n - monthStart + 2 * h, 9],
       ['akshi', 'draw', `${prev} Green draw`, 'A month of organic veg boxes', null, n - monthStart, 12],
       ['piotr', 'goal', `Water −8% in ${prev}`, null, 64, n - monthStart + 3 * h, 6],
@@ -653,7 +720,8 @@ const PBD = (() => {
   /* Fresh household from onboarding. */
   function create(profile, { sample = true, bill = null, offset = 0 } = {}) {
     const seed = hash(profile.name + JSON.stringify(profile) + Date.now()) % 1e6;
-    const s = base({ ...profile, level: profile.level || round(0.94 + (seed % 100) / 100 * 0.2, 2) }, seed, offset);
+    // New households trend about 6% under their usual this month, so in the friends' ranking only Thomas is above his.
+    const s = base({ ...profile, level: profile.level || round(0.94 + (seed % 100) / 100 * 0.2, 2), momentum: profile.momentum || { e: 0.94, w: 0.94 } }, seed, offset);
     s.created = now(s).toISOString(); s.setup = true;
     s.profile.code = friendCode(profile.name, seed);
     const cur = thisMonth(s);
@@ -666,6 +734,7 @@ const PBD = (() => {
     for (const m of Object.keys(s.months)) if (s.months[m].src === 'manual') award(s, 'reading-' + m, 10, `Logged ${monthName(m)}`);
     award(s, 'welcome', 20, 'Welcome to PowerBuddy');
     delete s.setup;
+    seedNotes(s);
     note(s, { icon: 'House', title: 'Your home is set up', body: 'Your usage is now compared with homes like yours.' });
     return s;
   }
@@ -717,6 +786,7 @@ const PBD = (() => {
     ['steady', 'goal-getter', 'company'].forEach((id) => { if (s.badges[id]) s.badges[id].pinned = true; });
     s.ledger.sort((a, b) => a.at.localeCompare(b.at));
     delete s.setup;
+    seedNotes(s);
     note(s, { icon: 'Receipt', title: `${monthName(prev)} isn't logged yet`, body: 'Add it from your bill to keep your streak going. +10 points.' });
     return s;
   }
@@ -749,6 +819,7 @@ const PBD = (() => {
     tplOf, isActive, joinChallenge, checkIn, canCheckIn, challengeProgress, participants, teamReduction,
     redeem, evalBadges, togglePin, planRun, markDone,
     person, friendName, mutualFriends, addByCode, acceptFriend, declineFriend, ranking, friendEvent, cheer, friendCheers,
+    wantsFriend, setFriendMuted, ensureNotify, cheapWindow, nextTip,
     create, demo, validate, advanceToNextMonth, advanceHours, clone
   };
 })();

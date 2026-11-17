@@ -28,11 +28,18 @@ function buildV1() {
 
 function buildV2() {
   const icons = JSON.parse(read('src/v2/icons.json'));
+  // Thomas's recorded message (16 kHz mono WAV), embedded so the page stays a single file.
+  const callAudio = 'data:audio/wav;base64,' + fs.readFileSync(path.join(root, 'src/v2/assets/thomas-call.wav')).toString('base64');
+  const callJs = read('src/v2/call.js');
+  if (!callJs.includes("'__CALL_AUDIO__'")) throw Error('call.js is missing the audio placeholder');
   const html = read('src/v2/shell.html')
-    .replace('/* EMBED_CSS */', () => read('src/v2/style.css'))
+    .replace('/* EMBED_CSS */', () => read('src/v2/style.css') + '\n' + read('src/v2/proto.css'))
     .replace('/* EMBED_ICONS */', () => '/* Bundled Lucide icons, ISC licence:\n' + read('src/v2/ICON-LICENSE.txt') + '\n*/\nconst ICONS = ' + JSON.stringify(icons) + ';')
+    .replace('/* EMBED_FX */', () => read('src/v2/fx.js'))
     .replace('/* EMBED_DOMAIN */', () => read('src/v2/domain.js'))
-    .replace('/* EMBED_APP */', () => read('src/v2/app.js'));
+    .replace('/* EMBED_APP */', () => read('src/v2/app.js'))
+    .replace('/* EMBED_CALL */', () => callJs.replace("'__CALL_AUDIO__'", () => JSON.stringify(callAudio)))
+    .replace('/* EMBED_FEEDBACK */', () => read('src/v2/feedback.js'));
   return withSwitcher(html, '2');
 }
 

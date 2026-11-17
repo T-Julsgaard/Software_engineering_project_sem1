@@ -9,21 +9,36 @@
 <style>/* EMBED_CSS */</style>
 </head>
 <body>
-<div class="stage">
+<div class="stage" id="stage">
   <header class="stage-label">
     <svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15.5 16 6l11 9.5V26a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9.5 19h3.5l2-4 2.5 7 2-3h3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <div><strong>PowerBuddy</strong><span>Prototype V2 · GreenBuddies · fictional data</span></div>
   </header>
-  <div class="phone" id="phone">
-    <div class="statusbar" aria-hidden="true"><span id="clock">--:--</span><span class="status-icons"><i></i><i></i><i></i></span></div>
-    <div class="app" id="app"></div>
-    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
-    <div class="sheet-layer" id="sheet" hidden></div>
+  <div class="device" id="device">
+    <i class="hw hw-action" aria-hidden="true"></i><i class="hw hw-vol-up" aria-hidden="true"></i><i class="hw hw-vol-down" aria-hidden="true"></i><i class="hw hw-power" aria-hidden="true"></i>
+    <div class="phone" id="phone">
+      <div class="statusbar" aria-hidden="true">
+        <span id="clock">--:--</span>
+        <span class="status-icons">
+          <svg class="sb-signal" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg class="sb-wifi" viewBox="0 0 16 12"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.2-1.3A10.3 10.3 0 0 0 8 .4 10.3 10.3 0 0 0 .8 3.3L2 4.6a8.6 8.6 0 0 1 6-2.4Zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.2-1.3A6.7 6.7 0 0 0 8 4a6.7 6.7 0 0 0-4.6 1.8l1.2 1.3c.9-.8 2.1-1.3 3.4-1.3Zm0 3.5c.5 0 1 .2 1.3.5L8 11.3 6.7 9.8c.3-.3.8-.5 1.3-.5Z"/></svg>
+          <svg class="sb-battery" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="16" height="9" rx="2"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2Z" opacity=".45"/></svg>
+        </span>
+      </div>
+      <div class="island" id="island" aria-hidden="true"></div>
+      <div class="app" id="app"></div>
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+      <div class="sheet-layer" id="sheet" hidden></div>
+      <div class="home-indicator" aria-hidden="true"></div>
+    </div>
   </div>
 </div>
 <div class="sr-only" id="announcer" aria-live="polite"></div>
 <script>/* EMBED_ICONS */</script>
+<script>/* EMBED_FX */</script>
 <script>/* EMBED_DOMAIN */</script>
 <script>/* EMBED_APP */</script>
+<script>/* EMBED_CALL */</script>
+<script>/* EMBED_FEEDBACK */</script>
 </body>
 </html>

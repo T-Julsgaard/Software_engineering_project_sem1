@@ -131,6 +131,54 @@ test('Sample months never earn streaks or badges', () => {
   assert.ok(!s.badges['ten-club']);
 });
 
+test('Thomas is the only friend above his usual', () => {
+  for (const f of [...P.FRIENDS, ...P.DIRECTORY]) {
+    if (f.id === 'thomas') { assert.ok(f.e > 0 && f.w > 0); continue; }
+    assert.ok(f.e < 0 && f.w < 0, f.id);
+  }
+  const s = fresh();
+  for (const r of ['electricity', 'water']) assert.equal(P.ranking(s, r).at(-1).id, 'thomas');
+});
+
+test('Thomas only ever joins things or logs readings in the live feed', () => {
+  const s = fresh();
+  s.friends = s.friends.filter((f) => f.id === 'thomas');
+  let seed = 1; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+  for (let i = 0; i < 40; i++) { const ev = P.friendEvent(s, r); if (ev) assert.ok(['join', 'reading'].includes(ev.kind), ev.kind); }
+});
+
+test('Friends can be muted one by one', () => {
+  const s = fresh();
+  assert.equal(P.wantsFriend(s, 'vi'), true);
+  P.setFriendMuted(s, 'vi', true);
+  assert.equal(P.wantsFriend(s, 'vi'), false);
+  assert.equal(P.wantsFriend(s, 'akshi'), true);
+  P.setFriendMuted(s, 'vi', false);
+  assert.equal(P.wantsFriend(s, 'vi'), true);
+  assert.equal(s.notify.muted.length, 0);
+});
+
+test('The first tip is about cheap electricity tonight, and tips rotate', () => {
+  const s = fresh();
+  const first = P.nextTip(s);
+  assert.match(first.title, /cheap/i);
+  assert.match(first.body, /kr\/kWh/);
+  const titles = [first, P.nextTip(s), P.nextTip(s), P.nextTip(s)].map((t) => t.title);
+  assert.equal(new Set(titles).size, 4);
+  const w = P.cheapWindow(s, 3);
+  assert.ok(w.avg <= w.peak);
+});
+
+test('Older saves get notification settings and a history of notifications', () => {
+  const s = JSON.parse(JSON.stringify(fresh()));
+  delete s.notify; s.notes = s.notes.slice(0, 1);
+  assert.equal(P.ensureNotify(s), true);
+  assert.ok(s.notes.length >= 5);
+  assert.equal(new Set(s.notes.map((n) => n.id)).size, s.notes.length);
+  assert.equal(P.ensureNotify(s), false, 'runs once');
+  assert.equal(P.validate(s), true);
+});
+
 test('Demo state survives a JSON round trip', () => {
   assert.equal(P.validate(JSON.parse(JSON.stringify(fresh()))), true);
   assert.equal(P.validate({ v: 1 }), false);
