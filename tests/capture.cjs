@@ -5,7 +5,7 @@ const path=require('node:path');
  const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});
  const context=await browser.newContext({viewport:{width:1280,height:1000}});
  const page=await context.newPage(); const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await page.goto('file:///'+path.resolve('outputs/powerbuddy.html').replace(/\\/g,'/'));await page.waitForTimeout(400);
+ await page.goto('file:///'+path.resolve('outputs/powerbuddy-v1.html').replace(/\\/g,'/'));await page.waitForTimeout(400);
  const out='outputs/verification';fs.mkdirSync(out,{recursive:true});
  await page.screenshot({path:out+'/01-home-desktop.png'});
  await page.locator('[data-action="add-reading"]').first().click();await page.waitForTimeout(350);await page.screenshot({path:out+'/02-reading.png'});

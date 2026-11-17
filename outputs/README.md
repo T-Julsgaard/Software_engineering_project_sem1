@@ -4,7 +4,7 @@ A complete offline mobile-app simulation by GreenBuddies. Electricity and water 
 
 ## Open and share
 
-Open **powerbuddy.html** directly in a modern desktop browser. Double-click it, drag it into Chrome/Edge, or use the browser’s **Open file** command. No installation, server, account, internet connection, API key or supporting asset is needed. Share that single HTML file; this README is optional supporting documentation.
+Open **powerbuddy-v1.html** directly in a modern desktop browser. Double-click it, drag it into Chrome/Edge, or use the browser’s **Open file** command. No installation, server, account, internet connection, API key or supporting asset is needed. Share that single HTML file; this README is optional supporting documentation.
 
 On a phone, the recipient needs a browser/file-opening workflow that executes local HTML. Some mobile file viewers only show a static preview. Alternatively, open the **identical file** at the [GitHub Pages live demo](https://t-julsgaard.github.io/powerbuddy/). The repository's deployment workflow publishes the standalone output; local use remains fully offline.
 

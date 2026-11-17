@@ -1,10 +1,43 @@
+/* Builds each design version into one self-contained HTML file.
+   V1 (original prototype) -> outputs/powerbuddy-v1.html
+   V2 (overhaul)           -> outputs/powerbuddy.html */
 const fs = require('node:fs');
 const path = require('node:path');
 const root = __dirname;
-const icons = JSON.parse(fs.readFileSync(path.join(root,'src/icons.json'),'utf8'));
-const iconLicense = fs.readFileSync(path.join(root,'src/ICON-LICENSE.txt'),'utf8');
-let html = fs.readFileSync(path.join(root,'src/shell.html'),'utf8');
-html=html.replace('/* EMBED_CSS */',fs.readFileSync(path.join(root,'src/style.css'),'utf8')).replace('/* EMBED_ICONS */','/* Bundled Lucide icon licensing:\n'+iconLicense+'\n*/\nconst ICONS = '+JSON.stringify(icons)+';').replace('/* EMBED_DOMAIN */',fs.readFileSync(path.join(root,'src/domain.js'),'utf8')).replace('/* EMBED_APP */',fs.readFileSync(path.join(root,'src/app.js'),'utf8'));
-fs.mkdirSync(path.join(root,'outputs'),{recursive:true});
-fs.writeFileSync(path.join(root,'outputs/powerbuddy.html'),html);
-console.log('Built outputs/powerbuddy.html ('+Math.round(Buffer.byteLength(html)/1024)+' KB)');
+const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
+
+const switcherCss = read('src/shared/switcher.css');
+const switcherJs = read('src/shared/switcher.js');
+
+function withSwitcher(html, version) {
+  return html
+    .replace(/<html lang="en"[^>]*>/, `<html lang="en" data-pb-version="${version}">`)
+    .replace('</head>', `<style>${switcherCss}</style>\n</head>`)
+    .replace('</body>', `<script>${switcherJs}</script>\n</body>`);
+}
+
+function buildV1() {
+  const icons = JSON.parse(read('src/v1/icons.json'));
+  const html = read('src/v1/shell.html')
+    .replace('/* EMBED_CSS */', () => read('src/v1/style.css'))
+    .replace('/* EMBED_ICONS */', () => '/* Bundled Lucide icon licensing:\n' + read('src/v1/ICON-LICENSE.txt') + '\n*/\nconst ICONS = ' + JSON.stringify(icons) + ';')
+    .replace('/* EMBED_DOMAIN */', () => read('src/v1/domain.js'))
+    .replace('/* EMBED_APP */', () => read('src/v1/app.js'));
+  return withSwitcher(html, '1');
+}
+
+function buildV2() {
+  const icons = JSON.parse(read('src/v2/icons.json'));
+  const html = read('src/v2/shell.html')
+    .replace('/* EMBED_CSS */', () => read('src/v2/style.css'))
+    .replace('/* EMBED_ICONS */', () => '/* Bundled Lucide icons, ISC licence:\n' + read('src/v2/ICON-LICENSE.txt') + '\n*/\nconst ICONS = ' + JSON.stringify(icons) + ';')
+    .replace('/* EMBED_DOMAIN */', () => read('src/v2/domain.js'))
+    .replace('/* EMBED_APP */', () => read('src/v2/app.js'));
+  return withSwitcher(html, '2');
+}
+
+fs.mkdirSync(path.join(root, 'outputs'), { recursive: true });
+for (const [file, html] of [['powerbuddy-v1.html', buildV1()], ['powerbuddy.html', buildV2()]]) {
+  fs.writeFileSync(path.join(root, 'outputs', file), html);
+  console.log(`Built outputs/${file} (${Math.round(Buffer.byteLength(html) / 1024)} KB)`);
+}

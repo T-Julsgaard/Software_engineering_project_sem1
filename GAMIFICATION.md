@@ -2,6 +2,8 @@
 
 Working spec for goals, challenges, points, rewards, badges, profiles, friends and the feed. Draft, open for team edits.
 
+**Status:** implemented in the V2 prototype (`outputs/powerbuddy.html`, rules in `src/v2/domain.js`). Challenge names and dates are relative to the current month there, so the mock feed shifts with the calendar.
+
 It covers US-07, US-08 and US-09 from the Technical Overview, plus the social features we added later (profiles, friends, feed).
 
 ## Ground rules
@@ -79,7 +81,7 @@ Mock challenge list for the prototype:
 1. Darker December. Electricity -10% vs your baseline. Reduction, 1-31 Dec, 150 pts, draw ticket.
 2. Five-minute showers. 7 short-shower days. Habit, 1 week, 60 pts.
 3. Green-hour laundry. 4 loads started in green hours. Off-peak, 1 month, 80 pts.
-4. Cold-wash November. 5 loads at 30 °C or below. Habit, 1 month, 50 pts.
+4. Cold-wash month. 5 loads at 30 °C or below. Habit, 1 month, 50 pts.
 5. Standby sweep. Unplug standby devices for a weekend. Quick win, 30 pts.
 6. Friends' league. Team average -8%. Friends, 1 month, 100 pts.
 
@@ -201,13 +203,13 @@ Interaction is a single **Cheer** button with a count, and no comments (no moder
 | --- | --- | --- | --- |
 | Vi | Completed **Darker December** at -12% electricity · +150 pts | 2 h ago | 5 |
 | Mikael | Earned the **Off-peak pro** badge | 5 h ago | 3 |
-| Piotr | Reached a goal: water -8% in November | Yesterday | 6 |
+| Piotr | Reached a goal: water -8% in October | 1 Nov | 6 |
 | Akshi | Joined **Five-minute showers** | Yesterday | 2 |
 | Maninder | Is on a **4-month logging streak** | 2 days ago | 4 |
 | Thomas & Mathias | Teamed up for **Friends' league** | 2 days ago | 7 |
 | Konstantina | Earned the **Comeback** badge | 3 days ago | 8 |
 | Mathias | Completed **Standby sweep** · +30 pts | 4 days ago | 1 |
-| Akshi | Won the **November Green draw**: a month of veg boxes | 5 days ago | 12 |
+| Akshi | Won the **October Green draw**: a month of veg boxes | 1 Nov | 12 |
 | Piotr | Earned the **10% club** badge | 6 days ago | 3 |
 
 Mock friend stats (this month vs own baseline):

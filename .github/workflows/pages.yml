@@ -30,6 +30,7 @@ jobs:
           mkdir -p _site
           cp outputs/powerbuddy.html _site/index.html
           cp outputs/powerbuddy.html _site/powerbuddy.html
+          cp outputs/powerbuddy-v1.html _site/powerbuddy-v1.html
           touch _site/.nojekyll
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

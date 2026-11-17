@@ -1,0 +1,24 @@
+/* Prototype settings (version switcher). Namespaced so it never collides with a version's own styles. */
+.pbx{position:fixed;top:14px;right:16px;z-index:1000;font:500 14px/1.35 ui-sans-serif,-apple-system,"Segoe UI Variable Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#17231d}
+.pbx-button{width:40px;height:40px;display:grid;place-items:center;border:1px solid #d6dbd3;border-radius:12px;background:#fffffff2;color:#2b3b33;cursor:pointer;box-shadow:0 1px 2px #17231d14}
+.pbx-button:hover{background:#fff;border-color:#b9c2b8}
+.pbx-button:focus-visible,.pbx-version:focus-visible,.pbx-action:focus-visible{outline:2px solid #1f4d3a;outline-offset:2px}
+.pbx-button svg{width:20px;height:20px}
+.pbx-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pbx-menu{position:absolute;top:48px;right:0;width:272px;padding:8px;border:1px solid #dfe3dc;border-radius:14px;background:#fff;box-shadow:0 12px 32px #17231d24}
+.pbx-heading{margin:8px 8px 6px;font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:#68736c}
+.pbx-version,.pbx-action{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px;border:0;border-radius:10px;background:none;color:inherit;font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+.pbx-version:hover,.pbx-action:hover{background:#f1f3ee}
+.pbx-version.is-current{background:#eaf1ec}
+.pbx-version svg{width:16px;height:16px;margin-left:auto;color:#1f4d3a;flex:none}
+.pbx-tag{flex:none;min-width:30px;padding:3px 0;border-radius:6px;background:#17231d;color:#fff;font-size:12px;font-weight:700;text-align:center}
+.pbx-version:not(.is-current) .pbx-tag{background:#e3e7e0;color:#2b3b33}
+.pbx-action{flex-direction:column;align-items:flex-start;gap:0}
+.pbx-action small{font-size:12px;color:#68736c}
+.pbx-foot{margin:8px 8px 4px;padding-top:8px;border-top:1px solid #eceee9;font-size:12px;color:#68736c}
+@media(max-width:740px){
+  .pbx{top:max(4px,env(safe-area-inset-top));right:8px}
+  .pbx-button{width:36px;height:36px;border-radius:10px;box-shadow:none}
+  .pbx-menu{width:min(300px,calc(100vw - 16px))}
+  [data-pb-version="1"] .presenter-toggle{right:52px}
+}

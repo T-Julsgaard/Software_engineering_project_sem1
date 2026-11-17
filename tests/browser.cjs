@@ -1,6 +1,6 @@
 const {chromium}=require('C:/Users/thoma/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
-const URL='file:///'+path.resolve('outputs/powerbuddy.html').replace(/\\/g,'/'),OUT='outputs/verification';
+const URL='file:///'+path.resolve('outputs/powerbuddy-v1.html').replace(/\\/g,'/'),OUT='outputs/verification';
 fs.mkdirSync(OUT,{recursive:true});
 (async()=>{
  const browser=await chromium.launch({headless:true,executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe'});

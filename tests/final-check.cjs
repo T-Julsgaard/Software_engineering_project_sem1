@@ -1,6 +1,6 @@
 const {chromium}=require('C:/Users/thoma/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 const assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs');
-const OUT='outputs/verification',URL='file:///'+path.resolve('outputs/powerbuddy.html').replace(/\\/g,'/');
+const OUT='outputs/verification',URL='file:///'+path.resolve('outputs/powerbuddy-v1.html').replace(/\\/g,'/');
 (async()=>{
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true}),errors=[],network=[],checks=[];
  for(const size of [{width:393,height:852},{width:360,height:800},{width:430,height:932},{width:1280,height:1000}]){
@@ -22,5 +22,5 @@ const OUT='outputs/verification',URL='file:///'+path.resolve('outputs/powerbuddy
  assert.deepEqual(errors,[]);assert.deepEqual(network,[]);
  function contrast(a,b){const rgb=x=>x.match(/\w\w/g).map(h=>parseInt(h,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);const lum=x=>{const [r,g,b]=rgb(x);return .2126*r+.7152*g+.0722*b};const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)}
  const ratios={inkOnPorcelain:contrast('172720','f6f5f0'),mutedOnPorcelain:contrast('56635c','f6f5f0'),greenOnSoft:contrast('215b43','e6ede3'),waterOnPorcelain:contrast('376c91','f6f5f0'),whiteOnGreen:contrast('ffffff','215b43'),amberOnSoft:contrast('78551b','f6eddc'),redOnError:contrast('a43c32','f6e7e3')};for(const value of Object.values(ratios))assert.ok(value>=4.5);
- const report={checks,pointerSwipe:'Synthetic mouse pointer swipe at 393x852 passed; physical touch untested',errors,network,contrastRatios:ratios,bytes:fs.statSync('outputs/powerbuddy.html').size};fs.writeFileSync(OUT+'/final-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();
+ const report={checks,pointerSwipe:'Synthetic mouse pointer swipe at 393x852 passed; physical touch untested',errors,network,contrastRatios:ratios,bytes:fs.statSync('outputs/powerbuddy-v1.html').size};fs.writeFileSync(OUT+'/final-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});

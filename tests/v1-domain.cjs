@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict');
-const PB=require('../src/domain.js');
+const PB=require('../src/v1/domain.js');
 let checks=0;const test=(label,fn)=>{fn();checks++;console.log('PASS '+label)};
 const approx=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,`${a} != ${b}`);
 test('Reference: 12.5%, 72 DKK, 1,000 litres, 55 DKK, combined 127 DKK, 3.6 kg',()=>{const s=PB.demo(),r=PB.reading(s,'2026-09'),e=PB.comparison(s,r,'electricity'),w=PB.comparison(s,r,'water');approx(e.percent,12.5);approx(e.saving,72);approx(w.difference*1000,1000);approx(w.saving,55);approx(e.saving+w.saving,127);approx(e.difference*s.config.emissionsFactor,3.6);approx(PB.cost(s,r),889)});

@@ -1,30 +1,49 @@
 # PowerBuddy
 
-A self-contained electricity and water household simulation by GreenBuddies, built with plain JavaScript, CSS and HTML.
+A household electricity and water app prototype by GreenBuddies, built with plain JavaScript, CSS and HTML.
 
 **[Open the live demo](https://t-julsgaard.github.io/powerbuddy/)**
 
-The demo uses fictional households, synthetic consumption and illustrative prices. It runs entirely in your browser and stores simulation state locally when browser storage is available.
+Everything runs in your browser on fictional, simulated data. Nothing is sent anywhere.
+
+## Two design versions
+
+The gear in the top-right corner of the page switches between versions.
+
+| Version | File | What it is |
+| --- | --- | --- |
+| **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, a live simulated meter, goals, challenges, points, sustainable partner rewards, the monthly Green draw, badges, friends, comparison and a feed. |
+| V1 | `outputs/powerbuddy-v1.html` | The original prototype, kept unchanged for comparison. |
+
+In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update, pause live data, restart onboarding, or reset the demo home.
+
+The gamification rules V2 implements are written up in [GAMIFICATION.md](GAMIFICATION.md).
 
 ## Run locally
 
-Open [`outputs/powerbuddy.html`](outputs/powerbuddy.html) in a modern browser. The single HTML file includes all its assets and works offline.
-
-See [`outputs/README.md`](outputs/README.md) for the walkthrough, calculations, simulation controls and limitations.
+Open either HTML file in `outputs/` in a modern browser. Each is a single self-contained file that works offline.
 
 ## Develop
 
-The source lives in `src/`. Rebuild the standalone output with Node.js:
+```
+src/
+  shared/   version switcher (embedded into both builds)
+  v1/       original prototype
+  v2/       overhaul: domain.js (rules, estimates, simulation), app.js (UI), style.css, shell.html
+```
+
+Rebuild both versions and run the checks with Node.js (no packages needed):
 
 ```sh
 node build.cjs
-node tests/domain.cjs
+node tests/v2-domain.cjs
+node tests/v1-domain.cjs
 ```
 
-The build and domain checks require no additional packages. Existing browser verification scripts in `tests/` use Playwright and a local Chrome installation; their runtime paths are specific to the development machine. Recorded screenshots and reports live in `outputs/verification/`.
+The older Playwright scripts in `tests/` (`browser.cjs`, `capture.cjs`, `final-check.cjs`, `finish.cjs`) target V1 and use machine-specific paths.
 
 ## GitHub Pages
 
-The [deployment workflow](.github/workflows/pages.yml) publishes the committed `outputs/powerbuddy.html` as both `index.html` and `powerbuddy.html` on every push to `main`. Rebuild and commit the output after changing source files. You can also run the workflow manually from GitHub Actions.
+The [deployment workflow](.github/workflows/pages.yml) publishes the committed `outputs/` files on every push to `main`: V2 as `index.html` and `powerbuddy.html`, V1 as `powerbuddy-v1.html`. Rebuild and commit the outputs after changing source files.
 
-The bundled icon licensing is preserved in [`src/ICON-LICENSE.txt`](src/ICON-LICENSE.txt) and embedded in the HTML output.
+Bundled Lucide icons are ISC licensed; the licence text is in `src/v1/ICON-LICENSE.txt` and `src/v2/ICON-LICENSE.txt` and is embedded in each output.
