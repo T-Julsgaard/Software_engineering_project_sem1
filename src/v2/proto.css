@@ -49,9 +49,9 @@
 :root{--fb:#5146D9;--fb-hover:#4338CA;--fb-soft:#EEEDFC;--fb-ink:#2E2779}
 .fbx-panel{display:none;flex-direction:column;background:#fff;border-radius:26px;box-shadow:0 40px 70px -28px #16211B55,0 0 0 1px #16211B12;overflow:hidden;color:var(--ink);font:400 14px/1.45 var(--font);text-align:left}
 .fbx-panel[hidden]{display:none!important}
-body[data-fbx="dock"].fbx-open .stage{display:flex;align-items:center;justify-content:center;gap:28px}
-body[data-fbx="dock"].fbx-open .fbx-panel{display:flex;position:relative;z-index:30;width:320px;flex:none;height:min(844px,calc(100vh - 48px));min-height:620px}
-body[data-fbx="drawer"].fbx-open .fbx-panel{display:flex;position:fixed;z-index:990;top:64px;right:12px;bottom:12px;width:340px}
+/* Top right, under the prototype gear. The phone stays centred; dock is only used when there is room for both. */
+body[data-fbx="dock"].fbx-open .fbx-panel{display:flex;position:fixed;z-index:30;top:64px;right:16px;width:320px;height:min(760px,calc(100vh - 80px))}
+body[data-fbx="drawer"].fbx-open .fbx-panel{display:flex;position:fixed;z-index:990;top:64px;right:16px;bottom:16px;width:340px}
 body[data-fbx="sheet"].fbx-open .fbx-panel{display:flex;position:fixed;z-index:990;left:0;right:0;bottom:0;height:min(80dvh,640px);padding-bottom:env(safe-area-inset-bottom);border-radius:24px 24px 0 0;box-shadow:0 -12px 40px #16211B40}
 body.fbx-picking[data-fbx="drawer"] .fbx-panel,body.fbx-picking[data-fbx="sheet"] .fbx-panel{display:none}
 .fbx-panel.fbx-enter{animation:fbxIn .6s var(--ease-out) both}
@@ -144,6 +144,8 @@ body[data-fbx="sheet"] .fbx-fab .i{width:18px;height:18px}
 body[data-fbx="sheet"] .fbx-fab-label{display:none}
 .fbx-dim{position:fixed;inset:0;z-index:960;background:#0A110ECC;pointer-events:none;animation:fbxFade .6s ease both}
 .fbx-dim.out{animation:fbxFadeOut .45s ease forwards}
+/* While Thomas is still talking, the call screen stays bright above the dim. */
+body.fbx-spot[data-call="active"] .device,body.fbx-spot[data-call="ringing"] .device{z-index:962}
 body.fbx-spot.fbx-open[data-fbx] .fbx-panel{z-index:970;animation:fbxGlow 1.8s ease-in-out infinite}
 body.fbx-spot.fbx-open[data-fbx] .fbx-panel.fbx-enter{animation:fbxIn .6s var(--ease-out) both,fbxGlow 1.8s ease-in-out .6s infinite}
 body.fbx-spot .fbx-fab{z-index:975;animation:fbxGlow 1.8s ease-in-out infinite}
@@ -166,38 +168,46 @@ body.fbx-spot .fbx-primary{animation:fbxNudge 1.8s ease-in-out infinite}
 .fbx-tag span{margin-left:8px;opacity:.7;font-size:11px}
 .fbx-target{border:2px solid var(--fb);box-shadow:0 0 0 4px #5146D926}
 .fbx-target.flash{animation:fbxFlash 1.3s ease}
-.fbx-pin{position:absolute;left:0;top:0;width:22px;height:22px;padding:0;border:2px solid #fff;border-radius:50% 50% 50% 4px;background:var(--fb);color:#fff;font:700 11px/18px var(--font);text-align:center;box-shadow:0 3px 8px #16211B40;pointer-events:auto;cursor:pointer;transition:scale .2s var(--spring)}
-.fbx-pin:hover{scale:1.15}
+/* Pins never move on hover: only the colour and ring change. */
+.fbx-pin{position:absolute;left:0;top:0;width:22px;height:22px;padding:0;border:2px solid #fff;border-radius:50% 50% 50% 4px;background:var(--fb);color:#fff;font:700 11px/18px var(--font);text-align:center;box-shadow:0 3px 8px #16211B40;pointer-events:auto;cursor:pointer;transition:background .15s,box-shadow .15s}
+.fbx-pin:hover{background:var(--fb-ink);box-shadow:0 0 0 3px #5146D940,0 3px 8px #16211B40}
 .fbx-pin.pop{animation:fbxPin .55s var(--spring)}
 body.fbx-pickmode #phone,body.fbx-pickmode #phone *{cursor:crosshair!important}
 .fbx-pickbar{position:fixed;z-index:995;top:10px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;padding:8px 8px 8px 14px;border-radius:999px;background:#1C2722;color:#fff;font-size:13.5px;font-weight:550;box-shadow:0 10px 26px #0004;white-space:nowrap;animation:fbxDrop .45s var(--spring)}
 .fbx-pickbar .i{color:#B8B3FF}
 .fbx-pickbar button{border:0;border-radius:999px;background:#FFFFFF24;color:#fff;font-weight:650;font-size:13px;padding:6px 12px}
-.fbx-pop{position:fixed;z-index:992;width:340px;padding:12px 14px 12px;border-radius:18px;background:#fff;color:var(--ink);font:400 14px/1.45 var(--font);box-shadow:0 24px 60px -12px #16211B66,0 0 0 1px #16211B14}
+.fbx-pop{position:fixed;z-index:992;width:360px;padding:14px;border-radius:18px;background:#fff;color:var(--ink);font:400 14px/1.45 var(--font);box-shadow:0 24px 60px -12px #16211B66,0 0 0 1px #16211B14}
 .fbx-pop.fbx-pop-in{animation:fbxPop .38s var(--spring)}
 .fbx-pop-head{display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid #EEF0EC;margin-bottom:10px}
 .fbx-kind{flex:none;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--fb-soft);color:var(--fb-ink)}
 .fbx-pop-target{flex:1;min-width:0;font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fbx-parent{flex:none;display:inline-flex;align-items:center;gap:3px;border:1px solid var(--line-2);border-radius:999px;background:#fff;padding:3px 9px 3px 7px;font-size:12px;font-weight:600;color:var(--ink-2)}
-.fbx-parent:hover{border-color:var(--fb);color:var(--fb)}
-.fbx-types{display:flex;flex-wrap:wrap;gap:6px}
-.fbx-types button{border:1px solid #E1E4DE;border-radius:999px;background:#fff;padding:5px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);transition:all .15s}
-.fbx-types button:hover{border-color:#C9C6F3}
-.fbx-types button[aria-pressed="true"]{background:var(--fb);border-color:var(--fb);color:#fff}
+/* Comment kinds: one row, a segmented control with the shared sliding pill. */
+.fbx-types{position:relative;display:flex;flex-wrap:nowrap;gap:2px;padding:3px;border-radius:11px;background:var(--sunken);isolation:isolate}
+.fbx-types button{position:relative;z-index:1;flex:1 1 auto;min-width:0;white-space:nowrap;border:0;border-radius:8px;background:none;padding:6px 4px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.fbx-types button:hover{color:var(--ink-2)}
+.fbx-types button[aria-pressed="true"]{background:var(--fb);color:#fff}
+.fbx-types.seg-glide>button[aria-pressed="true"]{background:transparent;color:#fff}
+.fbx-types .seg-glider{border-radius:8px;background:var(--fb);box-shadow:0 2px 8px -2px #5146D980}
+.fbx-item .fbx-types button{font-size:11.5px;padding:5px 2px}
+.fbx-seg{position:relative;isolation:isolate}
+.fbx-seg button{position:relative;z-index:1}
+.fbx-seg.seg-glide>button[aria-pressed="true"]{background:transparent;box-shadow:none}
+.fbx-seg .seg-glider{border-radius:8px}
 .fbx-field{display:block;margin-top:10px}
 .fbx-field[hidden]{display:none}
 .fbx-field>span{display:block;font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:5px}
 .fbx-field input,.fbx-field textarea{display:block;width:100%;padding:8px 10px;border:1px solid var(--line-2);border-radius:10px;background:#fff;font:400 14px/1.4 var(--font);color:var(--ink);resize:vertical}
 .fbx-field input:focus,.fbx-field textarea:focus{outline:2px solid var(--fb);outline-offset:-1px;border-color:var(--fb)}
-.fbx-pop-foot{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:12px}
-.fbx-hint{margin-right:auto;font-size:11.5px;color:var(--faint)}
-.fbx-pop-foot button{border:0;border-radius:10px;padding:8px 12px;font-size:13.5px;font-weight:600;background:none;color:var(--ink-2)}
-.fbx-pop-foot button:hover{background:var(--sunken)}
-.fbx-pop-foot .fbx-post{background:var(--fb);color:#fff;padding:8px 14px}
+.fbx-pop-foot{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.fbx-pop-foot button{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:38px;border:0;border-radius:11px;font-size:14px;font-weight:600;transition:background .15s,box-shadow .15s,transform .2s var(--spring),opacity .2s}
+.fbx-pop-foot button:active:not(:disabled){transform:scale(.97)}
+.fbx-pop-foot .fbx-cancel{background:#fff;color:var(--ink-2);box-shadow:inset 0 0 0 1px var(--line-2)}
+.fbx-pop-foot .fbx-cancel:hover{background:var(--sunken)}
+.fbx-pop-foot .fbx-post{background:var(--fb);color:#fff;box-shadow:0 4px 12px -4px #5146D999}
 .fbx-pop-foot .fbx-post:hover{background:var(--fb-hover)}
-.fbx-pop-foot .fbx-post:disabled{opacity:.4;cursor:not-allowed}
-.fbx-item .fbx-pop-foot .fbx-hint{display:none}
-@media(max-width:740px){.fbx-hint{display:none}.fbx-pop{border-radius:16px}}
+.fbx-pop-foot .fbx-post:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.fbx-item .fbx-pop-foot button{height:34px;font-size:13px}
+@media(max-width:740px){.fbx-pop{border-radius:16px}}
 
 @keyframes fbxFade{from{opacity:0}}
 @keyframes fbxFadeOut{to{opacity:0}}

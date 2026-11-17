@@ -1,8 +1,9 @@
 /* PowerBuddy V2: a simulated phone call from Thomas, the designer.
    After about three minutes of use the phone rings. Accepting plays his recorded message; at 11 s
-   (where he says the comment tool can be used) the call drops to the Dynamic Island and the
-   feedback tool appears with a spotlight, which fades when the recording ends.
-   Declined or missed calls leave a "Call back" notification, and he tries once more later. */
+   (where he says the comment tool can be used) the feedback tool appears with a spotlight while the
+   call screen stays up, and the spotlight fades when the recording ends.
+   Declining opens the feedback tool straight away. Declined or missed calls leave a "Call back"
+   notification, and he tries once more later. */
 (() => {
   'use strict';
   const AUDIO_SRC = '__CALL_AUDIO__';
@@ -88,6 +89,8 @@
     st.status = 'missed'; st.attempts++; st.missedAt = st.used; save();
     const opts = { icon: 'PhoneMissed', text: `<b>Missed call</b> · ${CALLER.name}`, sub: 'Tap to call back', sound: 'notify', onTap: () => callBack() };
     if (window.PowerBuddy) PowerBuddy.note({ kind: 'call', icon: 'PhoneMissed', title: `Missed call from ${CALLER.name}`, body: declined ? 'You declined. He wanted to show you something in the app.' : 'He wanted to show you something in the app.', action: 'callback' }, opts);
+    // Declining skips the message, so the feedback tool opens fully straight away.
+    if (declined) { st.unlocked = true; save(); setTimeout(() => { if (window.PBFeedback) PBFeedback.reveal({ open: true, spotlight: true, brief: true }); }, 350); }
   }
 
   /* ---------- the call ---------- */
@@ -148,10 +151,9 @@
     const mini = island.querySelectorAll('.isl-wave i');
     mini.forEach((b, i) => { b.style.transform = `scaleY(${Math.max(0.2, level[i * 5 + 2]).toFixed(3)})`; });
   }
-  /* 11 s in: drop to the island so the app and the new tool are visible, and spotlight the tool. */
+  /* 11 s in: the feedback tool appears beside the phone with a spotlight. The call screen stays up until the call ends. */
   function cue() {
     cued = true; st.unlocked = true; save();
-    minimize();
     if (window.PBFeedback) PBFeedback.reveal({ spotlight: true });
   }
   function minimize() {

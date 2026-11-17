@@ -55,17 +55,23 @@
   function render() {
     const app = $('#app');
     if (!s) {
-      const obKey = 'ob' + (ui.ob ? ui.ob.step : '');
+      const obKey = 'ob' + (ui.ob ? ui.ob.step : ''), obGliders = obKey === ui.lastKey ? snapSegs(app) : null;
       app.innerHTML = viewOnboarding();
+      initSegs(app, obGliders);
       if (obKey !== ui.lastKey) { const b = $('.ob-body, .welcome'); if (b && ui.lastKey) b.classList.add('enter', ui.ob && ui.lastObStep > ui.ob.step ? 'enter-pop' : 'enter-push'); }
       ui.lastObStep = ui.ob ? ui.ob.step : 0; ui.lastKey = obKey;
       focusOb(); emitRender(); return;
     }
-    const key = ui.page || ui.tab + (ui.tab === 'goals' ? ui.goalsSeg : ui.tab === 'friends' ? ui.friendsSeg : '');
+    // Switching a segment (Goals / Challenges, Feed / Ranking...) is not navigation: the page and its controls stay put.
+    const key = ui.page || ui.tab;
     const prev = $('#content'), top = prev ? prev.scrollTop : 0, navigated = key !== ui.lastKey;
-    app.innerHTML = header() + `<main class="content" id="content" tabindex="-1">${view()}</main>` + (ui.page ? '' : tabs());
+    const gliders = navigated ? null : snapSegs(app), segMove = ui.segMotion; ui.segMotion = null;
+    const home = !ui.page && ui.tab === 'home';
+    app.innerHTML = header() + `<main class="content${home ? ' home' : ''}" id="content" tabindex="-1">${view()}</main>` + (ui.page ? '' : tabs());
     const content = $('#content');
-    if (!navigated) content.scrollTop = top;
+    initSegs(app, gliders);
+    if (home) fitHome();
+    if (!navigated) { content.scrollTop = top; if (segMove) segEnter(content, segMove, gliders); }
     else if (ui.lastKey) {
       const motion = navMotion(ui.lastNav, { tab: ui.tab, page: ui.page });
       $$(':scope > .section, :scope > .profile-head', content).forEach((el, i) => el.style.setProperty('--i', Math.min(i, 8)));
@@ -81,6 +87,84 @@
     updateLive();
     emitRender();
   }
+  /* Home is one screen: tighten it when the phone is short, and stop the last few pixels from scrolling. */
+  function fitHome() {
+    const c = $('#content'); if (!c || !c.classList.contains('home')) return;
+    c.classList.remove('tight', 'fits');
+    const need = () => { const last = c.lastElementChild; return last ? last.offsetTop - c.offsetTop + last.offsetHeight + parseFloat(getComputedStyle(c).paddingBottom) : 0; };
+    if (need() > c.clientHeight + 1) c.classList.add('tight');
+    if (need() <= c.clientHeight + 1) { c.classList.add('fits'); c.scrollTop = 0; }
+  }
+  addEventListener('resize', () => { fitHome(); for (const seg of $$('.seg-glide')) glide(seg); });
+
+  /* ---------- segmented controls ----------
+     One pill slides between the options. Its leading edge springs ahead and the trailing edge follows,
+     so it stretches on the way and settles into place. Works across re-renders: the old position is
+     read before the HTML is replaced and the new pill starts from there. */
+  const SEG_SEL = '.seg, .fbx-types, .fbx-seg';
+  const segId = (seg) => { const b = seg.querySelector('button'); return b ? b.dataset.key || b.dataset.field || b.dataset.a || b.dataset.fb || '' : ''; };
+  const pressed = (seg) => seg.querySelector(':scope > button[aria-pressed="true"]');
+  function gliderBox(g) { return g && g.offsetWidth ? { x: g.offsetLeft, y: g.offsetTop, w: g.offsetWidth, h: g.offsetHeight } : null; }
+  function snapSegs(root) { const m = new Map(); for (const seg of $$(SEG_SEL, root)) { const b = gliderBox(seg.querySelector(':scope > .seg-glider')); if (b) m.set(segId(seg), b); } return m; }
+  const segObserver = window.ResizeObserver ? new ResizeObserver((list) => list.forEach((e) => (e.target.isConnected ? glide(e.target) : segObserver.unobserve(e.target)))) : null;
+  function initSegs(root, before) {
+    for (const seg of root.matches && root.matches(SEG_SEL) ? [root] : $$(SEG_SEL, root)) {
+      if (!seg.querySelector(':scope > .seg-glider')) {
+        const g = document.createElement('span'); g.className = 'seg-glider'; g.setAttribute('aria-hidden', 'true');
+        seg.prepend(g); seg.classList.add('seg-glide'); if (segObserver) segObserver.observe(seg);
+      }
+      glide(seg, before && before.get(segId(seg)));
+    }
+  }
+  const springOut = (t) => 1 - Math.exp(-7 * t) * Math.cos(7.6 * t); // ~5% overshoot, then settles
+  const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+  function glide(seg, from) {
+    const g = seg.querySelector(':scope > .seg-glider'), b = pressed(seg);
+    if (!g) return;
+    if (!b) { g.style.opacity = '0'; return; }
+    const to = { x: b.offsetLeft, y: b.offsetTop, w: b.offsetWidth, h: b.offsetHeight };
+    if (!to.w) return; // not laid out yet; the resize observer places it once it is
+    Object.assign(g.style, { opacity: '', left: to.x + 'px', top: to.y + 'px', width: to.w + 'px', height: to.h + 'px' });
+    if (!from || reduceMotion() || (Math.abs(from.x - to.x) < 1 && Math.abs(from.y - to.y) < 1 && Math.abs(from.w - to.w) < 1)) return;
+    g.getAnimations().forEach((a) => a.cancel());
+    const right = to.x + to.w >= from.x + from.w, N = 36, frames = [];
+    const lo = 3, hi = seg.clientWidth - 3; // keep the overshoot inside the track
+    for (let i = 0; i <= N; i++) {
+      const t = i / N, lead = springOut(t), trail = easeInOut(Math.min(1, Math.max(0, (t - 0.1) / 0.78)));
+      const l0 = from.x, r0 = from.x + from.w, l1 = to.x, r1 = to.x + to.w;
+      let L = right ? l0 + (l1 - l0) * trail : l0 + (l1 - l0) * lead;
+      let R = right ? r0 + (r1 - r0) * lead : r0 + (r1 - r0) * trail;
+      L = Math.max(lo, L); R = Math.min(hi, Math.max(L + 8, R));
+      const squeeze = Math.sin(Math.PI * Math.min(1, t * 1.25)) * 1.2; // a touch thinner mid-flight
+      const y = from.y + (to.y - from.y) * lead, h = from.h + (to.h - from.h) * lead;
+      frames.push({ left: L + 'px', width: R - L + 'px', top: y + squeeze + 'px', height: Math.max(4, h - squeeze * 2) + 'px' });
+    }
+    g.animate(frames, { duration: 560, easing: 'linear' });
+  }
+  /* Select an option in place (no re-render), with the slide. */
+  function segSelect(seg, btn) {
+    const from = gliderBox(seg.querySelector(':scope > .seg-glider'));
+    $$(':scope > button', seg).forEach((x) => x.setAttribute('aria-pressed', x === btn));
+    glide(seg, from);
+  }
+  /* What sits below a segmented control changes with it, so only that slides in, from the side the pill went. */
+  function segEnter(content, { key, dir }, before) {
+    const btn = $(`.seg [data-key="${key}"]`, content); if (!btn || reduceMotion()) return;
+    const seg = btn.closest('.seg'), out = [];
+    // Controls that were already on screen stay still; everything around them moves.
+    const collect = (el) => {
+      const kept = (x) => before && before.has(segId(x));
+      if (el.matches(SEG_SEL) && kept(el)) return;
+      if ($$(SEG_SEL, el).some(kept)) [...el.children].forEach(collect); else out.push(el);
+    };
+    for (let n = seg; n && n !== content; n = n.parentElement) for (let x = n.nextElementSibling; x; x = x.nextElementSibling) collect(x);
+    out.forEach((el, i) => {
+      el.getAnimations().forEach((a) => a.cancel());
+      el.animate([{ opacity: 0, transform: `translateX(${dir * 18}px)` }, { opacity: 1, transform: 'none' }], { duration: 420, delay: 40 + Math.min(i, 6) * 32, easing: 'cubic-bezier(.16,1,.3,1)', fill: 'backwards' });
+      $$('.chart', el).forEach((c) => c.classList.add('grow'));
+    });
+  }
+
   /* Lets the prototype layers (call, feedback tool) follow page changes. */
   function emitRender() { document.dispatchEvent(new CustomEvent('pb:render')); }
   function view() {
@@ -93,7 +177,7 @@
     if (ui.page === 'settings') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Settings</h1><p>Notifications, privacy and your household</p></div></header>`;
     const region = P.REGIONS.find((r) => r.id === s.profile.region);
     const t = {
-      home: [`${s.profile.name}'s home`, `${region.name} · price area ${region.area}`],
+      home: [`${s.profile.name}'s home`, region.name],
       usage: ['Usage', 'Electricity and water, measured and logged'],
       plan: ['Plan', 'When to run things, and what to change'],
       goals: ['Goals', 'Your goals, challenges and rewards'],
@@ -349,12 +433,20 @@
   }
 
   /* ---------- friends ---------- */
+  /* The challenge a feed item names: this month's run if there is one, otherwise the latest. */
+  function challengeByTitle(title) {
+    const all = s.ch.filter((c) => P.tplOf(c) && P.tplOf(c).title === title);
+    return all.find((c) => P.isActive(s, c)) || all.sort((a, b) => b.start.localeCompare(a.start))[0] || null;
+  }
   function visibleFeed() {
     const mutual = new Set(P.mutualFriends(s).map((f) => f.id));
     return s.feed.filter((f) => f.actor === 'me' || mutual.has(f.actor));
   }
-  function feedText(f) {
-    const who = f.actor === 'me' ? 'You' : P.friendName(f.actor), t = `<b>${esc(f.title)}</b>`;
+  /* In the feed itself, challenge and badge names open their details. Toasts and the bell list get plain text. */
+  function feedText(f, linked = false) {
+    const who = f.actor === 'me' ? 'You' : P.friendName(f.actor);
+    const target = !linked ? null : ['join', 'challenge', 'team'].includes(f.kind) && challengeByTitle(f.title) ? 'feed-challenge' : f.kind === 'badge' && P.BADGES.some((b) => b.name === f.title) ? 'feed-badge' : null;
+    const t = target ? `<button class="feed-link" data-a="${target}" data-title="${esc(f.title)}">${esc(f.title)}</button>` : `<b>${esc(f.title)}</b>`;
     const withNames = (f.with || []).map((id) => esc(P.friendName(id))).join(', ');
     const text = {
       join: `joined ${t}`, challenge: `completed ${t}${f.detail ? ` at ${esc(f.detail)}` : ''}`, badge: `earned the ${t} badge`, goal: `reached a goal: ${t}`,
@@ -369,7 +461,7 @@
       ? `<span class="cheer static" title="${esc((f.by || []).map(P.friendName).join(', '))}">${ic('Heart', 'xs')}${f.cheers}</span>`
       : `<button class="cheer" data-a="cheer" data-id="${f.id}" aria-pressed="${!!f.cheered}" aria-label="Cheer ${esc(P.friendName(f.actor))}, ${f.cheers} cheers">${ic('Heart', 'xs')}${f.cheers}</button>`;
     return `<div class="feed-item${ui.fresh.has(f.id) ? ' new' : ''}">${mine ? avatar('me') : `<button data-a="friend" data-id="${f.actor}" style="border:0;background:none;padding:0" aria-label="Compare with ${esc(P.friendName(f.actor))}">${avatar(f.actor)}</button>`}
-      <div class="feed-text">${feedText(f)}<div class="feed-meta"><span>${ago(f.at)}</span>${f.pts ? `<span class="pts">+${f.pts} pts</span>` : ''}</div></div>${cheer}</div>`;
+      <div class="feed-text">${feedText(f, true)}<div class="feed-meta"><span>${ago(f.at)}</span>${f.pts ? `<span class="pts">+${f.pts} pts</span>` : ''}</div></div>${cheer}</div>`;
   }
   function viewFriends() {
     const incoming = s.friends.filter((f) => f.status === 'incoming'), outgoing = s.friends.filter((f) => f.status === 'outgoing');
@@ -493,10 +585,10 @@
   const stripTags = (h) => h.replace(/<[^>]+>/g, '');
   function seedSpark() { if (!s) return; ui.spark = []; for (let i = 0; i < 24; i++) ui.spark.push(Math.round(P.liveWatts(s, P.now(s).getTime() - (24 - i) * 2000))); updateLive(); }
   /* ---------- incoming notifications ----------
-     Earlier builds sent a friend update every 25-55 s and a cheer every 30-70 s (one every ~22 s).
-     This sends one every 26-42 s (~34 s on average, about 35% fewer), and the second is always a
-     household tip, so it isn't only friends. Each one also lands in the bell's list. */
-  const NOTIFY_GAP = [26000, 42000];
+     One every 40-64 s (~52 s on average): 35% fewer than the previous 26-42 s gap, which was already
+     35% fewer than the first builds. The second is always a household tip, so it isn't only friends.
+     Each one also lands in the bell's list. */
+  const NOTIFY_GAP = [40000, 64000];
   const NOTIFY_PATTERN = ['friend', 'tip', 'cheer', 'friend', 'friend', 'tip', 'cheer', 'friend'];
   const callBusy = () => !!(window.PBCall && PBCall.busy()) || !!(window.PBFeedback && PBFeedback.isBusy());
   function ringBell() { const b = $('[data-a="notes"]'); if (b) { b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } }
@@ -600,9 +692,10 @@
     const el = $('#sheet'), sh = ui.sheet;
     if (!sh) return closeSheet();
     ++ui.sheetToken; el.classList.remove('closing');
-    const [title, body] = SHEETS[sh.type](sh);
-    el.innerHTML = `<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-grip" aria-hidden="true"></div><div class="sheet-head"><h2 id="sheet-title">${title}</h2><button class="icon-btn" data-a="close" aria-label="Close">${ic('X')}</button></div><div class="sheet-body">${body}</div></div>`;
+    const [title, body] = SHEETS[sh.type](sh), gliders = el.hidden ? null : snapSegs(el);
+    el.innerHTML =`<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title"><div class="sheet-grip" aria-hidden="true"></div><div class="sheet-head"><h2 id="sheet-title">${title}</h2><button class="icon-btn" data-a="close" aria-label="Close">${ic('X')}</button></div><div class="sheet-body">${body}</div></div>`;
     el.hidden = false;
+    initSegs(el, gliders);
     bindSheetDrag(el);
     emitRender();
     bindCharts(el);
@@ -625,17 +718,18 @@
   function field(label, html, error) { return `<label class="field"><span>${label}</span>${html}${error ? `<span class="field-error">${esc(error)}</span>` : ''}</label>`; }
   function missingMonths() { const out = []; for (let i = 1; i <= 12; i++) { const m = H.addMonths(P.thisMonth(s), -i); if (!s.months[m] || s.months[m].src !== 'meter') out.push(m); } return out; }
   const SHEETS = {
-    notes(sh) {
-      const items = s.notes, fresh = items.filter((n) => sh.unread.includes(n.id)), older = items.filter((n) => !sh.unread.includes(n.id));
+    notes() {
+      const items = s.notes, fresh = items.filter((n) => !n.read), older = items.filter((n) => n.read);
       const row = (n) => {
-        const { title, body } = noteText(n), isNew = sh.unread.includes(n.id);
+        const { title, body } = noteText(n), isNew = !n.read;
         const lead = n.actor ? avatar(n.actor) : `<span class="chip-icon ${n.kind === 'tip' ? 'elec' : n.kind === 'call' ? 'bad' : isNew ? 'brand' : ''}">${ic(n.icon || 'Bell')}</span>`;
         const inner = `${lead}<div class="row-main"><div class="row-title note-title">${esc(title)}</div>${body ? `<div class="row-sub">${esc(body)}</div>` : ''}<div class="row-sub note-when">${ago(n.at)}</div></div>`;
-        if (n.action === 'callback') return `<div class="row note${isNew ? ' unread' : ''}">${inner}<button class="btn primary small" data-a="callback">${ic('Phone', 'sm')}Call back</button></div>`;
-        return n.go ? `<button class="row note${isNew ? ' unread' : ''}" data-a="note-go" data-go="${n.go}">${inner}${isNew ? '<span class="dot" aria-label="New"></span>' : ''}</button>` : `<div class="row note${isNew ? ' unread' : ''}">${inner}</div>`;
+        const dot = isNew ? '<span class="dot" aria-label="New"></span>' : '';
+        if (n.action === 'callback') return `<div class="row note${isNew ? ' unread' : ''}">${inner}<button class="btn primary small" data-a="callback" data-id="${n.id}">${ic('Phone', 'sm')}Call back</button></div>`;
+        return n.go ? `<button class="row note${isNew ? ' unread' : ''}" data-a="note-go" data-go="${n.go}" data-id="${n.id}">${inner}${dot}</button>` : `<div class="row note${isNew ? ' unread' : ''}" data-a="note-read" data-id="${n.id}">${inner}${dot}</div>`;
       };
       const list = (rows) => `<div class="list">${rows.map(row).join('')}</div>`;
-      return ['Notifications', `${items.length ? `${fresh.length ? `<p class="note-group">New</p>${list(fresh)}` : ''}${older.length ? `<p class="note-group">${fresh.length ? 'Earlier' : 'Recent'}</p>${list(older)}` : ''}` : '<div class="empty">Nothing yet.</div>'}
+      return ['Notifications', `${items.length ? `${fresh.length ? `<div class="note-group-row"><p class="note-group">New · ${fresh.length}</p><button class="note-readall" data-a="notes-read">${ic('CheckCheck', 'xs')}Read all</button></div>${list(fresh)}` : ''}${older.length ? `<p class="note-group">${fresh.length ? 'Earlier' : 'Recent'}</p>${list(older)}` : ''}` : '<div class="empty">Nothing yet.</div>'}
         <div class="btn-row"><button class="btn secondary" data-a="settings">${ic('Settings', 'sm')}Notification settings</button></div>`];
     },
     estimate() {
@@ -679,13 +773,15 @@
       const c = s.ch.find((x) => x.id === sh.id), t = P.tplOf(c), p = P.challengeProgress(s, c), who = P.participants(c).filter((id) => P.mutualFriends(s).some((f) => f.id === id));
       const period = `${dateShort(c.start)} – ${dateShort(c.end)}`;
       let action;
-      if (c.joined) action = `<div class="card" style="margin-top:14px"><div class="row-title">${esc(p.label)}</div><div class="bar" style="margin-top:10px"><i style="width:${p.ratio * 100}%"></i></div>${c.team.length ? `<p class="small muted" style="margin-top:8px">Team: you, ${c.team.map((id) => esc(P.friendName(id))).join(', ')}</p>` : ''}</div>${P.canCheckIn(s, c) ? `<div class="btn-row"><button class="btn primary" data-a="checkin" data-id="${c.id}">Check in for today</button></div>` : ''}`;
+      if (!c.joined && !P.isActive(s, c)) action = `<div class="alert info">${ic('Clock', 'sm')}<span>This round has ended. A new one starts next month.</span></div>`;
+      else if (c.joined) action = `<div class="card" style="margin-top:14px"><div class="row-title">${esc(p.label)}</div><div class="bar" style="margin-top:10px"><i style="width:${p.ratio * 100}%"></i></div>${c.team.length ? `<p class="small muted" style="margin-top:8px">Team: you, ${c.team.map((id) => esc(P.friendName(id))).join(', ')}</p>` : ''}</div>${P.canCheckIn(s, c) ? `<div class="btn-row"><button class="btn primary" data-a="checkin" data-id="${c.id}">Check in for today</button></div>` : ''}`;
       else if (t.kind === 'team') { const sel = sh.team || []; action = `<div class="field"><span>Pick 1-3 teammates</span></div><div class="check-list">${P.mutualFriends(s).map((f) => `<button type="button" class="choice" data-a="team-pick" data-id="${f.id}" aria-pressed="${sel.includes(f.id)}">${avatar(f.id, 'sm')}${esc(f.name)}</button>`).join('')}</div><div class="btn-row"><button class="btn primary" data-a="join" data-id="${c.id}"${sel.length ? '' : ' disabled'}>Start the league${sel.length ? ` with ${sel.length}` : ''}</button></div>`; }
       else action = `<div class="btn-row"><button class="btn primary" data-a="join" data-id="${c.id}">Join challenge</button></div>`;
       return [esc(t.title), `<div class="ch-head"><span class="chip-icon">${ic(t.icon)}</span><div><p>${esc(t.blurb)}</p><p class="small muted" style="margin-top:4px">${period}</p></div></div>
         <div class="list" style="margin-top:14px"><div class="row"><div class="row-main"><div class="row-title">Reward</div><div class="row-sub">${t.points} points${t.per ? `, including ${t.per} per check-in` : ''}${t.ticket ? ' + a Green draw ticket' : ''}</div></div>${ic('Gift')}</div>
         <div class="row"><div class="row-main"><div class="row-title">How it's measured</div><div class="row-sub">${esc(t.how)}</div></div>${ic('Gauge')}</div>
-        ${who.length ? `<div class="row"><div class="faces">${who.map((id) => avatar(id, 'sm')).join('')}</div><div class="row-main"><div class="row-sub">${who.map((id) => esc(P.friendName(id))).join(', ')} ${who.length > 1 ? 'are' : 'is'} in</div></div></div>` : ''}</div>${action}`];
+        ${who.length ? `<div class="row"><div class="faces">${who.map((id) => avatar(id, 'sm')).join('')}</div><div class="row-main"><div class="row-sub">${who.map((id) => esc(P.friendName(id))).join(', ')} ${who.length > 1 ? 'are' : 'is'} in</div></div></div>` : ''}</div>${action}
+        ${ui.page || ui.tab !== 'goals' || ui.goalsSeg !== 'challenges' ? `<div style="text-align:center;margin-top:10px"><button class="link" data-a="goto-challenges">See all challenges${ic('ChevronRight', 'sm')}</button></div>` : ''}`];
     },
     reward(sh) {
       const r = P.REWARDS.find((x) => x.id === sh.id), v = s.redemptions.find((x) => x.rewardId === r.id), short = r.cost - P.available(s);
@@ -859,13 +955,26 @@
   /* ---------- actions ---------- */
   const A = {
     tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) ui.usageRes = el.dataset.res; render(); $('#content').scrollTop = 0; },
-    seg(el) { ui[el.dataset.key] = el.dataset.val; render(); },
+    seg(el) {
+      const k = el.dataset.key; if (ui[k] === el.dataset.val) return;
+      const opts = $$(`.seg [data-key="${k}"]`).map((b) => b.dataset.val);
+      ui.segMotion = { key: k, dir: opts.indexOf(el.dataset.val) > opts.indexOf(ui[k]) ? 1 : -1 };
+      ui[k] = el.dataset.val; render();
+    },
     profile() { ui.page = 'profile'; render(); $('#content').scrollTop = 0; },
     settings() { closeSheet(true); if (ui.page !== 'settings') ui.backTo = ui.page; ui.page = 'settings'; render(); $('#content').scrollTop = 0; },
     back() { ui.page = ui.page === 'settings' ? ui.backTo || null : null; ui.backTo = null; render(); },
-    notes() { const unread = s.notes.filter((n) => !n.read).map((n) => n.id); openSheet('notes', { unread }); s.notes.forEach((n) => { n.read = true; }); save(); const h = $('.top'); if (h) h.outerHTML = header(); },
-    'note-go'(el) { closeSheet(true); ui.page = null; ui.tab = el.dataset.go; if (ui.tab === 'friends') ui.friendsSeg = 'feed'; render(); },
-    callback() { closeSheet(true); if (window.PBCall) PBCall.callBack(); },
+    /* Opening the list doesn't clear it: a notification is read when it's tapped, or with Read all. */
+    notes() { openSheet('notes'); },
+    'note-go'(el) { markRead(el.dataset.id); closeSheet(true); ui.page = null; ui.tab = el.dataset.go; if (ui.tab === 'friends') ui.friendsSeg = 'feed'; render(); },
+    'note-read'(el) { if (markRead(el.dataset.id)) readAllAnimated([el]); },
+    'notes-read'() {
+      const rows = $$('#sheet .row.note.unread');
+      if (!s.notes.some((n) => !n.read)) return;
+      s.notes.forEach((n) => { n.read = true; }); save(); refreshHeader();
+      readAllAnimated(rows);
+    },
+    callback(el) { markRead(el.dataset.id); closeSheet(true); if (window.PBCall) PBCall.callBack(); },
     notify(el) { s.notify[el.dataset.key] = !s.notify[el.dataset.key]; save(); el.setAttribute('aria-checked', s.notify[el.dataset.key]); },
     'notify-friend'(el) {
       const on = !P.wantsFriend(s, el.dataset.id); P.setFriendMuted(s, el.dataset.id, !on); save(); el.setAttribute('aria-checked', on);
@@ -883,9 +992,12 @@
     close() { closeSheet(); },
     reading(el) { openSheet('reading', { month: el.dataset.month }); },
     goal(el) { const r = el.dataset.rec && P.recommendations(s).find((x) => x.id === el.dataset.rec); openSheet('goal', { resource: r ? r.goal.resource : 'electricity', target: r ? r.goal.target : 5, months: 1, source: r ? r.id : 'custom' }); },
-    'goal-res'(el) { ui.sheet.resource = el.dataset.val; $$('[data-a="goal-res"]').forEach((b) => b.setAttribute('aria-pressed', b === el)); updateGoalSheet(); },
-    'goal-months'(el) { ui.sheet.months = +el.dataset.val; $$('[data-a="goal-months"]').forEach((b) => b.setAttribute('aria-pressed', b === el)); updateGoalSheet(); },
+    'goal-res'(el) { ui.sheet.resource = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
+    'goal-months'(el) { ui.sheet.months = +el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
     challenge(el) { openSheet('challenge', { id: el.dataset.id }); },
+    'feed-challenge'(el) { const c = challengeByTitle(el.dataset.title); if (c) openSheet('challenge', { id: c.id }); else A['goto-challenges'](); },
+    'feed-badge'(el) { const b = P.BADGES.find((x) => x.name === el.dataset.title); if (b) openSheet('badge', { id: b.id }); },
+    'goto-challenges'() { closeSheet(true); ui.page = null; ui.tab = 'goals'; ui.goalsSeg = 'challenges'; render(); $('#content').scrollTop = 0; },
     'team-pick'(el) { const t = ui.sheet.team || (ui.sheet.team = []), id = el.dataset.id; if (t.includes(id)) t.splice(t.indexOf(id), 1); else if (t.length < 3) t.push(id); renderSheet(); },
     'league-with'(el) { const c = s.ch.find((x) => x.tpl === 'league' && P.isActive(s, x)); if (!c) return; openSheet('challenge', { id: c.id, team: c.joined ? [] : [el.dataset.id] }); },
     join(el) { const c = s.ch.find((x) => x.id === el.dataset.id); P.joinChallenge(s, c.id, ui.sheet && ui.sheet.team ? [...ui.sheet.team] : []); save(); toast({ icon: P.tplOf(c).icon, text: `<b>Joined ${esc(P.tplOf(c).title)}</b>`, sub: P.tplOf(c).how }); renderSheet(); render(); },
@@ -917,6 +1029,17 @@
     'ob-back'() { ui.ob.errors = {}; if (ui.ob.step === 0) return; ui.ob.step--; render(); },
     'ob-demo'() { s = P.demo(); ui.ob = null; ui.tab = 'home'; save(); render(); seedSpark(); toast({ icon: 'House', text: '<b>This is Freja\'s home</b>', sub: 'Two adults in a Copenhagen apartment. Everything here is simulated.' }); }
   };
+  function refreshHeader() { const h = $('.top'); if (h && !ui.page) h.outerHTML = header(); }
+  function markRead(id) { const n = s.notes.find((x) => x.id === id); if (!n || n.read) return false; n.read = true; save(); refreshHeader(); return true; }
+  /* The dots fade and the rows settle before the list regroups. */
+  function readAllAnimated(rows) {
+    if (window.PBFX) PBFX.play('tap');
+    const done = () => { if (ui.sheet && ui.sheet.type === 'notes') { const b = $('.sheet-body'), top = b ? b.scrollTop : 0; ui.sheet.noFocus = true; renderSheet(); const nb = $('.sheet-body'); if (nb) nb.scrollTop = top; } };
+    if (reduceMotion() || !rows.length) return done();
+    rows.forEach((r, i) => { r.style.setProperty('--i', i); r.classList.add('reading'); });
+    const btn = $('#sheet .note-readall'); if (btn && rows.length > 1) btn.classList.add('gone');
+    setTimeout(done, 380 + Math.min(rows.length, 8) * 35);
+  }
   function currentDraft() { return ui.ob ? ui.ob.d : ui.sheet.d; }
   function rerenderDraft() { if (ui.ob) { const b = $('#ob-body'), top = b ? b.scrollTop : 0; render(); const nb = $('#ob-body'); if (nb) nb.scrollTop = top; } else { const b = $('.sheet-body'), top = b.scrollTop; ui.sheet.noFocus = true; renderSheet(); $('.sheet-body').scrollTop = top; } }
   function updateObEstimate() { const el = $('[data-bind="ob-est"]'); if (el && ui.ob) el.innerHTML = obEstimateLine(ui.ob.d); }
@@ -961,7 +1084,7 @@
   function feedback(el) {
     if (!window.PBFX) return;
     if (el.classList.contains('switch')) { PBFX.play('toggle', el.getAttribute('aria-checked') !== 'true'); PBFX.vibrate(10); return; }
-    if (el.matches('.tab, .seg button, .btn, .choice, .app-chips button, .icon-btn, .cheer, .row, .rank-row, .badge, .link')) { PBFX.play('tap'); PBFX.vibrate(6); }
+    if (el.matches('.tab, .seg button, .btn, .choice, .app-chips button, .icon-btn, .cheer, .row, .rank-row, .badge, .link, .feed-link')) { PBFX.play('tap'); PBFX.vibrate(6); }
   }
   document.addEventListener('submit', (e) => { const f = e.target.closest('[data-form]'); if (!f) return; e.preventDefault(); FORMS[f.dataset.form](f); });
   document.addEventListener('input', (e) => {
@@ -1032,6 +1155,8 @@
 
   // Inspection hook for tests and the prototype layers.
   window.PowerBuddy = { state: () => s, ui: () => ui, domain: P, pageInfo, navigate, note: externalNote, toast: (t) => toast(t) };
+  // The sliding segmented control, shared with the feedback tool.
+  window.PBSeg = { init: initSegs, select: segSelect, glide };
 
   /* App launch: the icon's mark opens up into the app, like starting a phone app. */
   (() => {

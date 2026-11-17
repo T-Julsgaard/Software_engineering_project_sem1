@@ -50,7 +50,7 @@
   const TYPES = [['text', 'Change text'], ['bug', 'Bug'], ['idea', 'Idea'], ['remove', 'Remove'], ['other', 'Other']];
   const typeName = (t) => (TYPES.find((x) => x[0] === t) || TYPES[4])[1];
 
-  const phone = $('#phone'), stage = $('#stage'), device = $('#device') || phone;
+  const phone = $('#phone'), stage = $('#stage');
   const appPage = () => (window.PowerBuddy && PowerBuddy.pageInfo ? PowerBuddy.pageInfo() : { key: 'app', label: 'App' });
 
   /* ---------- state ---------- */
@@ -105,10 +105,12 @@
   };
   el.author.value = read(LS.author, '');
 
-  /* ---------- layout: docked beside the phone, a drawer, or a bottom sheet ---------- */
-  const layout = () => (innerWidth >= 860 ? 'dock' : innerWidth > 740 ? 'drawer' : 'sheet');
-  function applyLayout(animate) {
-    const before = animate && !reduce() ? device.getBoundingClientRect() : null;
+  /* ---------- layout ----------
+     dock: pinned top right, under the prototype gear, while the phone stays centred (wide screens only,
+     so the two never overlap); drawer: the same place but closed by default, since it would cover part
+     of the phone; sheet: a bottom sheet on phones. */
+  const layout = () => (innerWidth >= 1130 ? 'dock' : innerWidth > 740 ? 'drawer' : 'sheet');
+  function applyLayout() {
     const L = layout(), open = S.unlocked && S.open;
     document.body.dataset.fbx = S.unlocked ? L : '';
     document.body.classList.toggle('fbx-open', open);
@@ -116,21 +118,13 @@
     panel.hidden = !S.unlocked;
     el.fab.hidden = !S.unlocked || open;
     el.pickbar.hidden = !(S.mode === 'pick' && L !== 'dock');
-    if (before) { // slide the phone to its new place instead of jumping
-      const after = device.getBoundingClientRect(), dx = before.left - after.left;
-      if (Math.abs(dx) > 1) {
-        device.style.transition = 'none'; device.style.transform = `translateX(${dx}px)`; void device.offsetWidth;
-        device.style.transition = 'transform .55s cubic-bezier(.2,.8,.2,1)'; device.style.transform = '';
-        setTimeout(() => { device.style.transition = ''; }, 600);
-        follow(650);
-      }
-    }
+    if (open && window.PBSeg) PBSeg.init(panel);
     schedule();
   }
-  function setOpen(open, animate = true) {
+  function setOpen(open) {
     S.open = open; write(LS.open, open);
     if (open) { panel.classList.remove('fbx-enter'); void panel.offsetWidth; panel.classList.add('fbx-enter'); }
-    applyLayout(animate);
+    applyLayout();
   }
 
   /* ---------- comments ---------- */
@@ -141,7 +135,8 @@
     el.page.textContent = S.page.label;
     el.total.textContent = total ? `(${total})` : '';
     el.count.textContent = total; el.count.hidden = !total;
-    $$('[data-fb="filter"]', panel).forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === S.filter));
+    const seg = $('.fbx-seg', panel), want = $(`[data-fb="filter"][data-v="${S.filter}"]`, panel);
+    if (window.PBSeg) PBSeg.select(seg, want); else $$('[data-fb="filter"]', panel).forEach((b) => b.setAttribute('aria-pressed', b === want));
     let html;
     if (S.filter === 'page') {
       html = page.length ? page.map((c, i) => item(c, i + 1)).join('')
@@ -153,10 +148,11 @@
         : `<div class="fbx-empty">${icon('MessageSquare')}<p><b>No comments yet.</b></p><p>They'll be listed here by page.</p></div>`;
     }
     el.list.innerHTML = html;
+    if (window.PBSeg) PBSeg.init(el.list);
     schedule();
   }
   function item(c, n) {
-    if (S.editing === c.id) return `<div class="fbx-item editing" role="listitem" data-id="${c.id}"><span class="fbx-num">${n}</span><div class="fbx-item-main">${composerFields(c.type, c.changeTo, c.body, c.text)}<div class="fbx-pop-foot"><button type="button" data-fb="edit-cancel">Cancel</button><button type="button" class="fbx-post" data-fb="edit-save" data-id="${c.id}">Save</button></div></div></div>`;
+    if (S.editing === c.id) return `<div class="fbx-item editing" role="listitem" data-id="${c.id}"><span class="fbx-num">${n}</span><div class="fbx-item-main">${composerFields(c.type, c.changeTo, c.body, c.text)}<div class="fbx-pop-foot"><button type="button" class="fbx-cancel" data-fb="edit-cancel">Cancel</button><button type="button" class="fbx-post" data-fb="edit-save" data-id="${c.id}">Save</button></div></div></div>`;
     const where = c.page === S.page.key ? (resolve(c) ? '' : '<span class="fbx-gone" title="This element isn\'t on screen right now">not on screen</span>') : '';
     return `<div class="fbx-item${S.flashId === c.id ? ' flash' : ''}" role="listitem" data-id="${c.id}" tabindex="0">
       <span class="fbx-num">${n}</span>
@@ -240,20 +236,20 @@
     S.mode = 'pick'; S.hover = null; S.hoverTrail = [];
     el.pick.setAttribute('aria-pressed', 'true'); $('.fbx-primary-label', panel).textContent = 'Click something in the phone…';
     document.body.classList.add('fbx-pickmode');
-    fx('pick'); applyLayout(false);
+    fx('pick'); applyLayout();
   }
   function stopPick() {
     S.mode = S.mode === 'pick' ? 'idle' : S.mode; S.hover = null; S.hoverTrail = [];
     el.hover.hidden = true; el.pick.setAttribute('aria-pressed', 'false'); $('.fbx-primary-label', panel).textContent = 'Comment on something';
     document.body.classList.remove('fbx-pickmode');
-    applyLayout(false);
+    applyLayout();
   }
   function setHover(n) {
     if (n === S.hover) return;
     S.hover = n;
     if (!n) { el.hover.hidden = true; S.hoverDesc = null; return; }
     const d = describe(n); S.hoverDesc = d;
-    el.tag.innerHTML = `<b>${esc(d.kind)}</b>${d.text ? ` “${esc(short(d.text, 34))}”` : ''}${n.parentElement && inApp(n.parentElement) ? '<span>↑ bigger</span>' : ''}`;
+    el.tag.innerHTML = `<b>${esc(d.kind)}</b>${d.text ? ` “${esc(short(d.text, 34))}”` : ''}`;
     placeBox(el.hover, n);
   }
   function choose(n) {
@@ -272,11 +268,12 @@
   }
   function openPop() {
     const t = S.target;
-    el.pop.innerHTML = `<div class="fbx-pop-head"><span class="fbx-kind">${esc(t.kind)}</span><span class="fbx-pop-target">${t.text ? `“${esc(short(t.text, 70))}”` : 'No text'}</span><button type="button" class="fbx-parent" data-fb="parent" title="Select the surrounding block (↑)" aria-label="Select the surrounding block">${icon('ArrowUp', 'xs')}Bigger</button></div>
+    el.pop.innerHTML = `<div class="fbx-pop-head"><span class="fbx-kind">${esc(t.kind)}</span><span class="fbx-pop-target">${t.text ? `“${esc(short(t.text, 70))}”` : 'No text'}</span></div>
       <div class="fbx-pop-body">${composerFields(S.type, null, '', t.text)}</div>
-      <div class="fbx-pop-foot"><span class="fbx-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> to post</span><button type="button" data-fb="cancel">Cancel</button><button type="button" class="fbx-post" data-fb="post">Post comment</button></div>`;
+      <div class="fbx-pop-foot"><button type="button" class="fbx-cancel" data-fb="cancel">Cancel</button><button type="button" class="fbx-post" data-fb="post">${icon('Send', 'xs')}Post</button></div>`;
     el.pop.hidden = false; el.pop.classList.remove('fbx-pop-in'); void el.pop.offsetWidth; el.pop.classList.add('fbx-pop-in');
-    applyLayout(false); positionPop(); validate();
+    if (window.PBSeg) PBSeg.init(el.pop);
+    applyLayout(); positionPop(); validate();
     const f = S.type === 'text' ? $('[data-fb-input="changeTo"]', el.pop) : $('[data-fb-input="body"]', el.pop);
     setTimeout(() => { f.focus({ preventScroll: true }); if (S.type === 'text') f.select(); }, 30);
   }
@@ -284,7 +281,7 @@
     el.pop.hidden = true; el.target.hidden = true;
     if (S.mode === 'compose') S.mode = 'idle';
     S.target = null; S.targetEl = null;
-    applyLayout(false);
+    applyLayout();
     if (restore && layout() === 'dock') el.pick.focus({ preventScroll: true });
   }
   function readFields(scope) {
@@ -300,7 +297,8 @@
     return ok;
   }
   function setType(scope, v) {
-    $$('[data-fb="type"]', scope).forEach((b) => b.setAttribute('aria-pressed', b.dataset.v === v));
+    const seg = $('.fbx-types', scope), want = $(`[data-fb="type"][data-v="${v}"]`, scope);
+    if (window.PBSeg) PBSeg.select(seg, want); else $$('[data-fb="type"]', scope).forEach((b) => b.setAttribute('aria-pressed', b === want));
     const change = $('.fbx-change', scope), label = $('.fbx-field:not(.fbx-change) > span', scope), ta = $('textarea', scope);
     if (change) change.hidden = v !== 'text';
     if (label) label.textContent = v === 'text' ? 'Why? (optional)' : 'Your comment';
@@ -326,7 +324,7 @@
     const n = S.targetEl && S.targetEl.isConnected ? S.targetEl : S.target ? resolve(S.target) : null;
     if (n) S.targetEl = n;
     placeBox(el.target, n, 4);
-    const w = Math.min(340, innerWidth - 16), h = el.pop.offsetHeight || 260;
+    const w = Math.min(360, innerWidth - 16), h = el.pop.offsetHeight || 260;
     el.pop.style.width = w + 'px';
     let left, top;
     if (n) {
@@ -379,12 +377,13 @@
   }
 
   /* ---------- spotlight (during Thomas's call) ---------- */
-  function reveal({ spotlight = false, brief = false } = {}) {
+  function reveal({ spotlight = false, brief = false, open = false } = {}) {
     S.unlocked = true; write(LS.unlocked, true);
-    // Beside the phone the panel opens itself. On smaller screens it would cover the app, so it waits behind its button.
-    if (layout() === 'dock') { S.open = true; write(LS.open, true); panel.classList.remove('fbx-enter'); void panel.offsetWidth; panel.classList.add('fbx-enter'); }
+    // On wide screens the panel opens itself. On smaller ones it would cover the app, so it waits behind its button,
+    // unless asked to open (the call was declined, so nothing else is on screen).
+    if (open || layout() === 'dock') { S.open = true; write(LS.open, true); panel.classList.remove('fbx-enter'); void panel.offsetWidth; panel.classList.add('fbx-enter'); }
     else S.open = false;
-    applyLayout(true); load();
+    applyLayout(); load();
     if (spotlight) startSpotlight(brief); // no chime here: it would play over Thomas's voice
   }
   let spotTimer = 0;
@@ -392,10 +391,12 @@
     S.spotlight = true; clearTimeout(spotTimer);
     document.body.classList.add('fbx-spot');
     el.dim.hidden = false; el.dim.classList.remove('out');
-    const dock = layout() === 'dock' && S.open;
-    el.coach.innerHTML = `<b>New: the feedback tool</b><span>${dock ? 'Press <em>Comment on something</em>, then click anything in the app: a text, a button or a chart. Your notes are saved per page.' : 'Tap here, then tap anything in the app to leave a note about it.'}</span>`;
-    el.coach.dataset.at = dock ? 'panel' : 'fab';
-    el.coach.hidden = false; el.coach.classList.remove('out');
+    // With the panel open the glow says enough. Only the closed launcher gets a short hint.
+    if (S.open) el.coach.hidden = true;
+    else {
+      el.coach.innerHTML = '<b>New: the feedback tool</b><span>Tap here, then tap anything in the app to leave a note about it.</span>';
+      el.coach.dataset.at = 'fab'; el.coach.hidden = false; el.coach.classList.remove('out');
+    }
     follow(900);
     if (brief) spotTimer = setTimeout(endSpotlight, 7000);
   }
@@ -479,7 +480,6 @@
     else if (a === 'filter') { S.filter = b.dataset.v; renderList(); fx('tap'); }
     else if (a === 'type') { setType(scope, b.dataset.v); fx('tap'); }
     else if (a === 'post') post();
-    else if (a === 'parent') { const n = S.targetEl && S.targetEl.parentElement; if (n && inApp(n)) { S.targetEl = n; S.target = describe(n); $('.fbx-kind', el.pop).textContent = S.target.kind; $('.fbx-pop-target', el.pop).textContent = S.target.text ? `“${short(S.target.text, 70)}”` : 'No text'; const ch = $('[data-fb-input="changeTo"]', el.pop); if (ch && S.type === 'text') ch.value = S.target.text; validate(); positionPop(); fx('pick'); } }
     else if (a === 'pin') { e.stopPropagation(); focusComment(b.dataset.id); }
     else if (a === 'edit') { S.editing = b.dataset.id; renderList(); const it = $(`.fbx-item[data-id="${b.dataset.id}"]`, el.list); if (it) { validateEdit(it); $('textarea', it).focus(); } }
     else if (a === 'edit-cancel') { S.editing = null; renderList(); }
@@ -545,10 +545,10 @@
   document.addEventListener('pb:render', schedule);
   new MutationObserver(schedule).observe(phone, { childList: true, subtree: true });
   document.addEventListener('scroll', schedule, true);
-  addEventListener('resize', () => applyLayout(false));
+  addEventListener('resize', () => applyLayout());
   setInterval(() => { if (S.unlocked && S.mode === 'idle') renderList(); }, 60000); // keeps "2 min ago" fresh
 
-  function lock() { stopPick(); closePop(false); endSpotlight(); S.unlocked = false; write(LS.unlocked, false); el.pins.innerHTML = ''; pinEls.clear(); applyLayout(true); }
+  function lock() { stopPick(); closePop(false); endSpotlight(); S.unlocked = false; write(LS.unlocked, false); el.pins.innerHTML = ''; pinEls.clear(); applyLayout(); }
 
   window.PBFeedback = {
     reveal, endSpotlight, lock,
@@ -556,5 +556,5 @@
     setStore(adapter) { store = adapter; return load(); },
     comments: () => S.comments.slice()
   };
-  if (S.unlocked) { if (layout() !== 'dock') S.open = false; applyLayout(false); load(); }
+  if (S.unlocked) { if (layout() !== 'dock') S.open = false; applyLayout(); load(); }
 })();
