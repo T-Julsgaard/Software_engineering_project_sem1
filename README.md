@@ -2,7 +2,7 @@
 
 A household electricity and water app prototype by GreenBuddies, built with plain JavaScript, CSS and HTML.
 
-**[Open the live demo](https://t-julsgaard.github.io/powerbuddy/)**
+**[Open the live demo](https://powerbuddy.julsgaard.dev/)**
 
 Everything runs in your browser on fictional, simulated data. Nothing is sent anywhere.
 
@@ -59,5 +59,7 @@ The older Playwright scripts in `tests/` (`browser.cjs`, `capture.cjs`, `final-c
 ## GitHub Pages
 
 The [deployment workflow](.github/workflows/pages.yml) publishes the committed `outputs/` files on every push to `main`: V2 as `index.html` and `powerbuddy.html`, V1 as `powerbuddy-v1.html`. Rebuild and commit the outputs after changing source files.
+
+The site is served at [powerbuddy.julsgaard.dev](https://powerbuddy.julsgaard.dev/). The custom domain is set in the repository's Pages settings (a CNAME record for `powerbuddy` pointing to `t-julsgaard.github.io`, in Cloudflare as DNS only), so no `CNAME` file is needed in the deployed site.
 
 Bundled Lucide icons are ISC licensed; the licence text is in `src/v1/ICON-LICENSE.txt` and `src/v2/ICON-LICENSE.txt` and is embedded in each output.
