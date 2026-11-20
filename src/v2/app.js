@@ -97,7 +97,18 @@
     if (need() > c.clientHeight + 1) c.classList.add('tight');
     if (need() <= c.clientHeight + 1) { c.classList.add('fits'); c.scrollTop = 0; }
   }
-  addEventListener('resize', () => { fitHome(); for (const seg of $$('.seg-glide')) glide(seg); });
+  /* On a computer the phone is drawn at its real size, 390 × 844, and scaled down as a whole when the window is
+     shorter than that (most laptops), so it never gets squashed. On phones (740 px and narrower) it fills the screen. */
+  const PHONE = { w: 390, h: 844 }, STAGE_PAD = 48;
+  function fitDevice() {
+    const k = innerWidth <= 740 ? 1 : H.clamp(Math.min((innerHeight - STAGE_PAD) / PHONE.h, (innerWidth - STAGE_PAD) / PHONE.w), 0.6, 1);
+    ui.fit = Math.floor(k * 1000) / 1000; // rounded down, so the page never ends up a pixel taller than the window
+    document.documentElement.style.setProperty('--fit', ui.fit);
+  }
+  /* Screen pixels to phone pixels (drags and chart tooltips work in the phone's own pixels). */
+  const unfit = (px) => px / (ui.fit || 1);
+  fitDevice();
+  addEventListener('resize', () => { fitDevice(); fitHome(); for (const seg of $$('.seg-glide')) glide(seg); });
 
   /* ---------- segmented controls ----------
      One pill slides between the options. Its leading edge springs ahead and the trailing edge follows,
@@ -225,7 +236,7 @@
       el.addEventListener('pointerdown', (e) => { if (e.button || e.target.closest('button, a, select, input')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; axis = null; pid = e.pointerId; });
       el.addEventListener('pointermove', (e) => {
         if (x0 === null || e.pointerId !== pid) return;
-        const mx = e.clientX - x0, my = e.clientY - y0;
+        const mx = unfit(e.clientX - x0), my = unfit(e.clientY - y0);
         if (!axis && Math.hypot(mx, my) > 8) {
           axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
           if (axis === 'x') { try { el.setPointerCapture(pid); } catch { /* not capturable */ } track.getAnimations().forEach((a) => a.cancel()); track.style.transition = 'none'; el.classList.add('dragging'); }
@@ -361,11 +372,11 @@
       const svg = $('svg', chart), tip = $('.chart-tip', chart);
       const show = (el) => {
         if (Date.now() - (ui.swipedAt || 0) < 600) return; // not right after dragging to another month
-        const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = box.width / vb.width;
+        const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = unfit(box.width) / vb.width;
         const [title, ...rest] = el.dataset.tip.split('|');
         tip.innerHTML = `<b>${esc(title)}</b>${rest.map((r) => `<br>${esc(r)}`).join('')}`;
         tip.hidden = false;
-        const x = H.clamp(+el.dataset.x * sx, 60, box.width - 60);
+        const x = H.clamp(+el.dataset.x * sx, 60, unfit(box.width) - 60);
         tip.style.left = x + 'px'; tip.style.top = (+el.dataset.y * sx - 6) + 'px';
       };
       svg.addEventListener('pointerover', (e) => { if (e.target.classList.contains('hit')) show(e.target); });
@@ -757,7 +768,7 @@
   (() => {
     const el = $('#toast'); let y0 = null, dy = 0;
     el.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; el.style.transition = 'none'; });
-    window.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.min(0, e.clientY - y0); el.style.transform = `translateY(${dy}px)`; });
+    window.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.min(0, unfit(e.clientY - y0)); el.style.transform = `translateY(${dy}px)`; });
     window.addEventListener('pointerup', () => {
       if (y0 === null) return; y0 = null; el.style.transition = '';
       if (dy < -24) { ui.toastSwiped = true; setTimeout(() => { ui.toastSwiped = false; }, 400); hideToast(nextToast); } else el.style.transform = '';
@@ -801,7 +812,7 @@
     const sheet = $('.sheet', layer), handle = [$('.sheet-grip', layer), $('.sheet-head', layer)];
     let y0 = null, dy = 0;
     const down = (e) => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; sheet.style.transition = 'none'; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not capturable */ } };
-    const move = (e) => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; };
+    const move = (e) => { if (y0 === null) return; dy = Math.max(0, unfit(e.clientY - y0)); sheet.style.transform = `translateY(${dy}px)`; };
     const up = () => {
       if (y0 === null) return; y0 = null; sheet.style.transition = 'transform .28s var(--spring)';
       if (dy > 110) { sheet.style.transform = 'translateY(100%)'; closeSheet(); } else sheet.style.transform = '';
@@ -1356,6 +1367,8 @@
   window.PowerBuddy = { state: () => s, ui: () => ui, domain: P, pageInfo, navigate, note: externalNote, toast: (t) => toast(t) };
   // The sliding segmented control, shared with the feedback tool.
   window.PBSeg = { init: initSegs, select: segSelect, glide };
+  // How much the phone is scaled down on this screen (1 = real size). The feedback tool records positions in phone pixels.
+  window.PBFit = () => ui.fit || 1;
 
   /* App launch: the icon's mark opens up into the app, like starting a phone app. */
   (() => {

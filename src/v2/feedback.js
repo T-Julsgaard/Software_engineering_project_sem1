@@ -214,7 +214,8 @@
   }
   /* Where it sat in the phone screen, in CSS pixels, at the scroll position it was picked at. */
   function boxOf(n) {
-    const r = n.getBoundingClientRect(), p = phone.getBoundingClientRect(), R = Math.round;
+    // The phone may be scaled down to fit the window; divide that out so positions are in the phone's own pixels.
+    const r = n.getBoundingClientRect(), p = phone.getBoundingClientRect(), k = window.PBFit ? PBFit() : 1, R = (v) => Math.round(v / k);
     return { x: R(r.left - p.left), y: R(r.top - p.top), w: R(r.width), h: R(r.height), screenW: R(p.width), screenH: R(p.height) };
   }
   function kindOf(n) {

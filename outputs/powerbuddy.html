@@ -29,7 +29,8 @@ body{background:var(--page);color:var(--ink);font:400 15px/1.45 var(--font);-web
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 h1,h2,h3,p{margin:0}
-.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+/* margin:-1px keeps the hidden announcer at the end of the page from adding a pixel (and a scrollbar). */
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:6px}
 
 /* ---------- stage & phone ---------- */
@@ -38,7 +39,9 @@ h1,h2,h3,p{margin:0}
 .stage-label .mark{width:28px;height:28px;color:var(--brand)}
 .stage-label strong{display:block;font-size:15px;color:var(--ink)}
 .stage-label span{font-size:12px;color:var(--muted)}
-.device{position:relative;border-radius:56px}
+/* The phone keeps its real shape (390 × 844) and is scaled down as a whole to fit shorter windows, such as
+   laptops, instead of being squashed. --fit is set by app.js; the negative margins shrink its layout box to match. */
+.device{position:relative;border-radius:56px;scale:var(--fit,1);margin:calc((var(--fit,1) - 1) * 422px) calc((var(--fit,1) - 1) * 195px)}
 .device.buzz{animation:buzz 1.05s linear}
 @keyframes buzz{0%,40%,58%,100%{transform:none}3%,11%,19%,27%,35%{transform:translate(1.6px,0) rotate(.4deg)}7%,15%,23%,31%,39%{transform:translate(-1.6px,0) rotate(-.4deg)}61%,69%,77%,85%,93%{transform:translate(1.6px,0) rotate(.4deg)}65%,73%,81%,89%,97%{transform:translate(-1.6px,0) rotate(-.4deg)}}
 .hw{position:absolute;width:4px;border-radius:2px;background:linear-gradient(90deg,#0E1411,#2C3631 60%,#1B2420)}
@@ -46,7 +49,7 @@ h1,h2,h3,p{margin:0}
 .hw-vol-up{left:-3px;top:172px;height:58px}
 .hw-vol-down{left:-3px;top:240px;height:58px}
 .hw-power{right:-3px;top:200px;height:92px}
-.phone{position:relative;width:390px;height:min(844px,calc(100vh - 48px));min-height:620px;background:var(--app);border-radius:52px;border:11px solid #121a16;box-shadow:0 0 0 1.5px #3a4540,0 40px 70px -24px #16211B66,0 12px 24px -12px #16211B33;overflow:hidden;display:flex;flex-direction:column;isolation:isolate}
+.phone{position:relative;width:390px;height:844px;background:var(--app);border-radius:52px;border:11px solid #121a16;box-shadow:0 0 0 1.5px #3a4540,0 40px 70px -24px #16211B66,0 12px 24px -12px #16211B33;overflow:hidden;display:flex;flex-direction:column;isolation:isolate}
 .statusbar{height:50px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:4px 30px 0 36px;font-size:15px;font-weight:650;letter-spacing:-.01em}
 .status-icons{display:flex;gap:6px;align-items:center;color:var(--ink)}
 .status-icons svg{display:block;fill:currentColor}
@@ -82,7 +85,7 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
   .stage-label strong{display:inline;font-size:13px}
   .stage-label span{font-size:11px;margin-left:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .stage-label div{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .device{border-radius:0}
+  .device{border-radius:0;scale:none;margin:0}
   .hw,.home-indicator{display:none}
   .phone{width:100%;height:calc(100dvh - 44px);min-height:0;border:0;border-radius:0;box-shadow:none}
   .statusbar{display:none}
@@ -1897,7 +1900,18 @@ if (typeof module !== 'undefined') module.exports = PBD;
     if (need() > c.clientHeight + 1) c.classList.add('tight');
     if (need() <= c.clientHeight + 1) { c.classList.add('fits'); c.scrollTop = 0; }
   }
-  addEventListener('resize', () => { fitHome(); for (const seg of $$('.seg-glide')) glide(seg); });
+  /* On a computer the phone is drawn at its real size, 390 × 844, and scaled down as a whole when the window is
+     shorter than that (most laptops), so it never gets squashed. On phones (740 px and narrower) it fills the screen. */
+  const PHONE = { w: 390, h: 844 }, STAGE_PAD = 48;
+  function fitDevice() {
+    const k = innerWidth <= 740 ? 1 : H.clamp(Math.min((innerHeight - STAGE_PAD) / PHONE.h, (innerWidth - STAGE_PAD) / PHONE.w), 0.6, 1);
+    ui.fit = Math.floor(k * 1000) / 1000; // rounded down, so the page never ends up a pixel taller than the window
+    document.documentElement.style.setProperty('--fit', ui.fit);
+  }
+  /* Screen pixels to phone pixels (drags and chart tooltips work in the phone's own pixels). */
+  const unfit = (px) => px / (ui.fit || 1);
+  fitDevice();
+  addEventListener('resize', () => { fitDevice(); fitHome(); for (const seg of $$('.seg-glide')) glide(seg); });
 
   /* ---------- segmented controls ----------
      One pill slides between the options. Its leading edge springs ahead and the trailing edge follows,
@@ -2025,7 +2039,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
       el.addEventListener('pointerdown', (e) => { if (e.button || e.target.closest('button, a, select, input')) return; x0 = e.clientX; y0 = e.clientY; dx = 0; axis = null; pid = e.pointerId; });
       el.addEventListener('pointermove', (e) => {
         if (x0 === null || e.pointerId !== pid) return;
-        const mx = e.clientX - x0, my = e.clientY - y0;
+        const mx = unfit(e.clientX - x0), my = unfit(e.clientY - y0);
         if (!axis && Math.hypot(mx, my) > 8) {
           axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
           if (axis === 'x') { try { el.setPointerCapture(pid); } catch { /* not capturable */ } track.getAnimations().forEach((a) => a.cancel()); track.style.transition = 'none'; el.classList.add('dragging'); }
@@ -2161,11 +2175,11 @@ if (typeof module !== 'undefined') module.exports = PBD;
       const svg = $('svg', chart), tip = $('.chart-tip', chart);
       const show = (el) => {
         if (Date.now() - (ui.swipedAt || 0) < 600) return; // not right after dragging to another month
-        const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = box.width / vb.width;
+        const box = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal, sx = unfit(box.width) / vb.width;
         const [title, ...rest] = el.dataset.tip.split('|');
         tip.innerHTML = `<b>${esc(title)}</b>${rest.map((r) => `<br>${esc(r)}`).join('')}`;
         tip.hidden = false;
-        const x = H.clamp(+el.dataset.x * sx, 60, box.width - 60);
+        const x = H.clamp(+el.dataset.x * sx, 60, unfit(box.width) - 60);
         tip.style.left = x + 'px'; tip.style.top = (+el.dataset.y * sx - 6) + 'px';
       };
       svg.addEventListener('pointerover', (e) => { if (e.target.classList.contains('hit')) show(e.target); });
@@ -2557,7 +2571,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
   (() => {
     const el = $('#toast'); let y0 = null, dy = 0;
     el.addEventListener('pointerdown', (e) => { y0 = e.clientY; dy = 0; el.style.transition = 'none'; });
-    window.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.min(0, e.clientY - y0); el.style.transform = `translateY(${dy}px)`; });
+    window.addEventListener('pointermove', (e) => { if (y0 === null) return; dy = Math.min(0, unfit(e.clientY - y0)); el.style.transform = `translateY(${dy}px)`; });
     window.addEventListener('pointerup', () => {
       if (y0 === null) return; y0 = null; el.style.transition = '';
       if (dy < -24) { ui.toastSwiped = true; setTimeout(() => { ui.toastSwiped = false; }, 400); hideToast(nextToast); } else el.style.transform = '';
@@ -2601,7 +2615,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const sheet = $('.sheet', layer), handle = [$('.sheet-grip', layer), $('.sheet-head', layer)];
     let y0 = null, dy = 0;
     const down = (e) => { if (e.target.closest('button')) return; y0 = e.clientY; dy = 0; sheet.style.transition = 'none'; try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* not capturable */ } };
-    const move = (e) => { if (y0 === null) return; dy = Math.max(0, e.clientY - y0); sheet.style.transform = `translateY(${dy}px)`; };
+    const move = (e) => { if (y0 === null) return; dy = Math.max(0, unfit(e.clientY - y0)); sheet.style.transform = `translateY(${dy}px)`; };
     const up = () => {
       if (y0 === null) return; y0 = null; sheet.style.transition = 'transform .28s var(--spring)';
       if (dy > 110) { sheet.style.transform = 'translateY(100%)'; closeSheet(); } else sheet.style.transform = '';
@@ -3156,6 +3170,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
   window.PowerBuddy = { state: () => s, ui: () => ui, domain: P, pageInfo, navigate, note: externalNote, toast: (t) => toast(t) };
   // The sliding segmented control, shared with the feedback tool.
   window.PBSeg = { init: initSegs, select: segSelect, glide };
+  // How much the phone is scaled down on this screen (1 = real size). The feedback tool records positions in phone pixels.
+  window.PBFit = () => ui.fit || 1;
 
   /* App launch: the icon's mark opens up into the app, like starting a phone app. */
   (() => {
@@ -3640,7 +3656,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
   /* Where it sat in the phone screen, in CSS pixels, at the scroll position it was picked at. */
   function boxOf(n) {
-    const r = n.getBoundingClientRect(), p = phone.getBoundingClientRect(), R = Math.round;
+    // The phone may be scaled down to fit the window; divide that out so positions are in the phone's own pixels.
+    const r = n.getBoundingClientRect(), p = phone.getBoundingClientRect(), k = window.PBFit ? PBFit() : 1, R = (v) => Math.round(v / k);
     return { x: R(r.left - p.left), y: R(r.top - p.top), w: R(r.width), h: R(r.height), screenW: R(p.width), screenH: R(p.height) };
   }
   function kindOf(n) {
