@@ -19,7 +19,9 @@ In V2, the same gear menu also holds prototype controls: jump to next month (set
 
 Home shows live prices rather than live consumption: hourly electricity prices are public, while a household's usage only reaches the app the next day from the meter. Runs planned in Plan send a reminder when it's time to start them (can be turned off in Settings). Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
 
-Usage (day by day) and the electricity price (Past months) can go back a year: use the arrows, or drag the chart sideways. Months logged from a bill only have a monthly total, so their daily split is estimated from the household's usual pattern and marked as such.
+Home fits on one screen without scrolling: one recommendation, your active goals (up to two), the live electricity price and "Your progress so far" (the last six months against homes like yours). On short phones it tightens to one line per row and the progress chart takes whatever height is left.
+
+Usage data is entered by hand, one month at a time: **Add monthly data** at the top of Usage opens a sheet with the form and, under it, the last 12 months (tap one to correct it or add a missing one). Usage shows electricity or water month by month for the last 12 months, and a pie chart of where it usually goes in a typical household like yours (an estimate, not your own usage). The electricity price (Plan, Past months) can go back a year: use the arrows, or drag the chart sideways.
 
 The gamification rules V2 implements are written up in [GAMIFICATION.md](GAMIFICATION.md).
 

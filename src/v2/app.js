@@ -39,7 +39,7 @@
   function save() { try { if (s) localStorage.setItem(P.KEY, JSON.stringify(s)); else localStorage.removeItem(P.KEY); } catch { /* storage unavailable: keep running in memory */ } }
   let s = load();
   const OB_DEFAULT = () => ({ name: '', region: 'capital', housing: 'apartment', area: 70, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv'], payment: 'bills', billE: '', billW: '', sample: true, terms: false, data: false });
-  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', usageRange: 'month', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, sheetToken: 0 };
+  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, sheetToken: 0 };
   if (s) { P.ensureNotify(s); P.sync(s); }
 
   /* ---------- render ---------- */
@@ -92,9 +92,18 @@
   /* Home is one screen: tighten it when the phone is short, and stop the last few pixels from scrolling. */
   function fitHome() {
     const c = $('#content'); if (!c || !c.classList.contains('home')) return;
-    c.classList.remove('tight', 'fits');
-    const need = () => { const last = c.lastElementChild; return last ? last.offsetTop - c.offsetTop + last.offsetHeight + parseFloat(getComputedStyle(c).paddingBottom) : 0; };
+    c.classList.remove('tight', 'tighter', 'fits');
+    const shrunk = $('.progress-card [data-chart]', c);
+    if (shrunk && ui.homeChart && $('svg', shrunk).viewBox.baseVal.height !== ui.homeChart.height) { shrunk.outerHTML = lineChart(ui.homeChart); bindCharts($('.progress-card', c)); }
+    const need =() => { const last = c.lastElementChild; return last ? last.offsetTop - c.offsetTop + last.offsetHeight + parseFloat(getComputedStyle(c).paddingBottom) : 0; };
     if (need() > c.clientHeight + 1) c.classList.add('tight');
+    if (need() - c.clientHeight > 26) c.classList.add('tighter'); // short phones: one line per row
+    // Still too tall (two goals, a short phone): give the progress chart whatever height is left, down to a minimum.
+    const chart = $('.progress-card [data-chart]', c), over = need() - c.clientHeight - 1;
+    if (chart && ui.homeChart && over > 0) {
+      const scale = chart.offsetWidth / 340, h = Math.max(66, Math.floor(92 - over / scale));
+      if (h !== ui.homeChart.height) { chart.outerHTML = lineChart({ ...ui.homeChart, height: h }); bindCharts($('.progress-card', c)); }
+    }
     if (need() <= c.clientHeight + 1) { c.classList.add('fits'); c.scrollTop = 0; }
   }
   /* On a computer the phone is drawn at its real size, 390 × 844, and scaled down as a whole when the window is
@@ -191,7 +200,7 @@
     const region = P.REGIONS.find((r) => r.id === s.profile.region);
     const t = {
       home: [`${s.profile.name}'s home`, region.name],
-      usage: ['Usage', 'Electricity and water, measured and logged'],
+      usage: ['Usage', 'Electricity and water, month by month'],
       plan: ['Plan', 'Plan runs in cheap hours. We remind you.'],
       goals: ['Goals', 'Your goals, challenges and rewards'],
       friends: ['Friends', `${P.mutualFriends(s).length} friends`]
@@ -271,41 +280,38 @@
     return s.months[last] ? null : last;
   }
   function viewHome() {
-    const m = P.thisMonth(s), n = P.now(s), dim = H.daysIn(m), dayN = n.getDate();
-    const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m), vt = P.vsTypical(s, 'electricity', m);
-    // Live prices, not live usage: prices are public, while usage only reaches us a day later from the meter.
+    const m = P.thisMonth(s), n = P.now(s);
+    // 1. One recommendation: logging last month comes first (the app only knows what you enter), then the best saving idea.
+    const miss = missingMonth(), rec = P.recommendations(s).find((r) => !s.recs[r.id]);
+    const recRow = miss
+      ? `<button class="row home-row" data-a="reading" data-month="${miss}"><span class="chip-icon brand">${ic('Receipt')}</span><div class="row-main"><div class="row-title">Add ${H.monthName(miss)}'s numbers</div><div class="row-sub">Enter what you used to keep your streak going. +10 points.</div></div>${ic('ChevronRight', 'sm muted')}</button>`
+      : rec ? `<button class="row home-row" data-a="tab" data-tab="plan"><span class="chip-icon ${rec.resource === 'water' ? 'water' : 'elec'}">${ic(rec.icon)}</span><div class="row-main"><div class="row-title">${esc(rec.title)}</div><div class="row-sub">${savingText(rec)}</div></div>${ic('ChevronRight', 'sm muted')}</button>`
+        : `<div class="row home-row"><span class="chip-icon brand">${ic('CircleCheck')}</span><div class="row-main"><div class="row-title">You're on top of things</div><div class="row-sub">You've been through every idea for now.</div></div></div>`;
+    const recs = `<section class="section">${sectionHead('Recommendation', '<button class="link" data-a="tab" data-tab="plan">More ideas</button>')}<div class="list">${recRow}</div></section>`;
+    // 2. Up to two active goals, one line and a bar each.
+    const active = s.goals.filter((g) => g.status === 'active').slice(0, 2);
+    const goalLine = (g) => { const p = P.goalProgress(s, g); return `<button class="home-goal" data-a="goal-detail" data-id="${g.id}" aria-label="${esc(P.goalLabel(g))}: see how it's going">
+        <div class="hg-top"><span class="chip-icon brand sm">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target', 'sm')}</span><span class="row-title">${esc(P.goalLabel(g))}</span><span class="hg-status ${p.onTrack ? 'good' : 'warn'}">${goalStatus(g, p).split(' · ')[0]}</span></div>
+        <div class="target-bar" aria-hidden="true"><i style="width:${goalRatio(g, p) * 100}%;background:${p.onTrack ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:50%"></b></div></button>`; };
+    const goals = `<section class="section">${sectionHead('Goals', `<button class="link" data-a="tab" data-tab="goals">${active.length ? 'All goals' : 'Goals'}</button>`)}<div class="list">${active.length ? active.map(goalLine).join('')
+      : `<div class="row home-row"><span class="chip-icon">${ic('Target')}</span><div class="row-main"><div class="row-title">No goal running</div><div class="row-sub">Cut back or keep it steady in ${H.monthName(m)}.</div></div><button class="btn primary small" data-a="goal">Set a goal</button></div>`}</div></section>`;
+    // 3. Live prices, not live usage: prices are public, while usage only reaches us later.
     const list = P.prices(s, P.today(s)), h = n.getHours(), green = P.greenHours(list), level = P.priceLevel(list[h], list), up = P.upcomingPrices(s);
-    const day = (ts) => (H.ymd(new Date(ts)) === P.today(s) ? '' : 'tomorrow, '), hhmm = (ts) => clock(ts), slot = `${String(h).padStart(2, '0')}:00–${String((h + 1) % 24).padStart(2, '0')}:00`;
-    const region = P.REGIONS.find((r) => r.id === s.profile.region);
-    const live = `<section class="section"><button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Prices right now. Open Plan for the whole day.">
-      <div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Prices right now</span>${s.live ? '' : '<span class="tag">Paused</span>'}<span class="tag ${level}">${{ low: 'Low', normal: 'Normal', high: 'High' }[level]}</span></div>
-      <div class="live-main"><div><div class="big-num num"><span data-live="price">${fmt(list[h], 2)}</span><small>kr/kWh</small></div><div class="small muted live-sub">Electricity, ${slot}</div></div>
-      ${priceStrip(list, h, green)}</div>
-      <div class="live-stats">
-        <div><span>Cheapest next</span>${up ? `<b class="num">${hhmm(up.low.start)}</b> <em>${day(up.low.start)}${fmt(up.low.price, 2)} kr</em>` : '<b>–</b>'}</div>
-        <div><span>Priciest next</span>${up ? `<b class="num">${hhmm(up.high.start)}</b> <em>${day(up.high.start)}${fmt(up.high.price, 2)} kr</em>` : '<b>–</b>'}</div>
-        <div><span>Water</span><b class="num">${fmt(P.rate(s, 'water'))}</b> <em>kr/m³</em></div>
-      </div><p class="live-foot">Water costs the same all day in ${esc(region.name)}, about ${fmt(P.rate(s, 'water') / 10, 1)} øre a litre.</p></button></section>`;
-    const rows = ['electricity', 'water'].map((r) => `<button class="res-row" data-a="tab" data-tab="usage" data-res="${r}" style="width:100%;border:0;background:none;text-align:left">
-        <span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span>
-        <div><div class="val num"><span data-live="so-${r}">${fmtRes(r, P.monthSoFar(s, r))}</span><small>${unit(r)}</small></div><div class="sub">so far · heading for ${fmtRes(r, P.projected(s, r))} ${unit(r)}</div></div>
-        <div class="row-end">${delta(P.change(s, r, m))}<span>vs your usual</span></div></button>`).join('');
-    const month = `<section class="section">${sectionHead(`${H.monthName(m)} so far`, `Day ${dayN} of ${dim}`)}
-      <div class="list">${rows}
-        <div class="compare-line">${ic('Users', 'sm')}<div>Homes like yours use about <b>${fmt(te)} kWh</b> and <b>${fmt(tw, 1)} m³</b> in ${H.monthName(m)}. You're heading for <b>${fmt(Math.abs(vt))}% ${vt <= 0 ? 'below' : 'above'}</b> that on electricity. <button class="link" data-a="estimate" style="padding:0">How we estimate</button></div></div>
-      </div></section>`;
-    let todo = '';
-    const miss = missingMonth();
-    if (miss) {
-      todo = `<section class="section"><div class="card todo"><span class="chip-icon brand">${ic('Receipt')}</span><div style="flex:1"><h3>${H.monthName(miss)} isn't logged</h3><p>Add the numbers from your bill to keep your streak going.</p>
-        <div class="btn-row"><button class="btn primary small" data-a="reading" data-month="${miss}">Add ${H.monthName(miss)}</button><span class="pts" style="align-self:center">+10 points</span></div></div></div></section>`;
-    } else {
-      const rec = P.recommendations(s).find((r) => !s.recs[r.id]);
-      if (rec) todo = `<section class="section"><div class="card todo"><span class="chip-icon ${rec.resource === 'water' ? 'water' : 'elec'}">${ic(rec.icon)}</span><div style="flex:1"><h3>${esc(rec.title)}</h3><p>${savingText(rec)}</p>
-        <div class="btn-row"><button class="btn secondary small" data-a="tab" data-tab="plan">See ideas for your home</button></div></div></div></section>`;
-    }
-    // Kept deliberately short: goals, challenges and the friends feed live in their own tabs.
-    return live + month + todo;
+    const day = (ts) => (H.ymd(new Date(ts)) === P.today(s) ? '' : ' tomorrow'), slot = `${String(h).padStart(2, '0')}:00–${String((h + 1) % 24).padStart(2, '0')}:00`;
+    const live = `<section class="section">${sectionHead('Live price', '<button class="link" data-a="tab" data-tab="plan">Plan</button>')}<button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Electricity price right now. Open Plan for the whole day.">
+      <div class="live-main"><div><div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Electricity, ${slot}</span></div><div class="big-num num"><span data-live="price">${fmt(list[h], 2)}</span><small>kr/kWh</small></div></div>${priceStrip(list, h, green)}</div>
+      <div class="live-line"><span class="tag ${level}">${{ low: 'Low', normal: 'Normal', high: 'High' }[level]}</span>${s.live ? '' : '<span class="tag">Paused</span>'}<span>${up ? `Cheapest next <b class="num">${clock(up.low.start)}</b>${day(up.low.start)}, ${fmt(up.low.price, 2)} kr` : ''}</span></div></button></section>`;
+    // 4. Progress: how the last finished months went against homes like yours.
+    const months = []; for (let i = 6; i >= 1; i--) months.push(H.addMonths(m, -i));
+    const pts = months.map((mm) => ({ m: mm, value: s.months[mm] ? s.months[mm].e : null, typ: P.typicalMonth(s.profile, 'electricity', mm) }));
+    const last = [...pts].reverse().find((p) => p.value !== null), streak = P.loggedStreak(s, H.addMonths(m, -1));
+    const vs = last ? (last.value / last.typ - 1) * 100 : null;
+    const headline = last ? `${H.monthName(last.m)}: <b>${fmt(Math.abs(vs))}% ${vs <= 0 ? 'less' : 'more'}</b> than homes like yours` : 'Add a month to compare with homes like yours.';
+    const progress = `<section class="section">${sectionHead('Your progress so far', streak ? `${streak}-month streak` : '')}<button class="card progress-card" data-a="tab" data-tab="usage" data-res="electricity" aria-label="Your progress. Open Usage.">
+      <p class="small progress-head">${headline}</p>
+      ${lineChart(ui.homeChart = { points: pts.map((p) => ({ value: p.value, label: H.monthName(p.m, 'short'), tip: p.value === null ? `${H.monthName(p.m)} ${p.m.slice(0, 4)}|Not entered yet` : `${H.monthName(p.m)} ${p.m.slice(0, 4)}|${fmt(p.value)} kWh|Homes like yours: ${fmt(p.typ)} kWh` })), typical: pts.map((p) => p.typ), height: 92, desc: 'Your electricity per month for the last 6 months, against homes like yours' })}
+      <div class="legend"><span><i style="background:var(--elec)"></i>Your electricity</span><span><i class="dash"></i>Homes like yours</span></div></button></section>`;
+    return recs + goals + live + progress;
   }
   function savingText(r) {
     if (r.costOnly) return `Saves about ${kr(r.saveKr)} a month. Same energy, lower price.`;
@@ -367,6 +373,45 @@
     bars.forEach((b, i) => { if (b.tip) g += `<rect class="hit" x="${padL + i * slot}" y="${padT}" width="${slot}" height="${plotH}" data-tip="${esc(b.tip)}" data-x="${padL + i * slot + slot / 2}" data-y="${y(Math.max(b.value || 0, b.proj || 0, b.missing ? max * 0.3 : 0))}"/>`; });
     return `<div class="chart" data-chart><svg viewBox="0 0 ${W} ${height}" role="img" aria-label="${esc(desc || 'Bar chart')}">${g}</svg><div class="chart-tip" hidden></div></div>`;
   }
+  /* points: [{value, label, tip}] ; typical: array, one per point. A gap in the line where a month is missing. */
+  function lineChart({ points, typical, height = 110, desc }) {
+    const W = 340, padL = 34, padR = 10, padB = 18, padT = 8, plotW = W - padL - padR, plotH = height - padB - padT, n = points.length;
+    const max = niceMax(Math.max(...points.map((p) => p.value || 0), ...typical) * 1.05);
+    const x = (i) => padL + (n === 1 ? plotW / 2 : (i * plotW) / (n - 1)), y = (v) => padT + plotH - (v / max) * plotH;
+    let g = '';
+    for (const t of [0, max / 2, max]) g += `<line class="grid" x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}"/><text class="axis-text" x="${padL - 6}" y="${y(t) + 3}" text-anchor="end">${fmt(t, max < 10 ? 1 : 0)}</text>`;
+    g += `<path class="typical" d="${typical.map((t, i) => `${i ? 'L' : 'M'}${x(i)},${y(t)}`).join('')}"/>`;
+    let d = '', pen = false;
+    points.forEach((p, i) => { if (p.value === null) { pen = false; return; } d += `${pen ? 'L' : 'M'}${x(i)},${y(p.value)}`; pen = true; });
+    g += `<path class="line" d="${d}"/>`;
+    const step = plotW / Math.max(1, n - 1);
+    points.forEach((p, i) => {
+      if (p.value !== null) g += `<circle class="dot" cx="${x(i)}" cy="${y(p.value)}" r="4"/>`;
+      g += `<text class="axis-text" x="${x(i)}" y="${height - 4}" text-anchor="middle">${esc(p.label)}</text>`;
+      if (p.tip) g += `<rect class="hit" x="${x(i) - step / 2}" y="${padT}" width="${step}" height="${plotH}" data-tip="${esc(p.tip)}" data-x="${x(i)}" data-y="${y(p.value === null ? 0 : p.value)}"/>`;
+    });
+    return `<div class="chart" data-chart><svg viewBox="0 0 ${W} ${height}" role="img" aria-label="${esc(desc || 'Line chart')}">${g}</svg><div class="chart-tip" hidden></div></div>`;
+  }
+  /* Part of a whole: a ring of up to six slices (the smallest fold into "Everything else"), with a 2px gap
+     between slices, the total in the middle and a legend with each part's value and share. */
+  const PIE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300'];
+  function pieChart({ parts, total, centre, desc }) {
+    const R = 56, r0 = 34, C = 60;
+    const slices = parts.length > PIE.length ? [...parts.slice(0, PIE.length - 1), { name: 'Everything else', value: H.sum(parts.slice(PIE.length - 1).map((p) => p.value)), fmt: parts[0].fmt }] : parts;
+    const pt = (a, rad) => `${(C + rad * Math.sin(a)).toFixed(2)},${(C - rad * Math.cos(a)).toFixed(2)}`;
+    let a0 = 0, g = '';
+    slices.forEach((p, i) => {
+      const share = p.value / total, a1 = a0 + share * 2 * Math.PI, mid = (a0 + a1) / 2, large = a1 - a0 > Math.PI ? 1 : 0;
+      const tip = `${p.name}|${p.fmt(p.value)} a month · ${fmt(share * 100)}%`, [cx, cy] = pt(mid, (R + r0) / 2).split(',');
+      const d = share >= 0.9999 ? `M${C},${C - R}A${R},${R} 0 1 1 ${C - 0.01},${C - R}ZM${C},${C - r0}A${r0},${r0} 0 1 0 ${C + 0.01},${C - r0}Z`
+        : `M${pt(a0, R)}A${R},${R} 0 ${large} 1 ${pt(a1, R)}L${pt(a1, r0)}A${r0},${r0} 0 ${large} 0 ${pt(a0, r0)}Z`;
+      g += `<path class="hit slice" style="--c:${PIE[i]};--bi:${i}" d="${d}" data-tip="${esc(tip)}" data-x="${cx}" data-y="${cy}"/>`;
+      a0 = a1;
+    });
+    g += `<text class="pie-total" x="${C}" y="${C + 1}" text-anchor="middle">${esc(centre[0])}</text><text class="axis-text" x="${C}" y="${C + 13}" text-anchor="middle">${esc(centre[1])}</text>`;
+    const legend = slices.map((p, i) => `<div class="pie-row"><i style="background:${PIE[i]}"></i><span>${esc(p.name)}</span><span class="num muted">${p.fmt(p.value)}</span><b class="num">${fmt((p.value / total) * 100)}%</b></div>`).join('');
+    return `<div class="pie"><div class="chart pie-chart" data-chart><svg viewBox="0 0 120 120" role="img" aria-label="${esc(desc)}">${g}</svg><div class="chart-tip" hidden></div></div><div class="pie-legend">${legend}</div></div>`;
+  }
   function bindCharts(root) {
     for (const chart of $$('[data-chart]', root)) {
       const svg = $('svg', chart), tip = $('.chart-tip', chart);
@@ -386,60 +431,36 @@
   }
 
   /* ---------- usage ---------- */
+  /* Months are entered by hand, so Usage shows months: the last 12, and this one so far. */
   function viewUsage() {
     const r = ui.usageRes, cls = r === 'water' ? 'bar-w' : 'bar-e', m = P.thisMonth(s), k = r === 'water' ? 'w' : 'e';
-    let chart, stats, title, nav = '', note = '';
-    if (ui.usageRange === 'month') {
-      const mm = shownMonth('usageMonth'), isCur = mm === m, dim = H.daysIn(mm), t = P.today(s), typ = P.typicalMonth(s.profile, r, mm) / dim, bars = [];
-      const hist = isCur ? null : P.monthDays(s, r, mm), x = r === 'water' ? 1000 : 1, est = hist && hist.source === 'split';
-      for (let i = 1; i <= dim; i++) {
-        const d = `${mm}-${String(i).padStart(2, '0')}`, isToday = isCur && d === t, past = isCur ? d < t : true;
-        const v = !isCur ? hist.values[i - 1] : past ? (s.days[d] ? s.days[d][k] : null) : isToday ? P.todaySoFar(s, r) : null;
-        const full = isToday ? P.dayValue(s, r, d) : null;
-        bars.push({ value: v === null ? null : v * x, proj: full === null ? null : full * x, cls, label: [1, 8, 15, 22, 29].includes(i) ? String(i) : '', missing: past && v === null,
-          tip: v !== null ? `${dateShort(d)}${isToday ? ' (so far)' : est ? ' (estimated)' : ''}|${fmtRes(r, v * x)} ${r === 'water' ? 'litres' : 'kWh'}|Typical: ${r === 'water' ? fmt(typ * 1000) + ' litres' : fmt(typ, 1) + ' kWh'}` : null });
-      }
-      title = 'Day by day';
-      nav = monthNav('usageMonth', mm);
-      chart = barChart({ bars, typical: typ * x, desc: `${resName(r)} per day in ${H.monthName(mm)} ${mm.slice(0, 4)}` });
-      if (isCur) {
-        const so = P.monthSoFar(s, r), pr = P.projected(s, r);
-        stats = [['So far', `${fmtRes(r, so)} ${unit(r)}`], ['Heading for', `${fmtRes(r, pr)} ${unit(r)}`], ['Cost so far', kr(P.cost(s, r, so))]];
-      } else {
-        const total = s.months[mm] ? s.months[mm][k] : null, vsTyp = total === null ? null : (total / P.typicalMonth(s.profile, r, mm) - 1) * 100;
-        stats = [['Used', total === null ? '–' : `${fmtRes(r, total)} ${unit(r)}`], ['vs homes like yours', signed(vsTyp)], ['Cost', total === null ? '–' : kr(P.cost(s, r, total))]];
-        if (total === null) note = `<div class="alert info">${ic('Receipt', 'sm')}<span>${H.monthName(mm)} isn't logged yet.</span><button class="link" data-a="reading" data-month="${mm}" style="margin-left:auto;padding:0">Add it</button></div>`;
-        else if (est) note = `<p class="hint">Your bill gives the month's total. The daily split is estimated from your usual pattern.</p>`;
-      }
-    } else {
-      const bars = [], typs = [];
-      for (let i = 12; i >= 0; i--) {
-        const mm = H.addMonths(m, -i), v = s.months[mm] ? s.months[mm][k] : null, isCur = i === 0, typ = P.typicalMonth(s.profile, r, mm);
-        typs.push(typ);
-        bars.push({ value: isCur ? P.monthSoFar(s, r) : v, proj: isCur ? P.projected(s, r) : null, cls, missing: !isCur && v === null, label: i % 3 === 0 ? H.monthName(mm, 'short') : '',
-          tip: isCur ? `${H.monthName(mm)} (so far)|${fmtRes(r, P.monthSoFar(s, r))} ${unit(r)}, heading for ${fmtRes(r, P.projected(s, r))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` : v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not logged yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${kr(P.cost(s, r, v))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
-      }
-      title = 'The last 12 months';
-      chart = barChart({ bars, typical: typs, desc: `${resName(r)} per month for the last 12 months` });
-      const logged = bars.slice(0, 12).filter((b) => b.value !== null && !b.missing).map((b) => b.value), total = H.sum(logged);
-      stats = [['Last 12 months', `${fmtRes(r, total)} ${unit(r)}`], ['Average month', `${fmtRes(r, logged.length ? total / logged.length : 0)} ${unit(r)}`], ['Cost', kr(P.cost(s, r, total))]];
+    const bars = [], typs = [];
+    for (let i = 12; i >= 0; i--) {
+      const mm = H.addMonths(m, -i), v = s.months[mm] ? s.months[mm][k] : null, isCur = i === 0, typ = P.typicalMonth(s.profile, r, mm);
+      typs.push(typ);
+      bars.push({ value: isCur ? P.monthSoFar(s, r) : v, proj: isCur ? P.projected(s, r) : null, cls, missing: !isCur && v === null, label: i % 3 === 0 ? H.monthName(mm, 'short') : '',
+        tip: isCur ? `${H.monthName(mm)} (so far)|${fmtRes(r, P.monthSoFar(s, r))} ${unit(r)}, heading for ${fmtRes(r, P.projected(s, r))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` : v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not entered yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${kr(P.cost(s, r, v))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
     }
-    const est = P.estimate(s.profile)[r], parts = est.parts.slice(0, 6), maxPart = Math.max(...parts.map((p) => p.kwh || p.m3));
-    const breakdown = parts.map((p) => { const v = (p.kwh || p.m3) / 12; return `<div class="bd-row"><span>${esc(p.name)}</span><span class="num muted">${r === 'water' ? fmt(Math.round(v * 100) * 10) + ' L' : fmt(v) + ' kWh'}</span><div class="bar thin ${r === 'water' ? 'water' : 'elec'}"><i style="width:${(p.kwh || p.m3) / maxPart * 100}%"></i></div></div>`; }).join('');
-    const months = []; for (let i = 1; i <= 12; i++) months.push(H.addMonths(m, -i));
-    const SRC = { bill: 'From bill', manual: 'Entered', meter: 'Meter', sample: 'Sample' };
-    const readings = months.map((mm) => { const x = s.months[mm]; return `<div class="row"><div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${x ? `${fmt(x.e)} kWh · ${fmt(x.w, 1)} m³` : 'Missing'}</div></div>${x ? `<span class="tag">${SRC[x.src] || x.src}</span>` : `<button class="btn secondary small" data-a="reading" data-month="${mm}">Add</button>`}</div>`; }).join('');
-    return `<section class="section">${seg('usageRes', [['electricity', 'Electricity'], ['water', 'Water']])}</section>
-      <section class="section">${sectionHead(title, '')}${seg('usageRange', [['month', 'Month'], ['year', '12 months']], 'small')}
-        <div class="card" style="margin-top:12px"${nav ? ' data-swipe="usageMonth"' : ''}>${nav}<div class="swipe-track">
+    const logged = bars.slice(0, 12).filter((b) => b.value !== null && !b.missing).map((b) => b.value), total = H.sum(logged);
+    const stats = [['Last 12 months', `${fmtRes(r, total)} ${unit(r)}`], ['Average month', `${fmtRes(r, logged.length ? total / logged.length : 0)} ${unit(r)}`], ['Cost', kr(P.cost(s, r, total))]];
+    const miss = missingMonths().filter((x) => !s.months[x]);
+    const est = P.estimate(s.profile)[r];
+    const parts = est.parts.map((p) => ({ name: p.name, value: (p.kwh || p.m3) / 12, fmt: (v) => (r === 'water' ? `${fmt(Math.round(v * 100) * 10)} L` : `${fmt(v)} kWh`) }));
+    const sum = H.sum(parts.map((p) => p.value));
+    const pie = pieChart({ parts, total: sum, centre: [r === 'water' ? fmt(sum, 1) : fmt(sum), r === 'water' ? 'm³ a month' : 'kWh a month'], desc: `Estimated ${r === 'water' ? 'water' : 'electricity'} use per month in a typical household like yours, by part of the home` });
+    return `<section class="section"><button class="btn primary add-month" data-a="reading">${ic('Plus', 'sm')}Add monthly data</button>
+        <p class="hint add-hint">${miss.length ? `${H.monthName(miss[0])} isn't entered yet${miss.length > 1 ? `, nor ${miss.length - 1} earlier month${miss.length > 2 ? 's' : ''}` : ''}. +10 points a month.` : 'Every month is entered. Add the next one when it ends.'}</p></section>
+      <section class="section">${seg('usageRes', [['electricity', 'Electricity'], ['water', 'Water']])}</section>
+      <section class="section">${sectionHead('Month by month', 'last 12 months')}
+        <div class="card">
           <div class="headline-stat">${stats.map(([a, b]) => `<div><span>${a}</span><b class="num">${b}</b></div>`).join('')}</div>
-          ${chart}
-          <div class="legend"><span><i style="background:var(--${r === 'water' ? 'water' : 'elec'})"></i>Your ${r === 'water' ? 'water' : 'electricity'}</span><span><i class="dash"></i>Homes like yours</span>${ui.usageRange === 'year' ? '<span><i style="border:1px dashed var(--line-2);background:none"></i>Not logged</span>' : ''}</div>
-          ${note}</div>
+          ${barChart({ bars, typical: typs, desc: `${resName(r)} per month for the last 12 months` })}
+          <div class="legend"><span><i style="background:var(--${r === 'water' ? 'water' : 'elec'})"></i>Your ${r === 'water' ? 'water' : 'electricity'}</span><span><i class="dash"></i>Homes like yours</span><span><i style="border:1px dashed var(--line-2);background:none"></i>Not entered</span></div>
         </div></section>
-      <section class="section">${sectionHead('Where it probably goes', 'per month, estimated')}<div class="card"><div class="breakdown">${breakdown}</div>
-        <p class="hint" style="margin-top:12px">Based on ${esc(P.describeHome(s.profile))}.</p><button class="link" data-a="household">Edit your household</button></div></section>
-      <section class="section">${sectionHead('Months', `<button class="link" data-a="reading">Add a reading</button>`)}<div class="list">${readings}</div></section>`;
+      <section class="section">${sectionHead('A typical household like yours', 'estimate')}<div class="card">
+        <p class="small" style="color:var(--ink-2);margin-bottom:12px">Where ${r === 'water' ? 'water' : 'electricity'} usually goes in a typical household like yours, per month. An estimate, not your own usage.</p>
+        ${pie}
+        <p class="hint" style="margin-top:12px">Based on ${esc(P.describeHome(s.profile))}.</p><button class="link" data-a="household">Edit your household</button></div></section>`;
   }
 
   /* ---------- plan ---------- */
@@ -863,18 +884,24 @@
     reading(sh) {
       const opts = missingMonths(), m = sh.month || opts.find((x) => !s.months[x]) || opts[0], e = sh.errors || {}, v = sh.values || {}, cur = s.months[m];
       const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m);
-      return [cur ? 'Correct a month' : 'Add a reading', `<form data-form="reading" novalidate>
-        <p class="small muted">From your bill or meter. Homes like yours use about ${fmt(te)} kWh and ${fmt(tw, 1)} m³ in ${H.monthName(m)}.</p>
-        ${field('Month', `<select class="select" name="month" data-change="reading-month">${opts.map((x) => `<option value="${x}"${x === m ? ' selected' : ''}>${H.monthName(x)} ${x.slice(0, 4)}${s.months[x] ? ' (logged)' : ''}</option>`).join('')}</select>`, e.month)}
+      // The months entered so far sit under the form: tap one to correct it, or a missing one to add it.
+      const SRC = { bill: 'Entered', manual: 'Entered', meter: 'Meter', sample: 'Sample' };
+      const history = Array.from({ length: 12 }, (_, i) => H.addMonths(P.thisMonth(s), -1 - i)).map((mm) => {
+        const x = s.months[mm], editable = !x || x.src !== 'meter', sel = mm === m;
+        const inner = `<div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${x ? `${fmt(x.e)} kWh · ${fmt(x.w, 1)} m³` : 'Not entered yet'}</div></div>`;
+        const end = sel ? '<span class="tag brand">Editing</span>' : x ? `<span class="tag">${SRC[x.src] || x.src}</span>` : '<span class="tag warn">Add</span>';
+        return editable ? `<button type="button" class="row month-row${sel ? ' on' : ''}" data-a="reading-pick" data-month="${mm}" aria-pressed="${sel}">${inner}${end}</button>` : `<div class="row month-row">${inner}${end}</div>`;
+      }).join('');
+      return [cur ? 'Correct a month' : 'Add monthly data', `<form data-form="reading" novalidate>
+        <p class="small muted">Type in what you used in the month. Homes like yours use about ${fmt(te)} kWh and ${fmt(tw, 1)} m³ in ${H.monthName(m)}.</p>
+        ${field('Month', `<select class="select" name="month" data-change="reading-month">${opts.map((x) => `<option value="${x}"${x === m ? ' selected' : ''}>${H.monthName(x)} ${x.slice(0, 4)}${s.months[x] ? ' (entered)' : ''}</option>`).join('')}</select>`, e.month)}
         ${field('Electricity', `<div class="input-unit"><input class="input" name="e" inputmode="decimal" value="${esc(v.e ?? (cur ? cur.e : ''))}" aria-invalid="${!!e.e}" autocomplete="off"><b>kWh</b></div>`, e.e)}
         ${field('Water', `<div class="input-unit"><input class="input" name="w" inputmode="decimal" value="${esc(v.w ?? (cur ? cur.w : ''))}" aria-invalid="${!!e.w}" autocomplete="off"><b>m³</b></div>`, e.w)}
-        <details style="margin-top:14px"><summary class="link" style="display:inline-flex;cursor:pointer">Add the billed amounts (optional)</summary>
-          ${field('Electricity bill', `<div class="input-unit"><input class="input" name="amountE" inputmode="decimal" value="${esc(v.amountE || '')}"><b>kr</b></div>`)}
-          ${field('Water bill', `<div class="input-unit"><input class="input" name="amountW" inputmode="decimal" value="${esc(v.amountW || '')}"><b>kr</b></div>`)}
-          <p class="hint">We use these to check that the amounts match the usage.</p></details>
         ${(sh.warnings || []).map((w) => `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>${esc(w)}</span></div>`).join('')}
         <div class="btn-row"><button class="btn primary" type="submit">${sh.warnings && sh.warnings.length ? 'Save anyway' : 'Save'}</button></div>
-        ${!s.ledger.some((l) => l.id === 'reading-' + m) ? '<p class="hint" style="text-align:center">+10 points for logging a month</p>' : ''}</form>`];
+        ${!s.ledger.some((l) => l.id === 'reading-' + m) ? '<p class="hint" style="text-align:center">+10 points for entering a month</p>' : ''}</form>
+        <div class="section-head" style="margin-top:22px"><h2>Monthly consumption</h2><span class="meta">last 12 months</span></div>
+        <div class="list">${history}</div>`];
     },
     goal(sh) {
       const r = sh.resource || 'electricity', keep = sh.kind === 'keep';
@@ -1041,12 +1068,12 @@
     const m = P.thisMonth(s), prev = H.addMonths(m, -1);
     const go = (label, attrs, primary = true) => `<button class="btn ${primary ? 'primary' : 'secondary'}" ${attrs}>${label}</button>`;
     const resRow = (r, cut) => { const u = P.usual(s, r, m), pr = P.projected(s, r); return `<div class="row"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span><div class="row-main"><div class="row-title">${resName(r)} this month</div><div class="row-sub">Heading for ${fmtRes(r, pr)} ${unit(r)}. ${cut ? `${cut}% under your usual is ${fmtRes(r, u * (1 - cut / 100))}.` : `Your usual is ${fmtRes(r, u)}.`}</div></div>${delta(P.change(s, r, m), 1)}</div>`; };
-    const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}This month's usage`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
+    const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}See usage`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
     let text = '', rows = '', btns = '';
     const active = s.goals.find((g) => g.status === 'active');
     switch (b.id) {
-      case 'first-reading': text = 'Add a month from your bill or meter. It takes a minute.'; btns = go('Add a reading', 'data-a="reading"'); break;
-      case 'steady': { const n = P.loggedStreak(s, prev); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add a reading', 'data-a="reading"'); break; }
+      case 'first-reading': text = 'Type in one month of electricity and water. It takes a minute.'; btns = go('Add monthly data', 'data-a="reading"'); break;
+      case 'steady': { const n = P.loggedStreak(s, prev); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add monthly data', 'data-a="reading"'); break; }
       case 'goal-getter': text = active ? `${P.goalLabel(active)} is running. ${P.goalProgress(s, active).onTrack ? "It's on track." : "It's behind for now."}` : 'Set a goal for this month and reach it.'; btns = active ? go('See your goal', `data-a="goal-detail" data-id="${active.id}"`) : go('Set a goal', 'data-a="goal"'); break;
       case 'ten-club': text = 'Finish this month 10% under your usual on either one:'; rows = resRow('electricity', 10) + resRow('water', 10); btns = usageBtns(); break;
       case 'water-wise': text = 'Finish this month with water 10% under your usual:'; rows = resRow('water', 10); btns = usageBtns('water'); break;
@@ -1154,7 +1181,7 @@
 
   /* ---------- actions ---------- */
   const A = {
-    tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) { ui.usageRes = el.dataset.res; ui.usageRange = 'month'; ui.usageMonth = null; } render(); $('#content').scrollTop = 0; },
+    tab(el) { ui.page = null; ui.tab = el.dataset.tab; if (el.dataset.res) ui.usageRes = el.dataset.res; render(); $('#content').scrollTop = 0; },
     'month-step'(el) { stepMonth(el.dataset.key, +el.dataset.d); },
     seg(el) {
       const k = el.dataset.key; if (ui[k] === el.dataset.val) return;
@@ -1192,6 +1219,14 @@
     estimate() { openSheet('estimate'); },
     close() { closeSheet(); },
     reading(el) { openSheet('reading', { month: el.dataset.month }); },
+    /* A month picked from the list under the form: load it into the form and scroll back up to it. */
+    'reading-pick'(el) {
+      const mm = el.dataset.month, x = s.months[mm];
+      Object.assign(ui.sheet, { month: mm, errors: {}, warnings: [], values: x ? { e: x.e, w: x.w } : { e: '', w: '' } });
+      renderSheet();
+      const b = $('.sheet-body'); if (b) b.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
+      const inp = $('.sheet-body input[name="e"]'); if (inp) inp.focus({ preventScroll: true });
+    },
     goal(el) { const r = el.dataset.rec && P.recommendations(s).find((x) => x.id === el.dataset.rec); openSheet('goal', { kind: 'cut', bench: 'usual', resource: r ? r.goal.resource : 'electricity', target: r ? r.goal.target : 5, months: 1, source: r ? r.id : 'custom' }); },
     'goal-res'(el) { ui.sheet.resource = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
     'goal-kind'(el) {
@@ -1265,7 +1300,7 @@
   /* ---------- forms ---------- */
   const FORMS = {
     reading(form) {
-      const fd = Object.fromEntries(new FormData(form)), values = { month: fd.month, e: fd.e.replace(',', '.'), w: fd.w.replace(',', '.'), amountE: (fd.amountE || '').replace(',', '.'), amountW: (fd.amountW || '').replace(',', '.') };
+      const fd = Object.fromEntries(new FormData(form)), values = { month: fd.month, e: fd.e.replace(',', '.'), w: fd.w.replace(',', '.') };
       const v = P.validateReading(s, values), sh = ui.sheet;
       if (!v.ok) { Object.assign(sh, { errors: v.errors, warnings: [], values, month: values.month }); return renderSheet(); }
       const sameWarnings = JSON.stringify(v.warnings) === JSON.stringify(sh.warnings || []);
@@ -1346,13 +1381,13 @@
   /* A fresh start: clears the household and restarts the visit, so Thomas calls again. */
   function resetApp() {
     s = null; save(); closeSheet(true);
-    ui.ob = { step: 0, d: OB_DEFAULT(), errors: {} }; ui.page = null; ui.tab = 'home'; ui.usageMonth = null; ui.priceMonth = null;
+    ui.ob = { step: 0, d: OB_DEFAULT(), errors: {} }; ui.page = null; ui.tab = 'home'; ui.priceMonth = null;
     if (window.PBCall) PBCall.reset();
     render();
   }
 
   /* Where the visitor is, as a stable key and a readable label. The feedback tool files comments under it. */
-  const SHEET_NAMES = { goalDetail: 'Goal', rankInfo: 'How the ranking works', notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add a reading', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
+  const SHEET_NAMES = { goalDetail: 'Goal', rankInfo: 'How the ranking works', notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add monthly data', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
   const SEG_NAMES = { goals: 'Goals', challenges: 'Challenges', rewards: 'Rewards', feed: 'Feed', ranking: 'Ranking' };
   function pageInfo() {
     if (!s) { const step = ui.ob ? OB_STEPS[ui.ob.step] : 'welcome'; return { key: 'onboarding/' + step, label: 'Onboarding · ' + step.charAt(0).toUpperCase() + step.slice(1) }; }
