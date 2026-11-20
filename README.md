@@ -12,10 +12,12 @@ The gear in the top-right corner of the page switches between versions.
 
 | Version | File | What it is |
 | --- | --- | --- |
-| **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, a live simulated meter, goals, challenges, points, sustainable partner rewards, the monthly Green draw, badges, friends, comparison and a feed. |
+| **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, live electricity and water prices, goals (cut back or keep steady), challenges, points, sustainable partner rewards, the monthly Green draw, badges, friends, comparison and a feed. |
 | V1 | `outputs/powerbuddy-v1.html` | The original prototype, kept unchanged for comparison. |
 
-In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update or a price tip, pause live data, or **Reset app**. Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
+In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update or a price tip, pause live updates, or **Reset app**.
+
+Home shows live prices rather than live consumption: hourly electricity prices are public, while a household's usage only reaches the app the next day from the meter. Runs planned in Plan send a reminder when it's time to start them (can be turned off in Settings). Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
 
 Usage (day by day) and the electricity price (Past months) can go back a year: use the arrows, or drag the chart sideways. Months logged from a bill only have a monthly total, so their daily split is estimated from the household's usual pattern and marked as such.
 

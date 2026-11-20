@@ -28,6 +28,58 @@ test('Goal points follow the published formula', () => {
   assert.equal(P.goalPoints({ target: 10, months: 1, resource: 'water', efficient: true }), 100);
 });
 
+test('Keep-steady goals: 25 points a month, on track while at or under the benchmark', () => {
+  assert.equal(P.goalPoints({ kind: 'keep', target: 0, months: 3, resource: 'electricity', efficient: false }), 75);
+  assert.equal(P.goalPoints({ kind: 'keep', target: 0, months: 1, resource: 'both', efficient: true }), 47);
+  const s = fresh(), m = P.thisMonth(s);
+  const g = P.createGoal(s, { kind: 'keep', bench: 'usual', resource: 'electricity', months: 3 });
+  assert.equal(g.kind, 'keep'); assert.equal(g.target, 0); assert.equal(g.end, P.helpers.addMonths(m, 2));
+  assert.match(P.goalLabel(g), /kept steady/);
+  const p = P.goalProgress(s, g);
+  assert.equal(p.onTrack, -P.change(s, 'electricity', m) >= 0);
+  const t = P.createGoal(s, { kind: 'keep', bench: 'typical', resource: 'water', months: 1 });
+  assert.match(P.goalLabel(t), /similar homes/);
+  assert.ok(Math.abs(P.goalProgress(s, t).reduction + P.vsTypical(s, 'water', m)) < 1e-9);
+  // Cutting goals are unchanged.
+  const c = P.createGoal(s, { resource: 'water', target: 5, months: 1 });
+  assert.equal(c.kind, 'cut'); assert.equal(c.est, 40);
+});
+
+test('A keep-steady goal settles when the month closes', () => {
+  const s = fresh();
+  s.goals = s.goals.filter((g) => g.status !== 'active');
+  const g = P.createGoal(s, { kind: 'keep', bench: 'usual', resource: 'electricity', months: 1 });
+  P.advanceToNextMonth(s);
+  assert.ok(['reached', 'missed'].includes(g.status));
+  assert.equal(g.status === 'reached', g.result >= 0);
+});
+
+test('Fridge and "something else" count towards the estimate', () => {
+  const e = (p) => P.estimate(p).electricity;
+  const base = { ...P.DEMO_PROFILE, appliances: [] };
+  assert.equal(e({ ...base, appliances: ['fridgeonly'] }).year - e(base).year, 150);
+  assert.ok(e({ ...base, appliances: ['fridgeonly'] }).year < e({ ...base, appliances: ['fridge'] }).year);
+  const other = e({ ...base, appliances: ['other'], otherNote: 'Sauna' });
+  assert.equal(other.year - e(base).year, 150);
+  assert.ok(other.parts.some((x) => x.name === 'Other: Sauna'));
+});
+
+test('Upcoming prices: cheapest and priciest hours still to come', () => {
+  const s = fresh(), up = P.upcomingPrices(s), t = P.now(s).getTime();
+  if (up) { assert.ok(up.low.start > t && up.high.start > t); assert.ok(up.low.price <= up.high.price); }
+});
+
+test('A planned run is announced once when its start time comes', () => {
+  const s = fresh(), start = P.now(s).getTime() + 36e5;
+  s.plans = [];
+  const p = P.planRun(s, 'washer', start);
+  assert.equal(P.dueRuns(s).length, 0);
+  P.advanceHours(s, 1.5);
+  assert.deepEqual(P.dueRuns(s).map((x) => x.id), [p.id]);
+  assert.equal(P.dueRuns(s).length, 0, 'only once');
+  assert.equal(s.notify.plans, true);
+});
+
 test('Points are awarded once per id, lifetime never drops when spending', () => {
   const s = fresh(), before = P.available(s), life = P.lifetime(s);
   assert.equal(P.award(s, 'x-1', 10, 'Test'), true);

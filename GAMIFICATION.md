@@ -29,12 +29,19 @@ Log a reading -> see progress -> set a goal / join a challenge -> earn points + 
 
 A goal is the user's own target. Participants in the mockup session saw no real difference between suggested and self-made goals, so there is **one goal flow**. It opens either empty or pre-filled from an accepted recommendation.
 
-| Field | Example |
-| --- | --- |
-| Resource | Electricity, water or both |
-| Target | Cut 3-30% (suggested 5-15%) |
-| Period | 1, 2 or 3 months |
-| Baseline | Average of the last 3 complete months (falls back to the last complete month) |
+A goal has one of two aims, since saving isn't only about cutting: a household that's already doing well should be rewarded for staying there.
+
+- **Use less**: cut by a set percentage against your usual.
+- **Keep it steady**: stay at or under a benchmark, either your usual or what similar homes use.
+
+| Field | Use less | Keep it steady |
+| --- | --- | --- |
+| Resource | Electricity, water or both | Electricity, water or both |
+| Target | Cut 3-30% (suggested 5-15%) | At or under your usual, or under similar homes |
+| Period | 1, 2 or 3 months | 1, 3 or 6 months |
+| Baseline | Average of the last 3 complete months (falls back to the last complete month) | The same, or the "homes like yours" estimate |
+
+Tapping an active goal opens its detail: this month's aim in kWh or m³, how much of it is used, the daily pace needed for the rest of the month, and links to usage and ideas.
 
 **Points estimate**, shown live while the user adjusts the target:
 
@@ -52,6 +59,14 @@ stretchFactor  = 1.25 if the household is already below the typical use for its 
 | Water -10%, 1 month, already-efficient household | 100 pts |
 
 The stretch factor matters because cutting 10% is harder for a household that's already frugal. It also stops efficient households feeling punished.
+
+Keep-it-steady goals use a flat rate instead of the target:
+
+```
+points = round(25 x months x resourceFactor x stretchFactor)
+```
+
+So keeping electricity steady for 3 months is worth 75 points, about the same per month as a 3% cut.
 
 Goals are assessed only on **complete readings**, the same way the current `assessGoal` works. A goal that is missed shows "Not this time. Your usage was 3% lower anyway" and costs nothing. There is no guilt messaging.
 

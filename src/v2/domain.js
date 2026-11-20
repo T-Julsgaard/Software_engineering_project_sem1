@@ -60,6 +60,7 @@ const PBD = (() => {
   const dishCycles = (p) => 100 + 40 * persons(p);
   const APPLIANCES = [
     { id: 'fridge', name: 'Fridge-freezer', icon: 'Refrigerator', kwh: () => 260 },
+    { id: 'fridgeonly', name: 'Fridge', icon: 'Refrigerator', kwh: () => 150 },
     { id: 'freezer', name: 'Separate freezer', icon: 'Snowflake', kwh: () => 200 },
     { id: 'washer', name: 'Washing machine', icon: 'WashingMachine', kwh: (p) => washCycles(p) * 0.6, water: (p) => washCycles(p) * 0.05, cycle: { kwh: 0.8, hours: 2, name: 'Laundry', daytime: true } },
     { id: 'dryer', name: 'Tumble dryer', icon: 'Wind', kwh: (p) => washCycles(p) * 0.6 * 1.6, cycle: { kwh: 1.6, hours: 2, name: 'Tumble dryer', daytime: true } },
@@ -69,7 +70,9 @@ const PBD = (() => {
     { id: 'office', name: 'Home office', icon: 'Laptop', kwh: () => 200 },
     { id: 'ev', name: 'Electric car', icon: 'Car', kwh: () => 2200, cycle: { kwh: 28, hours: 5, name: 'Car charging' } },
     { id: 'bathtub', name: 'Bathtub', icon: 'Bath', water: (p) => 3 + 2 * persons(p) },
-    { id: 'garden', name: 'Garden watering', icon: 'Flower2', water: () => 8 }
+    { id: 'garden', name: 'Garden watering', icon: 'Flower2', water: () => 8 },
+    // Anything not listed. A small allowance, since we can't know what it is.
+    { id: 'other', name: 'Something else', icon: 'Plus', kwh: () => 150 }
   ];
   const appliance = (id) => APPLIANCES.find((a) => a.id === id);
 
@@ -82,6 +85,8 @@ const PBD = (() => {
   const HOURS_W = [0.1, 0.05, 0.05, 0.05, 0.1, 0.4, 1.6, 2.2, 1.6, 1.0, 0.8, 0.8, 0.9, 0.7, 0.6, 0.7, 0.9, 1.3, 1.5, 1.3, 1.1, 1.0, 0.8, 0.4];
   const CO2_PER_KWH = 0.12;
 
+  const otherName = (p) => (p.otherNote && p.otherNote.trim() ? `Other: ${p.otherNote.trim()}` : 'Other appliances');
+
   /* ---------- typical usage for a household like this ---------- */
   function estimate(p) {
     const housing = HOUSING.find((h) => h.id === p.housing) || HOUSING[0];
@@ -90,7 +95,7 @@ const PBD = (() => {
       { id: 'base', name: 'Lighting, standby and network', kwh: housing.base + 4 * p.area },
       { id: 'people', name: 'Personal devices and small appliances', kwh: 250 * p.adults + 180 * p.children }
     ];
-    for (const a of APPLIANCES) if (a.kwh && has(a.id)) e.push({ id: a.id, name: a.name, kwh: a.kwh(p) });
+    for (const a of APPLIANCES) if (a.kwh && has(a.id)) e.push({ id: a.id, name: a.id === 'other' ? otherName(p) : a.name, kwh: a.kwh(p) });
     if (p.heating === 'heatpump') e.push({ id: 'heating', name: 'Heat pump (heating)', kwh: 35 * p.area, heat: true });
     if (p.heating === 'electric') e.push({ id: 'heating', name: 'Electric heaters', kwh: 90 * p.area, heat: true });
     if (p.heating === 'gas' && p.housing !== 'apartment') e.push({ id: 'heating', name: 'Boiler pump', kwh: 150, heat: true });
@@ -242,11 +247,16 @@ const PBD = (() => {
   const vsTypical = (s, resource, m) => { const v = monthValue(s, resource, m); return v === null ? null : (v - typicalMonth(s.profile, resource, m)) / typicalMonth(s.profile, resource, m) * 100; };
   const rate = (s, resource) => (resource === 'water' ? (REGIONS.find((r) => r.id === s.profile.region) || REGIONS[0]).water : 2.35);
   const cost = (s, resource, amount) => amount * rate(s, resource);
-  function liveWatts(s, t) {
-    const d = new Date(t), h = d.getHours(), daily = dayValue(s, 'electricity', ymd(d));
-    const base = daily * HOURS_E[h] / sum(HOURS_E) * 1000;
-    const fridge = Math.floor(t / 420000) % 3 === 0 ? 85 : 0;
-    return base * (0.93 + 0.14 * rng(Math.floor(t / 2000))()) + fridge;
+  /* The cheapest and priciest hours still to come: the rest of today, plus tomorrow once its prices are out (around 13:00). */
+  function upcomingPrices(s) {
+    const n = now(s), out = [];
+    for (let i = 1; i <= 36; i++) {
+      const t = new Date(n); t.setMinutes(0, 0, 0); t.setHours(t.getHours() + i);
+      if (ymd(t) !== today(s) && !tomorrowReady(s)) break;
+      out.push({ start: t.getTime(), price: priceAt(s, t) });
+    }
+    if (!out.length) return null;
+    return { low: out.reduce((a, b) => (b.price < a.price ? b : a)), high: out.reduce((a, b) => (b.price > a.price ? b : a)) };
   }
 
   /* ---------- points ---------- */
@@ -331,23 +341,34 @@ const PBD = (() => {
     const m = thisMonth(s), check = (r) => usual(s, r, m) < typicalMonth(s.profile, r, m);
     return resource === 'both' ? check('electricity') && check('water') : check(resource);
   }
-  function goalPoints({ target, months, resource, efficient: eff }) { return Math.round(8 * target * months * (resource === 'both' ? 1.5 : 1) * (eff ? 1.25 : 1)); }
+  /* Cutting: 8 points per % per month. Keeping steady (at or under a benchmark): 25 points per month. */
+  function goalPoints({ kind, target, months, resource, efficient: eff }) {
+    const per = kind === 'keep' ? 25 : 8 * target;
+    return Math.round(per * months * (resource === 'both' ? 1.5 : 1) * (eff ? 1.25 : 1));
+  }
   function goalMonths(g) { const out = []; for (let m = g.start; m <= g.end; m = addMonths(m, 1)) out.push(m); return out; }
   const goalResources = (g) => (g.resource === 'both' ? ['electricity', 'water'] : [g.resource]);
+  /* How far under the goal's benchmark a month is, in %. Positive is under. Cutting goals and "kept steady"
+     use your usual; "under similar homes" uses the typical home like yours. */
+  const underBy = (s, g, r, m) => { const c = g.bench === 'typical' ? vsTypical(s, r, m) : change(s, r, m); return c === null ? null : -c; };
   function goalProgress(s, g) {
     const ms = goalMonths(g).filter((m) => m <= thisMonth(s));
-    const per = goalResources(g).map((r) => { const c = ms.map((m) => change(s, r, m)).filter((v) => v !== null); return c.length ? -sum(c) / c.length : 0; });
+    const per = goalResources(g).map((r) => { const c = ms.map((m) => underBy(s, g, r, m)).filter((v) => v !== null); return c.length ? sum(c) / c.length : 0; });
     const reduction = Math.min(...per);
-    return { reduction, onTrack: reduction >= g.target, monthsIn: ms.length };
+    return { reduction, per, onTrack: reduction >= (g.kind === 'keep' ? 0 : g.target), monthsIn: ms.length };
   }
-  function createGoal(s, { resource, target, months, source }) {
-    const start = thisMonth(s), eff = efficient(s, resource);
-    const g = { id: 'g' + s.seq++, resource, target, months, start, end: addMonths(start, months - 1), est: goalPoints({ target, months, resource, efficient: eff }), status: 'active', source: source || 'custom', at: now(s).toISOString() };
+  function createGoal(s, { kind, bench, resource, target, months, source }) {
+    const start = thisMonth(s), eff = efficient(s, resource), keep = kind === 'keep';
+    const g = { id: 'g' + s.seq++, kind: keep ? 'keep' : 'cut', bench: keep && bench === 'typical' ? 'typical' : 'usual', resource, target: keep ? 0 : target, months, start, end: addMonths(start, months - 1), est: goalPoints({ kind, target, months, resource, efficient: eff }), status: 'active', source: source || 'custom', at: now(s).toISOString() };
     s.goals.unshift(g);
     award(s, 'first-goal', 10, 'First goal set');
     return g;
   }
-  const goalLabel = (g) => `${g.resource === 'both' ? 'Electricity and water' : g.resource === 'water' ? 'Water' : 'Electricity'} −${g.target}%`;
+  const goalLabel = (g) => {
+    const what = g.resource === 'both' ? 'Electricity and water' : g.resource === 'water' ? 'Water' : 'Electricity';
+    if (g.kind === 'keep') return g.bench === 'typical' ? `${what} under similar homes` : `${what} kept steady`;
+    return `${what} −${g.target}%`;
+  };
 
   /* ---------- challenges ---------- */
   const CHALLENGES = {
@@ -415,11 +436,14 @@ const PBD = (() => {
     for (const g of s.goals.filter((x) => x.status === 'active' && x.end <= m)) {
       const p = goalProgress(s, g);
       g.status = p.onTrack ? 'reached' : 'missed'; g.result = round(p.reduction, 1);
+      const keep = g.kind === 'keep', than = g.bench === 'typical' ? 'similar homes' : 'your usual';
       if (p.onTrack) {
         award(s, 'goal-' + g.id, g.est, goalLabel(g));
         post(s, { actor: 'me', kind: 'goal', title: `${goalLabel(g)} in ${monthName(m)}`, pts: g.est });
-        note(s, { icon: 'Target', title: 'Goal reached', body: `${goalLabel(g)}: you cut ${round(p.reduction, 1)}%. +${g.est} points.` });
+        note(s, { icon: 'Target', title: 'Goal reached', body: keep ? `${goalLabel(g)}: you stayed ${round(p.reduction, 1)}% under ${than}. +${g.est} points.` : `${goalLabel(g)}: you cut ${round(p.reduction, 1)}%. +${g.est} points.` });
         out.push({ type: 'goal', title: goalLabel(g), points: g.est });
+      } else if (keep) {
+        note(s, { icon: 'Target', title: 'Not this time', body: `${goalLabel(g)} was the aim. You ended ${round(-p.reduction, 1)}% over ${than}. A small step is enough to get back under.` });
       } else {
         note(s, { icon: 'Target', title: 'Not this time', body: p.reduction > 0 ? `${goalLabel(g)} was the aim. You still used ${round(p.reduction, 1)}% less than usual.` : `${goalLabel(g)} was the aim. Want to try a smaller step this month?` });
       }
@@ -486,7 +510,7 @@ const PBD = (() => {
     { id: 'water-wise', name: 'Water wise', icon: 'Droplet', how: 'Finish a month with water 10% under your usual.' },
     { id: 'balance', name: 'Both in balance', icon: 'Activity', how: 'Finish a month under your usual on both electricity and water.' },
     { id: 'off-peak', name: 'Off-peak pro', icon: 'Clock', how: 'Run 10 appliance loads in green hours.' },
-    { id: 'comeback', name: 'Comeback', icon: 'RotateCcw', how: 'Get back under your usual after a month above it.' },
+    { id: 'comeback', name: 'Comeback', icon: 'RotateCcw', how: 'Used more than your usual last month? Bring it back under your usual this month.' },
     { id: 'company', name: 'Good company', icon: 'Users', how: 'Have your first mutual friend.' },
     { id: 'team', name: 'Team player', icon: 'HandHeart', how: "Finish a Friends' league with your team." }
   ];
@@ -535,6 +559,12 @@ const PBD = (() => {
     const p = { id: 'p' + s.seq++, appliance: applianceId, start: startTs, kwh: a.cycle.kwh, hours: a.cycle.hours, green: greenHours(list).has(h), status: 'planned' };
     s.plans.unshift(p);
     return p;
+  }
+  /* Planned runs whose start time has just come. Each is returned once; older ones are marked quietly. */
+  function dueRuns(s) {
+    const t = now(s).getTime(), due = s.plans.filter((p) => p.status === 'planned' && !p.reminded && p.start <= t && t - p.start < 3 * 36e5);
+    for (const p of s.plans) if (p.status === 'planned' && p.start <= t) p.reminded = true;
+    return due;
   }
   function markDone(s, planId) {
     const p = s.plans.find((x) => x.id === planId);
@@ -643,7 +673,7 @@ const PBD = (() => {
   }
 
   /* ---------- notifications: settings, history and tips ---------- */
-  function defaultNotify() { return { tips: true, cheers: true, muted: [] }; }
+  function defaultNotify() { return { tips: true, cheers: true, plans: true, muted: [] }; }
   const wantsFriend = (s, id) => !(s.notify && s.notify.muted.includes(id));
   function setFriendMuted(s, id, muted) {
     ensureNotify(s);
@@ -652,7 +682,7 @@ const PBD = (() => {
   }
   /* Older saves (from before notification settings) get defaults and a short history built from the feed. */
   function ensureNotify(s) {
-    if (s.notify && Array.isArray(s.notify.muted)) return false;
+    if (s.notify && Array.isArray(s.notify.muted)) { if (s.notify.plans === undefined) s.notify.plans = true; return false; }
     s.notify = defaultNotify(); s.tipSeq = s.tipSeq || 0;
     seedNotes(s);
     return true;
@@ -828,11 +858,11 @@ const PBD = (() => {
     helpers: { ymd, mkey, addMonths, addDays, daysIn, monthName, round, clamp, sum, rng, hash, parseDay, hourOf },
     now, today, thisMonth, estimate, typicalMonth, describeHome, persons,
     prices, tomorrowReady, greenHours, priceLevel, priceAt, bestStart, priceDay,
-    sync, dayValue, monthDays, todaySoFar, monthSoFar, projected, monthValue, usual, change, vsTypical, rate, cost, liveWatts, cumShare,
+    sync, dayValue, monthDays, todaySoFar, monthSoFar, projected, monthValue, usual, change, vsTypical, rate, cost, upcomingPrices, cumShare,
     available, lifetime, award, note, post, validateReading, logReading, loggedStreak,
-    recommendations, setRec, efficient, goalPoints, goalProgress, createGoal, goalLabel, goalMonths,
+    recommendations, setRec, efficient, goalPoints, goalProgress, createGoal, goalLabel, goalMonths, goalResources, underBy,
     tplOf, isActive, joinChallenge, checkIn, canCheckIn, challengeProgress, participants, teamReduction,
-    redeem, evalBadges, togglePin, planRun, markDone,
+    redeem, evalBadges, togglePin, planRun, markDone, dueRuns,
     person, friendName, mutualFriends, addByCode, acceptFriend, declineFriend, ranking, friendEvent, cheer, friendCheers,
     wantsFriend, setFriendMuted, ensureNotify, cheapWindow, nextTip,
     create, demo, validate, advanceToNextMonth, advanceHours, clone

@@ -39,7 +39,7 @@
   function save() { try { if (s) localStorage.setItem(P.KEY, JSON.stringify(s)); else localStorage.removeItem(P.KEY); } catch { /* storage unavailable: keep running in memory */ } }
   let s = load();
   const OB_DEFAULT = () => ({ name: '', region: 'capital', housing: 'apartment', area: 70, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv'], payment: 'bills', billE: '', billW: '', sample: true, terms: false, data: false });
-  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', usageRange: 'month', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, spark: [], spike: null, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, nextSpike: Date.now() + 15000, sheetToken: 0 };
+  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', usageRange: 'month', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, sheetToken: 0 };
   if (s) { P.ensureNotify(s); P.sync(s); }
 
   /* ---------- render ---------- */
@@ -181,7 +181,7 @@
     const t = {
       home: [`${s.profile.name}'s home`, region.name],
       usage: ['Usage', 'Electricity and water, measured and logged'],
-      plan: ['Plan', 'When to run things, and what to change'],
+      plan: ['Plan', 'Plan runs in cheap hours. We remind you.'],
       goals: ['Goals', 'Your goals, challenges and rewards'],
       friends: ['Friends', `${P.mutualFriends(s).length} friends`]
     }[ui.tab];
@@ -262,15 +262,19 @@
   function viewHome() {
     const m = P.thisMonth(s), n = P.now(s), dim = H.daysIn(m), dayN = n.getDate();
     const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m), vt = P.vsTypical(s, 'electricity', m);
-    const live = `<section class="section"><div class="card live ${s.live ? '' : 'paused'}">
-      <div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Current household power consumption</span><span class="sr-only">${s.live ? '(live)' : '(paused)'}</span>${s.live ? '' : '<span class="tag">Paused</span>'}</div>
-      <div class="live-main"><div><div class="big-num num"><span data-live="watts">–</span><small>W</small></div><div class="small muted live-sub">in use right now</div></div>
-      <svg class="spark" data-live="spark" viewBox="0 0 150 52" preserveAspectRatio="none" aria-hidden="true"></svg></div>
+    // Live prices, not live usage: prices are public, while usage only reaches us a day later from the meter.
+    const list = P.prices(s, P.today(s)), h = n.getHours(), green = P.greenHours(list), level = P.priceLevel(list[h], list), up = P.upcomingPrices(s);
+    const day = (ts) => (H.ymd(new Date(ts)) === P.today(s) ? '' : 'tomorrow, '), hhmm = (ts) => clock(ts), slot = `${String(h).padStart(2, '0')}:00–${String((h + 1) % 24).padStart(2, '0')}:00`;
+    const region = P.REGIONS.find((r) => r.id === s.profile.region);
+    const live = `<section class="section"><button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Prices right now. Open Plan for the whole day.">
+      <div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Prices right now</span>${s.live ? '' : '<span class="tag">Paused</span>'}<span class="tag ${level}">${{ low: 'Low', normal: 'Normal', high: 'High' }[level]}</span></div>
+      <div class="live-main"><div><div class="big-num num"><span data-live="price">${fmt(list[h], 2)}</span><small>kr/kWh</small></div><div class="small muted live-sub">Electricity, ${slot}</div></div>
+      ${priceStrip(list, h, green)}</div>
       <div class="live-stats">
-        <div><span>Today</span><b class="num" data-live="todayE">–</b> <em>kWh</em></div>
-        <div><span>Water today</span><b class="num" data-live="todayW">–</b> <em>L</em></div>
-        <div><span>Price now</span><b class="num" data-live="price">–</b> <em>kr/kWh</em></div>
-      </div></div></section>`;
+        <div><span>Cheapest next</span>${up ? `<b class="num">${hhmm(up.low.start)}</b> <em>${day(up.low.start)}${fmt(up.low.price, 2)} kr</em>` : '<b>–</b>'}</div>
+        <div><span>Priciest next</span>${up ? `<b class="num">${hhmm(up.high.start)}</b> <em>${day(up.high.start)}${fmt(up.high.price, 2)} kr</em>` : '<b>–</b>'}</div>
+        <div><span>Water</span><b class="num">${fmt(P.rate(s, 'water'))}</b> <em>kr/m³</em></div>
+      </div><p class="live-foot">Water costs the same all day in ${esc(region.name)}, about ${fmt(P.rate(s, 'water') / 10, 1)} øre a litre.</p></button></section>`;
     const rows = ['electricity', 'water'].map((r) => `<button class="res-row" data-a="tab" data-tab="usage" data-res="${r}" style="width:100%;border:0;background:none;text-align:left">
         <span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span>
         <div><div class="val num"><span data-live="so-${r}">${fmtRes(r, P.monthSoFar(s, r))}</span><small>${unit(r)}</small></div><div class="sub">so far · heading for ${fmtRes(r, P.projected(s, r))} ${unit(r)}</div></div>
@@ -297,13 +301,21 @@
     const parts = [r.saveE ? `${fmt(r.saveE, r.saveE < 10 ? 1 : 0)} kWh` : '', r.saveW ? `${fmt(Math.round(r.saveW * 100) * 10)} litres` : ''].filter(Boolean);
     return `About ${parts.join(' and ')} a month, worth ${kr(r.saveKr)}.`;
   }
+  /* Goals come in two kinds: cut (use X% less than usual) and keep (stay at or under your usual, or under similar homes). */
+  const goalBenchName = (g) => (g.bench === 'typical' ? 'similar homes' : 'your usual');
+  /* Fill of the progress bar; the marker in the middle is the target. */
+  const goalRatio = (g, p) => H.clamp(g.kind === 'keep' ? 0.5 + p.reduction / 20 : p.reduction / (g.target * 2), 0, 1);
+  function goalStatus(g, p) {
+    if (g.kind === 'keep') return `${p.onTrack ? 'On track' : 'Over for now'} · ${fmt(Math.abs(p.reduction), 1)}% ${p.reduction >= 0 ? 'under' : 'over'} ${goalBenchName(g)}`;
+    return `${p.onTrack ? 'On track' : 'Behind for now'} · ${p.reduction >= 0 ? '−' : '+'}${fmt(Math.abs(p.reduction), 1)}% so far`;
+  }
   function goalRow(g) {
-    const p = P.goalProgress(s, g), ratio = H.clamp(p.reduction / (g.target * 2), 0, 1);
+    const p = P.goalProgress(s, g), ratio = goalRatio(g, p);
     const ends = H.monthName(g.end) + ' ' + g.end.slice(0, 4);
-    return `<button class="prog-row" data-a="tab" data-tab="goals" style="width:100%;border:0;background:none;text-align:left;display:block">
-      <div class="prog-top"><span class="chip-icon brand">${ic('Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${p.onTrack ? 'On track' : 'Behind for now'} · ${p.reduction >= 0 ? '−' : '+'}${fmt(Math.abs(p.reduction), 1)}% so far</div></div><span class="pts">${g.est} pts</span></div>
+    return `<button class="prog-row" data-a="goal-detail" data-id="${g.id}" style="width:100%;border:0;background:none;text-align:left;display:block" aria-label="${esc(P.goalLabel(g))}: see how it's going">
+      <div class="prog-top"><span class="chip-icon brand">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${goalStatus(g, p)}</div></div><span class="pts">${g.est} pts</span>${ic('ChevronRight', 'sm muted')}</div>
       <div class="target-bar" aria-hidden="true"><i style="width:${ratio * 100}%;background:${p.onTrack ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:50%"></b></div>
-      <div class="prog-meta"><span>Target −${g.target}% at the marker</span><span>Ends ${esc(ends)}</span></div></button>`;
+      <div class="prog-meta"><span>${g.kind === 'keep' ? `At ${goalBenchName(g)} at the marker` : `Target −${g.target}% at the marker`}</span><span>Ends ${esc(ends)}</span></div></button>`;
   }
   function challengeRow(c) {
     const t = P.tplOf(c), p = P.challengeProgress(s, c), can = P.canCheckIn(s, c);
@@ -446,7 +458,7 @@
     const n = P.now(s), isToday = ui.planDay === 'today', day = isToday ? P.today(s) : H.addDays(P.today(s), 1);
     let priceBlock;
     if (ui.planDay === 'history') priceBlock = priceHistory();
-    else if (!isToday && !P.tomorrowReady(s)) priceBlock = `<div class="card"><div class="alert info" style="margin:0">${ic('Clock', 'sm')}<span>Tomorrow's prices are published around 13:00.</span></div></div>`;
+    else if (!isToday && !P.tomorrowReady(s)) priceBlock = `<div class="card"><div class="alert info" style="margin:0">${ic('Clock', 'sm')}<span>Tomorrow's prices are published around 13:00, after the day-ahead power auction closes. They'll show here then.</span></div></div>`;
     else {
       const list = P.prices(s, day), green = P.greenHours(list), h = n.getHours(), cheapest = list.indexOf(Math.min(...list));
       const bars = list.map((v, i) => ({ value: v, cls: green.has(i) ? 'bar-e' : 'bar-gray', label: i % 6 === 0 ? String(i).padStart(2, '0') : '', tip: `${String(i).padStart(2, '0')}:00-${String(i + 1).padStart(2, '0')}:00|${fmt(v, 2)} kr/kWh${green.has(i) ? '|Green hour' : ''}` }));
@@ -494,9 +506,9 @@
     if (ui.goalsSeg === 'goals') {
       const active = s.goals.filter((g) => g.status === 'active'), past = s.goals.filter((g) => g.status !== 'active');
       body = `<section class="section">${sectionHead('Active', `<button class="link" data-a="goal">${ic('Plus', 'sm')}New goal</button>`)}
-        ${active.length ? `<div class="list">${active.map(goalRow).join('')}</div>` : `<div class="card empty">No goal running. Set one for ${H.monthName(m)}: pick how much to cut, and we'll show what it's worth.<div class="btn-row" style="justify-content:center"><button class="btn primary small" data-a="goal" style="flex:none">New goal</button></div></div>`}
-        <p class="hint">Goals are measured against your usual: your last three logged months, adjusted for the season.</p></section>
-        ${past.length ? `<section class="section">${sectionHead('Earlier')}<div class="list">${past.map((g) => `<div class="row"><span class="chip-icon ${g.status === 'reached' ? 'brand' : ''}">${ic(g.status === 'reached' ? 'CircleCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${H.monthName(g.start)}${g.end !== g.start ? ' – ' + H.monthName(g.end) : ''} ${g.end.slice(0, 4)} · ${g.status === 'reached' ? `cut ${fmt(g.result, 1)}%` : g.result > 0 ? `cut ${fmt(g.result, 1)}%, not quite` : 'not this time'}</div></div>${g.status === 'reached' ? `<span class="pts">+${g.est}</span>` : ''}</div>`).join('')}</div></section>` : ''}`;
+        ${active.length ? `<div class="list">${active.map(goalRow).join('')}</div>` : `<div class="card empty">No goal running. Set one for ${H.monthName(m)}: cut back, or keep things steady, and we'll show what it's worth.<div class="btn-row" style="justify-content:center"><button class="btn primary small" data-a="goal" style="flex:none">New goal</button></div></div>`}
+        <p class="hint">Goals are measured against your usual: your last three logged months, adjusted for the season. Tap a goal to see how it's going.</p></section>
+        ${past.length ? `<section class="section">${sectionHead('Earlier')}<div class="list">${past.map((g) => `<div class="row"><span class="chip-icon ${g.status === 'reached' ? 'brand' : ''}">${ic(g.status === 'reached' ? 'CircleCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${H.monthName(g.start)}${g.end !== g.start ? ' – ' + H.monthName(g.end) : ''} ${g.end.slice(0, 4)} · ${g.kind === 'keep' ? `${fmt(Math.abs(g.result), 1)}% ${g.result >= 0 ? 'under' : 'over'} ${goalBenchName(g)}` : g.status === 'reached' ? `cut ${fmt(g.result, 1)}%` : g.result > 0 ? `cut ${fmt(g.result, 1)}%, not quite` : 'not this time'}</div></div>${g.status === 'reached' ? `<span class="pts">+${g.est}</span>` : ''}</div>`).join('')}</div></section>` : ''}`;
     } else if (ui.goalsSeg === 'challenges') {
       const joined = s.ch.filter((c) => c.joined && P.isActive(s, c)), open = s.ch.filter((c) => !c.joined && P.isActive(s, c)), done = s.ch.filter((c) => c.status === 'done' || c.status === 'missed').slice(-6).reverse();
       body = `${joined.length ? `<section class="section">${sectionHead('Joined', `${joined.length}`)}<div class="list">${joined.map(challengeRow).join('')}</div></section>` : ''}
@@ -506,9 +518,14 @@
     } else {
       const next = new Date(P.now(s).getFullYear(), P.now(s).getMonth() + 1, 1), last = s.draws[0];
       const redeemed = new Set(s.redemptions.map((v) => v.rewardId));
-      body = `<section class="section"><div class="card draw"><div class="ch-head"><span class="chip-icon gold">${ic('Ticket')}</span><div style="flex:1"><h3>The ${H.monthName(m)} Green draw</h3><p class="small muted">Drawn ${dateShort(next)}. You have ${tickets} ticket${tickets === 1 ? '' : 's'}. Tickets come only from finishing monthly challenges; they can't be bought.</p></div></div>
+      // This month's draw, the challenges that give a ticket for it, and last month's result, each labelled so it's clear which is which.
+      const ticketCh = s.ch.filter((c) => P.tplOf(c).ticket && c.start.slice(0, 7) === m);
+      const chStatus = (c) => (c.status === 'done' ? `<span class="tag low">${ic('Ticket', 'xs')}Ticket earned</span>` : c.joined && P.isActive(s, c) ? `<span class="small muted">${esc(P.challengeProgress(s, c).label)}</span>` : P.isActive(s, c) ? '<span class="small muted">Not joined</span>' : '<span class="small muted">Ended</span>');
+      body = `<section class="section"><div class="card draw"><div class="ch-head"><span class="chip-icon gold">${ic('Ticket')}</span><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3>The ${H.monthName(m)} Green draw</h3><span class="tag brand">This month</span></div><p class="small muted">Open now, drawn ${dateShort(next)}. You have ${tickets} ticket${tickets === 1 ? '' : 's'}. Tickets come only from finishing this month's challenges; they can't be bought.</p></div></div>
+          <p class="small draw-label">Prizes in this draw (one is drawn)</p>
           <div class="prize-list">${P.PRIZES.map((p) => `<span class="tag gold">${ic(p.icon, 'xs')}${esc(p.name)}</span>`).join('')}</div>
-          ${last ? `<p class="small" style="margin-top:12px">${ic('Trophy', 'xs')} ${H.monthName(last.month)}: <b>${esc(P.friendName(last.winner))}</b> won ${esc(last.prize.toLowerCase())}.</p>` : ''}</div></section>
+          ${ticketCh.length ? `<p class="small draw-label">Challenges that give a ticket in ${H.monthName(m)}</p><div class="draw-ch">${ticketCh.map((c) => `<button class="draw-ch-row" data-a="challenge" data-id="${c.id}"><span class="chip-icon sm">${ic(P.tplOf(c).icon, 'sm')}</span><span class="row-main row-title">${esc(P.tplOf(c).title)}</span>${chStatus(c)}${ic('ChevronRight', 'sm muted')}</button>`).join('')}</div>` : ''}
+          ${last ? `<p class="small" style="margin-top:12px">${ic('Trophy', 'xs')} Last draw, ${H.monthName(last.month)}: <b>${esc(P.friendName(last.winner))}</b> won ${esc(last.prize.toLowerCase())}.</p>` : ''}</div></section>
         <section class="section">${sectionHead('Partner rewards', `${fmt(P.available(s))} pts to spend`)}
           <p class="hint" style="margin:-4px 0 10px">Every partner has to cut consumption, make things last, or be a lower-impact swap. No fast fashion, no gadgets.</p>
           <div class="list">${P.REWARDS.map((r) => { const short = r.cost - P.available(s); return `<button class="row" data-a="reward" data-id="${r.id}"><span class="chip-icon brand">${ic(r.icon)}</span><div class="row-main"><div class="row-title">${esc(r.name)}</div><div class="row-sub">${esc(r.partner)} · ${P.PARTNER_TEST[r.cat]}</div></div><div class="row-end">${redeemed.has(r.id) ? '<span class="tag low">Redeemed</span>' : `<span class="pts">${r.cost}</span>${short > 0 ? `<div class="small muted">${short} to go</div>` : ''}`}</div></button>`; }).join('')}</div></section>
@@ -559,7 +576,7 @@
     } else {
       const rows = P.ranking(s, ui.rankRes), maxAbs = Math.max(5, ...rows.map((r) => Math.abs(r.pct)));
       body = `${seg('rankRes', [['electricity', 'Electricity'], ['water', 'Water']], 'small')}
-        <p class="hint" style="margin:10px 0">This month, each person against their own usual. Fair whatever the household size.</p>
+        <p class="hint" style="margin:10px 0">This month, each person against their own usual, so household size doesn't matter. <button class="link" data-a="rank-info" style="padding:0;font-size:13px">How it's worked out</button></p>
         <div class="list">${rows.map((r, i) => `<button class="rank-row${r.id === 'me' ? ' me' : ''}" data-a="${r.id === 'me' ? 'profile' : 'friend'}" data-id="${r.id}"><span class="rank-n">${i + 1}</span>${avatar(r.id)}<div style="min-width:0"><div class="row-title">${esc(r.name)}</div><div class="rank-bar"><i style="width:${Math.abs(r.pct) / maxAbs * 100}%;background:${r.pct <= 0 ? 'var(--good)' : 'var(--bad)'}"></i></div></div><span class="num" style="text-align:right;font-weight:650;color:${r.pct <= 0 ? 'var(--good)' : 'var(--bad)'}">${signed(r.pct, 1)}</span></button>`).join('')}</div>`;
     }
     return `${incoming.length ? `<section class="section">${requests}</section>` : ''}
@@ -582,7 +599,7 @@
       <section class="section"><div class="card"><div class="share"><div style="flex:1"><span class="small muted">Your friend code</span><div class="num" style="font-size:22px;font-weight:700;letter-spacing:.04em">${esc(s.profile.code)}</div><p class="hint">Friends add you with this code. Friendship is mutual: nothing is shared until you both accept.</p></div></div><div class="btn-row"><button class="btn secondary small" data-a="copy-code">${ic('Copy', 'sm')}Copy</button><button class="btn secondary small" data-a="share">${ic('QrCode', 'sm')}Show QR</button></div></div></section>
       <section class="section"><div class="stats"><div><span>Points earned</span><b class="num">${fmt(P.lifetime(s))}</b></div><div><span>Months logged</span><b class="num">${Object.keys(s.months).length}</b></div><div><span>Goals reached</span><b class="num">${s.goals.filter((g) => g.status === 'reached').length}</b></div><div><span>Challenges done</span><b class="num">${challengesDone()}</b></div></div></section>
       <section class="section">${sectionHead('Badges', `${earned} of ${P.BADGES.length}`)}<div class="card"><div class="badges">${[...P.BADGES].sort((a, b) => !!s.badges[b.id] - !!s.badges[a.id]).map(badgeTile).join('')}</div><p class="hint" style="margin-top:8px">Tap a badge to see how it's earned. Pin up to three to the top of your profile.</p></div></section>
-      <section class="section">${sectionHead('Household', `<button class="link" data-a="household">Edit</button>`)}<div class="list"><div class="row"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">${esc(P.HOUSING.find((h) => h.id === s.profile.housing).name)}, ${s.profile.area} m²</div><div class="row-sub">${esc(P.APPLIANCES.filter((a) => s.profile.appliances.includes(a.id)).map((a) => a.name).join(', ') || 'No appliances listed')}</div></div></div></div></section>
+      <section class="section">${sectionHead('Household', `<button class="link" data-a="household">Edit</button>`)}<div class="list"><div class="row"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">${esc(P.HOUSING.find((h) => h.id === s.profile.housing).name)}, ${s.profile.area} m²</div><div class="row-sub">${esc(P.APPLIANCES.filter((a) => s.profile.appliances.includes(a.id)).map((a) => (a.id === 'other' ? s.profile.otherNote || 'Something else' : a.name)).join(', ') || 'No appliances listed')}</div></div></div></div></section>
       <section class="section"><div class="list"><button class="row" data-a="settings"><span class="chip-icon">${ic('Settings')}</span><div class="row-main"><div class="row-title">Settings</div><div class="row-sub">Notifications, privacy, sounds and household</div></div>${ic('ChevronRight')}</button></div></section>
       <section class="section">${sectionHead('Points history', `${fmt(P.available(s))} available`)}<div class="list">${s.ledger.slice(-12).reverse().map((l) => `<div class="ledger-row"><span>${esc(l.reason)}<span class="muted"> · ${dateShort(l.at)}</span></span><b class="num ${l.amount < 0 ? 'neg' : 'pts'}">${l.amount > 0 ? '+' : '−'}${Math.abs(l.amount)}</b></div>`).join('')}</div></section>`;
   }
@@ -595,6 +612,7 @@
     const priv = [['feed', 'Show my activity in friends\' feeds', 'Goals, challenges and badges. Never numbers.'], ['percent', 'Share % change with friends', 'Used for the ranking and comparisons.'], ['exact', 'Share exact usage per person', 'Only shown to friends who share theirs too.'], ['league', "Appear in Friends' league invites", 'Friends can add you to their team.']];
     return `<section class="section">${sectionHead('Notifications')}<div class="list">
         ${toggleRow('Price and saving tips', 'Cheap hours, price peaks and how your month is going', n.tips, 'data-a="notify" data-key="tips"', `<span class="chip-icon elec">${ic('Moon', 'sm')}</span>`)}
+        ${toggleRow('Reminders for planned runs', 'When it\'s time to start something you planned in Plan', n.plans !== false, 'data-a="notify" data-key="plans"', `<span class="chip-icon">${ic('CalendarClock', 'sm')}</span>`)}
         ${toggleRow('Cheers on your posts', 'When a friend cheers something you did', n.cheers, 'data-a="notify" data-key="cheers"', `<span class="chip-icon">${ic('Heart', 'sm')}</span>`)}
       </div></section>
       <section class="section">${sectionHead('From friends', friends.length ? `<button class="link" data-a="notify-all" data-on="${muted ? 1 : 0}">${muted ? 'Turn all on' : 'Turn all off'}</button>` : '')}
@@ -606,54 +624,34 @@
   }
 
   /* ---------- live data ---------- */
-  function sparkPath(values) {
-    if (values.length < 2) return '';
-    const max = Math.max(...values) * 1.15, min = 0, W = 150, Hh = 52, step = W / (40 - 1), off = W - (values.length - 1) * step;
-    const pts = values.map((v, i) => [off + i * step, Hh - 4 - ((v - min) / (max - min)) * (Hh - 8)]);
-    const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
-    const last = pts[pts.length - 1];
-    return `<path class="area" d="${line}L${last[0]},${Hh}L${pts[0][0]},${Hh}Z"/><path class="line" d="${line}"/><circle cx="${last[0]}" cy="${last[1]}" r="3.5"/>`;
+  /* Today's 24 hourly prices as small bars: green hours in green, past hours faded, this hour outlined. */
+  function priceStrip(list, now, green) {
+    const W = 150, Hh = 52, gap = 1.6, bw = W / 24 - gap, max = Math.max(...list) * 1.05;
+    const bars = list.map((v, i) => { const bh = Math.max(3, v / max * (Hh - 6)), x = i * (bw + gap) + gap / 2; return `<rect class="${green.has(i) ? 'g' : 'o'}${i < now ? ' past' : ''}${i === now ? ' now' : ''}" x="${x.toFixed(1)}" y="${(Hh - bh).toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5"/>`; }).join('');
+    return `<svg class="spark pstrip" viewBox="0 0 ${W} ${Hh}" preserveAspectRatio="none" aria-hidden="true">${bars}</svg>`;
   }
   function updateLive() {
     if (!s) return;
     const n = P.now(s), set = (k, v) => { for (const el of $$(`[data-live="${k}"]`)) if (el.textContent !== v) el.textContent = v; };
-    const last = ui.spark[ui.spark.length - 1];
-    if (last !== undefined) for (const el of $$('[data-live="watts"]')) tweenNum(el, last);
-    set('todayE', fmt(P.todaySoFar(s, 'electricity'), 2));
-    set('todayW', fmt(P.todaySoFar(s, 'water') * 1000));
     set('price', fmt(P.priceAt(s, n), 2));
     set('so-electricity', fmt(P.monthSoFar(s, 'electricity')));
     set('so-water', fmt(P.monthSoFar(s, 'water'), 1));
-    const sp = $('[data-live="spark"]'); if (sp) sp.innerHTML = sparkPath(ui.spark);
     $('#clock').textContent = clock(n);
   }
-  /* Count smoothly to a new reading, like a real meter display. */
   const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  function tweenNum(el, to) {
-    const from = Number(el.dataset.v);
-    if (!Number.isFinite(from) || reduceMotion()) { el.dataset.v = to; el.textContent = fmt(to); return; }
-    el.dataset.v = to;
-    const t0 = performance.now(), dur = 700;
-    const step = (t) => { const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3; if (el.dataset.v !== String(to)) return; el.textContent = fmt(from + (to - from) * e); if (k < 1) requestAnimationFrame(step); };
-    requestAnimationFrame(step);
-  }
-  /* Short load spikes make the live number realistic. The app can't tell which appliance it is, so it doesn't say. */
-  const SPIKES = [{ w: 2000, s: 40 }, { w: 900, s: 50 }, { w: 1400, s: 60 }, { w: 1800, s: 120, needs: 'cooking' }, { w: 1900, s: 90, needs: 'washer' }, { w: 700, s: 70 }];
   function tick() {
     if (!s) return;
     const results = P.sync(s);
     if (ui.lastDay && ui.lastDay !== P.today(s)) { render(); }
     ui.lastDay = P.today(s);
+    // A new hour means a new price: redraw Home and Plan, where it's shown.
+    const hour = P.now(s).getHours();
+    if (ui.lastHour !== undefined && ui.lastHour !== hour && !ui.page && ['home', 'plan'].includes(ui.tab) && !ui.sheet && !(document.activeElement && /INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))) render();
+    ui.lastHour = hour;
     if (results.length) { celebrate(results); render(); }
+    remindRuns();
     const t = Date.now();
     if (s.live) {
-      if (ui.spike && t > ui.spike.until) ui.spike = null;
-      if (!ui.spike && t > ui.nextSpike) {
-        const options = SPIKES.filter((x) => !x.needs || s.profile.appliances.includes(x.needs)), pick = options[Math.floor(Math.random() * options.length)];
-        ui.spike = { ...pick, until: t + pick.s * 1000 }; ui.nextSpike = t + 30000 + Math.random() * 40000;
-      }
-      const w = P.liveWatts(s, P.now(s).getTime()) + (ui.spike ? ui.spike.w * (0.95 + Math.random() * 0.1) : 0);
-      ui.spark.push(Math.round(w)); if (ui.spark.length > 40) ui.spark.shift();
       // One stream of incoming notifications, paused while a call is on screen.
       if (callBusy()) ui.nextNotify = Math.max(ui.nextNotify, t + 15000); // quiet during a call and just after it
       else if (t > ui.nextNotify) { ui.nextNotify = t + NOTIFY_GAP[0] + Math.random() * (NOTIFY_GAP[1] - NOTIFY_GAP[0]); pushNotification(NOTIFY_PATTERN[ui.notifySeq++ % NOTIFY_PATTERN.length]); }
@@ -668,7 +666,17 @@
     if (t - (ui.lastSave || 0) > 10000) { save(); ui.lastSave = t; }
   }
   const stripTags = (h) => h.replace(/<[^>]+>/g, '');
-  function seedSpark() { if (!s) return; ui.spark = []; for (let i = 0; i < 24; i++) ui.spark.push(Math.round(P.liveWatts(s, P.now(s).getTime() - (24 - i) * 2000))); updateLive(); }
+  /* When a planned run's start time comes, say so: a banner and a line in the bell's list. */
+  function remindRuns() {
+    const due = P.dueRuns(s);
+    if (!due.length) return;
+    if (s.notify.plans === false) { save(); return; }
+    for (const p of due) {
+      const a = P.APPLIANCES.find((x) => x.id === p.appliance), price = P.priceAt(s, P.now(s));
+      const body = `Electricity is ${fmt(price, 2)} kr/kWh now${p.green ? ', a green hour' : ''}. Mark it done in Plan when it has run.`;
+      addNote({ kind: 'plan', icon: 'CalendarClock', title: `Time to start: ${a.cycle.name.toLowerCase()}`, body, go: 'plan' }, { icon: 'CalendarClock', text: `<b>Time to start: ${esc(a.cycle.name.toLowerCase())}</b>`, sub: body, go: 'plan', sound: 'tip', tone: 'tip' });
+    }
+  }
   /* ---------- incoming notifications ----------
      One every 40-64 s (~52 s on average): 35% fewer than the previous 26-42 s gap, which was already
      35% fewer than the first builds. The second is always a household tip, so it isn't only friends.
@@ -843,12 +851,15 @@
         ${!s.ledger.some((l) => l.id === 'reading-' + m) ? '<p class="hint" style="text-align:center">+10 points for logging a month</p>' : ''}</form>`];
     },
     goal(sh) {
-      const r = sh.resource || 'electricity';
+      const r = sh.resource || 'electricity', keep = sh.kind === 'keep';
       return ['New goal', `<form data-form="goal">
         <p class="small muted">Starts ${H.monthName(P.thisMonth(s))}. Measured against your usual, adjusted for the season.</p>
-        <div class="field"><span>What to cut</span><div class="seg" role="group">${[['electricity', 'Electricity'], ['water', 'Water'], ['both', 'Both']].map(([v, l]) => `<button type="button" data-a="goal-res" data-val="${v}" aria-pressed="${r === v}">${l}</button>`).join('')}</div></div>
-        <label class="field"><span>By how much: <b data-bind="target">${sh.target || 5}%</b></span><input class="range" type="range" name="target" min="3" max="30" step="1" value="${sh.target || 5}" data-input="goal"></label>
-        <div class="field"><span>For how long</span><div class="seg" role="group">${[1, 2, 3].map((v) => `<button type="button" data-a="goal-months" data-val="${v}" aria-pressed="${(sh.months || 1) === v}">${v} month${v > 1 ? 's' : ''}</button>`).join('')}</div></div>
+        <div class="field"><span>Your aim</span><div class="seg" role="group">${[['cut', 'Use less'], ['keep', 'Keep it steady']].map(([v, l]) => `<button type="button" data-a="goal-kind" data-val="${v}" aria-pressed="${(sh.kind || 'cut') === v}">${l}</button>`).join('')}</div>
+          <p class="hint">${keep ? 'Already where you want to be? Stay there: at or under your usual, or under what similar homes use.' : 'Cut back by a set percentage compared with your usual.'}</p></div>
+        <div class="field"><span>${keep ? 'What to keep steady' : 'What to cut'}</span><div class="seg" role="group">${[['electricity', 'Electricity'], ['water', 'Water'], ['both', 'Both']].map(([v, l]) => `<button type="button" data-a="goal-res" data-val="${v}" aria-pressed="${r === v}">${l}</button>`).join('')}</div></div>
+        ${keep ? `<div class="field"><span>Stay at or under</span><div class="seg" role="group">${[['usual', 'Your usual'], ['typical', 'Similar homes']].map(([v, l]) => `<button type="button" data-a="goal-bench" data-val="${v}" aria-pressed="${(sh.bench || 'usual') === v}">${l}</button>`).join('')}</div></div>`
+          : `<label class="field"><span>By how much: <b data-bind="target">${sh.target || 5}%</b></span><input class="range" type="range" name="target" min="3" max="30" step="1" value="${sh.target || 5}" data-input="goal"></label>`}
+        <div class="field"><span>For how long</span><div class="seg" role="group">${goalDurations(sh.kind).map((v) => `<button type="button" data-a="goal-months" data-val="${v}" aria-pressed="${(sh.months || 1) === v}">${v} month${v > 1 ? 's' : ''}</button>`).join('')}</div></div>
         <div data-bind="baseline" class="small" style="margin-top:14px;color:var(--ink-2)"></div>
         <div class="estimate"><div><p>Estimated reward</p><p class="small muted" data-bind="why"></p></div><b class="num" data-bind="points">–</b></div>
         <div data-bind="warn"></div>
@@ -909,8 +920,50 @@
       const friendsWith = P.mutualFriends(s).filter((f) => f.badges.includes(b.id));
       return [esc(b.name), `<div class="celebrate"><span class="medal xl" style="margin:0 auto;${got ? '' : 'background:var(--sunken);color:var(--faint);box-shadow:inset 0 0 0 2px var(--line-2)'}">${ic(got ? b.icon : 'Lock')}</span>
         <p style="margin-top:14px">${esc(b.how)}</p><p class="small muted" style="margin-top:6px">${got ? `Earned ${dateShort(got.at)}` : 'Not earned yet'}${friendsWith.length ? ` · ${friendsWith.length} of your friends have it` : ''}</p></div>
-        ${got ? `<div class="btn-row"><button class="btn ${got.pinned ? 'secondary' : 'primary'}" data-a="pin" data-id="${b.id}">${ic('Pin', 'sm')}${got.pinned ? 'Unpin from profile' : 'Pin to profile'}</button></div>` : ''}
+        ${got ? `<div class="btn-row"><button class="btn ${got.pinned ? 'secondary' : 'primary'}" data-a="pin" data-id="${b.id}">${ic('Pin', 'sm')}${got.pinned ? 'Unpin from profile' : 'Pin to profile'}</button></div>` : badgeHelp(b)}
         ${sh.error ? `<div class="alert warn">${esc(sh.error)}</div>` : ''}`];
+    },
+    /* How an active goal is holding up: this month's budget, the pace needed, and what to do about it. */
+    goalDetail(sh) {
+      const g = s.goals.find((x) => x.id === sh.id);
+      if (!g) return ['Goal', '<div class="empty">This goal has ended.</div>'];
+      const p = P.goalProgress(s, g), m = P.thisMonth(s), n = P.now(s), dim = H.daysIn(m), keep = g.kind === 'keep';
+      const months = P.goalMonths(g), period = months.length > 1 ? `${H.monthName(g.start)} – ${H.monthName(g.end)} ${g.end.slice(0, 4)}` : `${H.monthName(g.start)} ${g.start.slice(0, 4)}`;
+      const benchLabel = g.bench === 'typical' ? 'Similar homes' : 'Your usual';
+      const cards = P.goalResources(g).map((r) => {
+        const bench = g.bench === 'typical' ? P.typicalMonth(s.profile, r, m) : P.usual(s, r, m), aim = bench * (1 - (keep ? 0 : g.target) / 100);
+        const so = P.monthSoFar(s, r), pr = P.projected(s, r), left = dim - n.getDate() + (1 - P.cumShare(r, H.hourOf(n)));
+        const perDay = (aim - so) / left, pace = (pr - so) / left, through = (n.getDate() - 1 + P.cumShare(r, H.hourOf(n))) / dim;
+        const day = (v) => (r === 'water' ? `${fmt(Math.max(0, v) * 1000)} litres` : `${fmt(Math.max(0, v), 1)} kWh`);
+        const ok = pr <= aim;
+        const advice = so >= aim ? `This month's budget of ${fmtRes(r, aim)} ${unit(r)} is used up. Using less for the rest of the month still helps the next one.`
+          : `To make it, keep to about <b>${day(perDay)} a day</b> for the rest of ${H.monthName(m)}. Lately it's been ${day(pace)} a day${ok ? ', so you\'re on pace' : ''}.`;
+        return `<div class="card" style="margin-top:12px"><div class="row-title" style="display:flex;align-items:center;gap:8px"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}" style="width:28px;height:28px">${ic(r === 'water' ? 'Droplet' : 'Zap', 'sm')}</span>${resName(r)} in ${H.monthName(m)}${delta(-(P.underBy(s, g, r, m) || 0), 1)}</div>
+          <div class="headline-stat" style="margin-top:10px"><div><span>${benchLabel}</span><b class="num">${fmtRes(r, bench)} ${unit(r)}</b></div><div><span>Aim</span><b class="num">≤ ${fmtRes(r, aim)}</b></div><div><span>Heading for</span><b class="num" style="color:${ok ? 'var(--good)' : 'var(--gold)'}">${fmtRes(r, pr)}</b></div></div>
+          <div class="target-bar" aria-hidden="true"><i style="width:${H.clamp(so / aim, 0, 1) * 100}%;background:${so / aim <= through + 0.02 ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:${through * 100}%"></b></div>
+          <div class="prog-meta"><span>${fmtRes(r, so)} of ${fmtRes(r, aim)} ${unit(r)} used</span><span>Marker: day ${n.getDate()} of ${dim}</span></div>
+          <p class="small" style="margin-top:10px;color:var(--ink-2)">${advice}</p></div>`;
+      }).join('');
+      const history = months.length > 1 ? `<div class="list" style="margin-top:12px">${months.map((mm) => { const u = mm > m ? null : Math.min(...P.goalResources(g).map((r) => P.underBy(s, g, r, mm) ?? 0)); return `<div class="row"><div class="row-main"><div class="row-title">${H.monthName(mm)}</div><div class="row-sub">${u === null ? 'Not started' : `${fmt(Math.abs(u), 1)}% ${u >= 0 ? 'under' : 'over'} ${goalBenchName(g)}${mm === m ? ' so far' : ''}`}</div></div>${u === null ? '' : ic(u >= (keep ? 0 : g.target) ? 'CircleCheck' : 'Clock', 'sm')}</div>`; }).join('')}</div>` : '';
+      const res = g.resource === 'both' ? 'electricity' : g.resource;
+      return [esc(P.goalLabel(g)), `<div class="ch-head"><span class="chip-icon brand">${ic(keep ? 'ShieldCheck' : 'Target')}</span><div style="flex:1"><div class="row-title">${p.onTrack ? 'On track' : keep ? 'Over for now' : 'Behind for now'}</div><p class="small muted">${period} · worth ${g.est} points · ${keep ? `stay at or under ${goalBenchName(g)}` : `${g.target}% under your usual`}</p></div><span class="tag ${p.onTrack ? 'low' : 'warn'}">${goalStatus(g, p).split(' · ')[1]}</span></div>
+        ${cards}${history}
+        <p class="hint">The bar is what you've used of this month's aim. The marker is how far through the month we are: staying left of it keeps you on pace.</p>
+        <div class="btn-row"><button class="btn primary" data-a="go" data-tab="plan">${ic('Lightbulb', 'sm')}Ideas to cut back</button><button class="btn secondary" data-a="go" data-tab="usage" data-res="${res}">${ic('ChartColumn', 'sm')}See usage</button></div>`];
+    },
+    /* Akshi asked how the ranking is calculated: worked through with the visitor's own numbers. */
+    rankInfo() {
+      const m = P.thisMonth(s), r = ui.rankRes, u = P.usual(s, r, m), pr = P.projected(s, r), c = P.change(s, r, m);
+      const row = (icon, title, text) => `<div class="row"><span class="chip-icon">${ic(icon, 'sm')}</span><div class="row-main"><div class="row-title">${title}</div><div class="row-sub">${text}</div></div></div>`;
+      return ['How the ranking works', `<p class="small" style="color:var(--ink-2)">Everyone is ranked by how this month compares with <b>their own usual</b>, in percent. The lowest number comes first.</p>
+        <div class="list" style="margin-top:14px">
+          ${row('CalendarDays', 'Your usual', `The average of your last three logged months, adjusted for the season. For ${H.monthName(m)} that's ${fmtRes(r, u)} ${unit(r)} of ${r === 'water' ? 'water' : 'electricity'}.`)}
+          ${row('Activity', 'This month', `What you've used so far, plus the rest of the month at your pace over the last 7 days. You're heading for ${fmtRes(r, pr)} ${unit(r)}.`)}
+          ${row('TrendingDown', 'Your number', `${fmtRes(r, pr)} against ${fmtRes(r, u)} is ${signed(c, 1)}. Under your usual shows green, over shows red.`)}
+        </div>
+        <div class="alert info">${ic('Users', 'sm')}<span>A family of four will always use more than a student. Comparing each home with itself means the same effort counts the same in any home.</span></div>
+        <p class="hint">Numbers settle as the month goes on. Only friends who share their % change are ranked, and nobody sees anyone's kWh or bills here.</p>
+        <div class="btn-row"><button class="btn secondary" data-a="settings">${ic('EyeOff', 'sm')}Privacy settings</button></div>`];
     },
     household(sh) {
       const d = sh.d;
@@ -938,16 +991,51 @@
     }
     return `<svg class="qr" viewBox="-1 -1 ${n + 2} ${n + 2}" role="img" aria-label="Mock QR code for ${esc(code)}" fill="#16211B">${cells.join('')}</svg>`;
   }
+  /* Keeping steady is a longer habit than a one-off cut, so it runs for longer. */
+  const goalDurations = (kind) => (kind === 'keep' ? [1, 3, 6] : [1, 2, 3]);
   function updateGoalSheet() {
     const sh = ui.sheet; if (!sh || sh.type !== 'goal') return;
-    const r = sh.resource || 'electricity', target = sh.target || 5, months = sh.months || 1, m = P.thisMonth(s);
-    const eff = P.efficient(s, r), pts = P.goalPoints({ target, months, resource: r, efficient: eff });
+    const r = sh.resource || 'electricity', target = sh.target || 5, months = sh.months || 1, m = P.thisMonth(s), keep = sh.kind === 'keep', typical = keep && sh.bench === 'typical';
+    const eff = P.efficient(s, r), pts = P.goalPoints({ kind: sh.kind, target, months, resource: r, efficient: eff });
     const set = (k, html) => { const el = $(`[data-bind="${k}"]`); if (el) el.innerHTML = html; };
     set('target', `${target}%`); set('points', `≈ ${pts} pts`);
-    set('why', `8 × ${target}% × ${months} month${months > 1 ? 's' : ''}${r === 'both' ? ' × 1.5 for both' : ''}${eff ? ' × 1.25 because you already use less than similar homes' : ''}`);
+    set('why', `${keep ? '25' : `8 × ${target}%`} × ${months} month${months > 1 ? 's' : ''}${r === 'both' ? ' × 1.5 for both' : ''}${eff ? ' × 1.25 because you already use less than similar homes' : ''}`);
     const res = r === 'both' ? ['electricity', 'water'] : [r];
-    set('baseline', res.map((x) => { const u = P.usual(s, x, m), pr = P.projected(s, x); return `<div style="margin-top:4px">${ic(x === 'water' ? 'Droplet' : 'Zap', 'xs')} Usual ${H.monthName(m)}: <b>${fmtRes(x, u)} ${unit(x)}</b> → aim for <b>${fmtRes(x, u * (1 - target / 100))} ${unit(x)}</b>. Heading for ${fmtRes(x, pr)}.</div>`; }).join(''));
-    set('warn', target > 15 ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>Over 15% is a big change in one go. It's worth more points, but a smaller step you keep is better than a big one you don't.</span></div>` : '');
+    const over = [];
+    set('baseline', res.map((x) => {
+      const u = typical ? P.typicalMonth(s.profile, x, m) : P.usual(s, x, m), pr = P.projected(s, x), aim = u * (1 - (keep ? 0 : target) / 100);
+      if (keep && pr > u * 1.05) over.push(Math.round((pr / u - 1) * 100));
+      return `<div style="margin-top:4px">${ic(x === 'water' ? 'Droplet' : 'Zap', 'xs')} ${typical ? 'Similar homes' : 'Usual'} ${H.monthName(m)}: <b>${fmtRes(x, u)} ${unit(x)}</b> → ${keep ? 'stay at or under it' : `aim for <b>${fmtRes(x, aim)} ${unit(x)}</b>`}. Heading for ${fmtRes(x, pr)}.</div>`;
+    }).join(''));
+    set('warn', !keep && target > 15 ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>Over 15% is a big change in one go. It's worth more points, but a smaller step you keep is better than a big one you don't.</span></div>`
+      : over.length ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>You're heading about ${Math.max(...over)}% over this month. Cutting back a little first might be the easier start.</span></div>` : '');
+  }
+  /* For a badge not earned yet: where you stand and what to do next. */
+  function badgeHelp(b) {
+    const m = P.thisMonth(s), prev = H.addMonths(m, -1);
+    const go = (label, attrs, primary = true) => `<button class="btn ${primary ? 'primary' : 'secondary'}" ${attrs}>${label}</button>`;
+    const resRow = (r, cut) => { const u = P.usual(s, r, m), pr = P.projected(s, r); return `<div class="row"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span><div class="row-main"><div class="row-title">${resName(r)} this month</div><div class="row-sub">Heading for ${fmtRes(r, pr)} ${unit(r)}. ${cut ? `${cut}% under your usual is ${fmtRes(r, u * (1 - cut / 100))}.` : `Your usual is ${fmtRes(r, u)}.`}</div></div>${delta(P.change(s, r, m), 1)}</div>`; };
+    const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}This month's usage`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
+    let text = '', rows = '', btns = '';
+    const active = s.goals.find((g) => g.status === 'active');
+    switch (b.id) {
+      case 'first-reading': text = 'Add a month from your bill or meter. It takes a minute.'; btns = go('Add a reading', 'data-a="reading"'); break;
+      case 'steady': { const n = P.loggedStreak(s, prev); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add a reading', 'data-a="reading"'); break; }
+      case 'goal-getter': text = active ? `${P.goalLabel(active)} is running. ${P.goalProgress(s, active).onTrack ? "It's on track." : "It's behind for now."}` : 'Set a goal for this month and reach it.'; btns = active ? go('See your goal', `data-a="goal-detail" data-id="${active.id}"`) : go('Set a goal', 'data-a="goal"'); break;
+      case 'ten-club': text = 'Finish this month 10% under your usual on either one:'; rows = resRow('electricity', 10) + resRow('water', 10); btns = usageBtns(); break;
+      case 'water-wise': text = 'Finish this month with water 10% under your usual:'; rows = resRow('water', 10); btns = usageBtns('water'); break;
+      case 'balance': text = 'Finish this month under your usual on both:'; rows = resRow('electricity') + resRow('water'); btns = usageBtns(); break;
+      case 'comeback': {
+        const last = P.change(s, 'electricity', prev);
+        text = last !== null && last > 0 ? `${H.monthName(prev)} was ${signed(last, 1)} on electricity. Finish ${H.monthName(m)} under your usual to earn it:` : `This one is for bouncing back after a month over your usual. ${H.monthName(prev)} wasn't over, so there's nothing to win back right now.`;
+        rows = resRow('electricity'); btns = usageBtns(); break;
+      }
+      case 'off-peak': text = `${s.greenRuns} of 10 loads run in green hours so far.`; rows = `<div class="bar" style="margin-top:10px"><i style="width:${Math.min(1, s.greenRuns / 10) * 100}%"></i></div>`; btns = go('Plan a run', 'data-a="go" data-tab="plan"'); break;
+      case 'company': text = 'Add a friend, and once they accept, it\'s yours.'; btns = go('Add a friend', 'data-a="add-friend"'); break;
+      case 'team': text = "Team up with friends in this month's Friends' league and hit the team target."; btns = go("See Friends' league", 'data-a="goto-challenges"'); break;
+      default: return '';
+    }
+    return `<div class="badge-help"><p class="small" style="font-weight:600">How to get there</p><p class="small" style="color:var(--ink-2);margin-top:4px">${esc(text)}</p>${rows && rows.startsWith('<div class="row') ? `<div class="list" style="margin-top:10px">${rows}</div>` : rows}<div class="btn-row">${btns}</div></div>`;
   }
 
   /* ---------- household fields (onboarding + edit) ---------- */
@@ -960,7 +1048,8 @@
         <div style="display:flex;gap:24px;margin-top:14px"><div><span class="small" style="font-weight:600;color:var(--ink-2);display:block;margin-bottom:6px">Adults</span>${stepper('adults', d.adults, d.children ? 0 : 1, 8, 'adults')}</div><div><span class="small" style="font-weight:600;color:var(--ink-2);display:block;margin-bottom:6px">Children</span>${stepper('children', d.children, 0, 8, 'children')}</div></div>`,
       heat: `<div class="choice-grid">${P.HEATING.map((h) => `<button type="button" class="choice" data-a="choose" data-field="heating" data-val="${h.id}" aria-pressed="${d.heating === h.id}">${ic(h.icon)}${h.name}<small>${h.note}</small></button>`).join('')}</div>
         <div class="field"><span>Hot water comes from</span></div><div class="seg" role="group" style="flex-wrap:wrap">${P.HOT_WATER.map((h) => `<button type="button" data-a="choose" data-field="hotWater" data-val="${h.id}" aria-pressed="${d.hotWater === h.id}">${h.name.replace('From the heating system', 'Heating system').replace('Electric water heater', 'Electric heater')}</button>`).join('')}</div>`,
-      appliances: `<div class="check-list">${P.APPLIANCES.map((a) => `<button type="button" class="choice" role="checkbox" data-a="toggle-app" data-id="${a.id}" aria-checked="${d.appliances.includes(a.id)}">${ic(a.icon)}${a.name}</button>`).join('')}</div>`
+      appliances: `<div class="check-list">${P.APPLIANCES.map((a) => `<button type="button" class="choice" role="checkbox" data-a="toggle-app" data-id="${a.id}" aria-checked="${d.appliances.includes(a.id)}">${ic(a.icon)}${a.name}</button>`).join('')}</div>
+        ${d.appliances.includes('other') ? field('What else? (optional)', `<input class="input" data-input="other" value="${esc(d.otherNote || '')}" maxlength="40" placeholder="For example a sauna or an aquarium" autocomplete="off">`) + '<p class="hint">We add a small allowance for it to the estimate.</p>' : ''}`
     };
     if (part !== 'all') return parts[part];
     return `<div class="field"><span>Where</span></div>${parts.place}<div class="field"><span>Home</span></div>${parts.home}<div class="field"><span>Heating</span></div>${parts.heat}<div class="field"><span>Appliances</span></div>${parts.appliances}`;
@@ -969,7 +1058,7 @@
   /* ---------- onboarding ---------- */
   const OB_STEPS = ['welcome', 'name', 'place', 'home', 'heat', 'appliances', 'bills', 'consent', 'result'];
   const MARK = `<svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 15.5 16 6l11 9.5V26a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M9.5 19h3.5l2-4 2.5 7 2-3h3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  function obProfile(d) { return { name: d.name.trim() || 'You', region: d.region, housing: d.housing, area: +d.area, adults: +d.adults, children: +d.children, heating: d.heating, hotWater: d.hotWater, appliances: d.appliances, payment: d.payment }; }
+  function obProfile(d) { return { name: d.name.trim() || 'You', region: d.region, housing: d.housing, area: +d.area, adults: +d.adults, children: +d.children, heating: d.heating, hotWater: d.hotWater, appliances: d.appliances, otherNote: (d.otherNote || '').trim(), payment: d.payment }; }
   function obEstimateLine(d) {
     const p = obProfile(d), m = H.mkey(new Date());
     const w = P.typicalMonth(p, 'water', m);
@@ -1025,7 +1114,7 @@
     const d = ui.ob.d, m = H.addMonths(H.mkey(new Date()), -1);
     const bill = d.payment === 'bills' && d.billE !== '' ? { month: m, e: Number(d.billE), w: Number(d.billW) } : null;
     s = P.create(obProfile(d), { sample: d.sample, bill });
-    ui.ob = null; ui.tab = 'home'; ui.page = null; save(); render(); seedSpark();
+    ui.ob = null; ui.tab = 'home'; ui.page = null; save(); render();
     toast({ icon: 'House', text: `<b>Welcome, ${esc(s.profile.name)}</b>`, sub: '+20 points to start. The GreenBuddies team are your demo friends.' });
   }
 
@@ -1077,8 +1166,18 @@
     estimate() { openSheet('estimate'); },
     close() { closeSheet(); },
     reading(el) { openSheet('reading', { month: el.dataset.month }); },
-    goal(el) { const r = el.dataset.rec && P.recommendations(s).find((x) => x.id === el.dataset.rec); openSheet('goal', { resource: r ? r.goal.resource : 'electricity', target: r ? r.goal.target : 5, months: 1, source: r ? r.id : 'custom' }); },
+    goal(el) { const r = el.dataset.rec && P.recommendations(s).find((x) => x.id === el.dataset.rec); openSheet('goal', { kind: 'cut', bench: 'usual', resource: r ? r.goal.resource : 'electricity', target: r ? r.goal.target : 5, months: 1, source: r ? r.id : 'custom' }); },
     'goal-res'(el) { ui.sheet.resource = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
+    'goal-kind'(el) {
+      if (ui.sheet.kind === el.dataset.val) return;
+      ui.sheet.kind = el.dataset.val; if (!goalDurations(ui.sheet.kind).includes(ui.sheet.months)) ui.sheet.months = 1;
+      ui.sheet.noFocus = true; renderSheet();
+    },
+    'goal-bench'(el) { ui.sheet.bench = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
+    'goal-detail'(el) { openSheet('goalDetail', { id: el.dataset.id }); },
+    'rank-info'() { openSheet('rankInfo'); },
+    /* Navigate from inside a sheet: close it, then go to the tab. */
+    go(el) { closeSheet(true); A.tab(el); },
     'goal-months'(el) { ui.sheet.months = +el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
     challenge(el) { openSheet('challenge', { id: el.dataset.id }); },
     'feed-challenge'(el) { const c = challengeByTitle(el.dataset.title); if (c) openSheet('challenge', { id: c.id }); else A['goto-challenges'](); },
@@ -1094,7 +1193,7 @@
     'rec-dismiss'(el) { P.setRec(s, el.dataset.id, 'dismissed'); save(); render(); },
     'rec-stop'(el) { delete s.recs[el.dataset.id]; save(); render(); },
     'plan-app'(el) { ui.planApp = el.dataset.id; render(); },
-    'plan-make'(el) { const p = P.planRun(s, ui.planApp, +el.dataset.start); save(); toast({ icon: 'CalendarClock', text: `<b>Planned for ${clock(p.start)}</b>`, sub: p.green ? 'In green hours. Mark it done when it has run.' : 'Mark it done when it has run.' }); render(); },
+    'plan-make'(el) { const p = P.planRun(s, ui.planApp, +el.dataset.start); save(); toast({ icon: 'CalendarClock', text: `<b>Planned for ${clock(p.start)}</b>`, sub: `${p.green ? 'In green hours. ' : ''}${s.notify.plans !== false ? `We'll remind you at ${clock(p.start)}.` : 'Mark it done when it has run.'}` }); render(); },
     'plan-done'(el) { const res = P.markDone(s, el.dataset.id); save(); if (res.length) celebrate(res); render(); },
     friend(el) { if (el.dataset.id === 'me') return A.profile(); openSheet('friend', { id: el.dataset.id }); },
     'friend-accept'(el) { const res = P.acceptFriend(s, el.dataset.id); save(); toast({ who: el.dataset.id, text: `<b>You and ${esc(P.friendName(el.dataset.id))} are friends</b>`, sub: 'Compare progress from the ranking' }); if (res.length) celebrate(res); render(); },
@@ -1107,13 +1206,13 @@
     badge(el) { openSheet('badge', { id: el.dataset.id }); },
     pin(el) { try { P.togglePin(s, el.dataset.id); ui.sheet.error = null; save(); renderSheet(); render(); } catch (err) { ui.sheet.error = err.message; renderSheet(); } },
     privacy(el) { s.privacy[el.dataset.key] = !s.privacy[el.dataset.key]; save(); el.setAttribute('aria-checked', s.privacy[el.dataset.key]); },
-    household() { const p = s.profile; openSheet('household', { d: { region: p.region, housing: p.housing, area: p.area, adults: p.adults, children: p.children, heating: p.heating, hotWater: p.hotWater, appliances: [...p.appliances] } }); },
+    household() { const p = s.profile; openSheet('household', { d: { region: p.region, housing: p.housing, area: p.area, adults: p.adults, children: p.children, heating: p.heating, hotWater: p.hotWater, appliances: [...p.appliances], otherNote: p.otherNote || '' } }); },
     choose(el) { const d = currentDraft(); d[el.dataset.field] = el.dataset.val; rerenderDraft(); },
-    'toggle-app'(el) { const d = currentDraft(), id = el.dataset.id; d.appliances = d.appliances.includes(id) ? d.appliances.filter((x) => x !== id) : [...d.appliances, id]; el.setAttribute('aria-checked', d.appliances.includes(id)); updateObEstimate(); },
+    'toggle-app'(el) { const d = currentDraft(), id = el.dataset.id; d.appliances = d.appliances.includes(id) ? d.appliances.filter((x) => x !== id) : [...d.appliances, id]; el.setAttribute('aria-checked', d.appliances.includes(id)); if (id === 'other') rerenderDraft(); updateObEstimate(); },
     step(el) { const d = currentDraft(), f = el.dataset.field; d[f] = H.clamp(d[f] + +el.dataset.delta, 0, 8); if (d.adults + d.children < 1) d[f] = 1; rerenderDraft(); },
     'ob-next'() { if (!obValidate()) return render(); if (OB_STEPS[ui.ob.step] === 'result') return finishOnboarding(); ui.ob.step++; render(); },
     'ob-back'() { ui.ob.errors = {}; if (ui.ob.step === 0) return; ui.ob.step--; render(); },
-    'ob-demo'() { s = P.demo(); ui.ob = null; ui.tab = 'home'; save(); render(); seedSpark(); toast({ icon: 'House', text: '<b>This is Freja\'s home</b>', sub: 'Two adults in a Copenhagen apartment. Everything here is simulated.' }); }
+    'ob-demo'() { s = P.demo(); ui.ob = null; ui.tab = 'home'; save(); render(); toast({ icon: 'House', text: '<b>This is Freja\'s home</b>', sub: 'Two adults in a Copenhagen apartment. Everything here is simulated.' }); }
   };
   function refreshHeader() { const h = $('.top'); if (h && !ui.page) h.outerHTML = header(); }
   function markRead(id) { const n = s.notes.find((x) => x.id === id); if (!n || n.read) return false; n.read = true; save(); refreshHeader(); return true; }
@@ -1151,7 +1250,7 @@
       render();
     },
     goal(form) {
-      const sh = ui.sheet, g = P.createGoal(s, { resource: sh.resource || 'electricity', target: sh.target || 5, months: sh.months || 1, source: sh.source });
+      const sh = ui.sheet, g = P.createGoal(s, { kind: sh.kind, bench: sh.bench, resource: sh.resource || 'electricity', target: sh.target || 5, months: sh.months || 1, source: sh.source });
       save(); closeSheet(); ui.tab = 'goals'; ui.goalsSeg = 'goals'; render();
       toast({ icon: 'Target', text: `<b>${esc(P.goalLabel(g))} started</b>`, sub: `Worth about ${g.est} points if you make it` });
     },
@@ -1182,6 +1281,7 @@
   document.addEventListener('input', (e) => {
     const el = e.target;
     if (el.dataset.input === 'ob') { ui.ob.d[el.dataset.field] = el.value; if (ui.ob.errors[el.dataset.field]) { ui.ob.errors[el.dataset.field] = null; el.setAttribute('aria-invalid', 'false'); const err = el.closest('.field').querySelector('.field-error'); if (err) err.remove(); } }
+    if (el.dataset.input === 'other') { currentDraft().otherNote = el.value; }
     if (el.dataset.input === 'area') { const d = currentDraft(); d.area = +el.value; const b = $('[data-bind="area"]'); if (b) b.textContent = `${d.area} m²`; updateObEstimate(); }
     if (el.dataset.input === 'goal') { ui.sheet.target = +el.value; updateGoalSheet(); }
   });
@@ -1211,7 +1311,7 @@
         { label: 'Skip ahead 6 hours', hint: 'Prices, live meter and today\'s total move on', run: () => { P.advanceHours(s, 6); save(); render(); } },
         { label: 'Show a friend update now', run: () => pushNotification('friend', true) },
         { label: 'Show a price tip now', run: () => pushNotification('tip', true) },
-        { label: s.live ? 'Pause live data' : 'Resume live data', run: () => { s.live = !s.live; save(); render(); } },
+        { label: s.live ? 'Pause live updates' : 'Resume live updates', hint: 'Friend updates and tips', run: () => { s.live = !s.live; save(); render(); } },
         { label: 'Reset app', hint: 'Back to onboarding, where you can set up a home or skip to the demo. Feedback comments are kept.', run: resetApp }
       ];
     }
@@ -1226,7 +1326,7 @@
   }
 
   /* Where the visitor is, as a stable key and a readable label. The feedback tool files comments under it. */
-  const SHEET_NAMES = { notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add a reading', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
+  const SHEET_NAMES = { goalDetail: 'Goal', rankInfo: 'How the ranking works', notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add a reading', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
   const SEG_NAMES = { goals: 'Goals', challenges: 'Challenges', rewards: 'Rewards', feed: 'Feed', ranking: 'Ranking' };
   function pageInfo() {
     if (!s) { const step = ui.ob ? OB_STEPS[ui.ob.step] : 'welcome'; return { key: 'onboarding/' + step, label: 'Onboarding · ' + step.charAt(0).toUpperCase() + step.slice(1) }; }
@@ -1269,7 +1369,6 @@
   })();
 
   render();
-  seedSpark();
   setInterval(tick, 2000);
   setInterval(() => { const c = $('#clock'); if (c) c.textContent = clock(s ? P.now(s) : new Date()); }, 15000);
   $('#clock').textContent = clock(s ? P.now(s) : new Date());
