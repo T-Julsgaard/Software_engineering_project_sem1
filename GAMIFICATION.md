@@ -148,8 +148,8 @@ Bottom bar, 4 tabs:
 | Tab | Contains |
 | --- | --- |
 | Home | One thing to do at home, active goals, the live electricity price, progress over the last six months |
-| Usage | Monthly data entry and charts |
-| Plan | Electricity prices, the appliance planner, ideas for the home |
+| Consumption | Monthly data entry and charts |
+| Recommendations | Electricity prices, the appliance planner, ideas for the home |
 | Goals | Points, goals, rewards |
 
 The **profile** opens from the avatar in the header (badges, stats, household, settings).

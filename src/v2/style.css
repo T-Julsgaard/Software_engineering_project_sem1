@@ -89,7 +89,7 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
 /* ---------- app chrome ---------- */
 .top{flex:none;display:flex;align-items:center;gap:12px;padding:8px 16px 10px 20px;background:var(--app)}
 .top-title{flex:1;min-width:0}
-.top-title h1{font-size:17px;font-weight:650;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-title h1{font-size:22px;letter-spacing:-.01em;font-weight:650;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top-title p{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{position:relative;width:40px;height:40px;flex:none;display:grid;place-items:center;border:0;border-radius:12px;background:transparent;color:var(--ink-2)}
 .icon-btn:hover{background:var(--sunken)}
@@ -119,7 +119,7 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
 /* ---------- app chrome ---------- */
 .top{flex:none;display:flex;align-items:center;gap:12px;padding:8px 16px 10px 20px;background:var(--app)}
 .top-title{flex:1;min-width:0}
-.top-title h1{font-size:17px;font-weight:650;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-title h1{font-size:22px;letter-spacing:-.01em;font-weight:650;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .top-title p{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{position:relative;width:40px;height:40px;flex:none;display:grid;place-items:center;border:0;border-radius:12px;background:transparent;color:var(--ink-2)}
 .icon-btn:hover{background:var(--sunken)}
@@ -145,8 +145,8 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
 .content.tight .card.todo{padding:12px 14px}
 .content.tight .todo .btn-row{margin-top:8px}
 .tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:#FFFFFFEB;backdrop-filter:blur(16px);padding:6px 4px 22px}
-.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 2px;border:0;background:none;color:var(--muted);font-size:11px;font-weight:550;min-height:48px;transition:color .2s}
-.tab .i{width:22px;height:22px;transition:transform .25s var(--spring)}
+.tab{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 0;border:0;background:none;color:var(--muted);min-height:48px;transition:color .2s}
+.tab .i{width:25px;height:25px;transition:transform .25s var(--spring)}
 .tab:active .i{transform:scale(.86)}
 .tab.just .i{animation:tabPop .5s var(--spring)}
 @keyframes tabPop{0%{transform:scale(.8)}55%{transform:scale(1.14)}100%{transform:scale(1)}}

@@ -534,7 +534,7 @@ const PBD = (() => {
     s.ledger.sort((a, b) => a.at.localeCompare(b.at));
     delete s.setup;
     seedNotes(s);
-    note(s, { icon: 'Receipt', title: `${monthName(prev)} isn't logged yet`, body: 'Enter it under Usage to keep your streak going. +10 points.', go: 'usage' });
+    note(s, { icon: 'Receipt', title: `${monthName(prev)} isn't logged yet`, body: 'Enter it under Consumption to keep your streak going. +10 points.', go: 'usage' });
     return s;
   }
 

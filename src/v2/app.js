@@ -197,8 +197,8 @@
     const region = P.REGIONS.find((r) => r.id === s.profile.region);
     const t = {
       home: [`${s.profile.name}'s home`, region.name],
-      usage: ['Usage', 'Electricity and water, month by month'],
-      plan: ['Plan', 'Plan runs in cheap hours. We remind you.'],
+      usage: ['Consumption', 'Electricity and water, month by month'],
+      plan: ['Recommendations', 'Ideas, prices and the cheapest hours'],
       goals: ['Goals', 'Your goals and rewards']
     }[ui.tab];
     const unread = s.notes.filter((n) => !n.read).length;
@@ -209,8 +209,8 @@
     </header>`;
   }
   function tabs() {
-    const items = [['home', 'Home', 'House'], ['usage', 'Usage', 'ChartColumn'], ['plan', 'Plan', 'CalendarClock'], ['goals', 'Goals', 'Target']];
-    return `<nav class="tabs" aria-label="Main">${items.map(([id, label, icon]) => `<button class="tab" data-a="tab" data-tab="${id}"${ui.tab === id ? ' aria-current="page"' : ''}>${ic(icon)}<span>${label}</span></button>`).join('')}</nav>`;
+    const items = [['home', 'Home', 'House'], ['usage', 'Consumption', 'ChartColumn'], ['plan', 'Recommendations', 'Lightbulb'], ['goals', 'Goals', 'Target']];
+    return `<nav class="tabs" aria-label="Main">${items.map(([id, label, icon]) => `<button class="tab" data-a="tab" data-tab="${id}" aria-label="${label}" title="${label}"${ui.tab === id ? ' aria-current="page"' : ''}>${ic(icon)}</button>`).join('')}</nav>`;
   }
   const seg = (key, options, cls = '') => `<div class="seg ${cls}" role="group">${options.map(([v, label]) => `<button data-a="seg" data-key="${key}" data-val="${v}" aria-pressed="${ui[key] === v}">${label}</button>`).join('')}</div>`;
   const sectionHead = (title, meta = '') => `<div class="section-head"><h2>${title}</h2>${meta ? `<span class="meta">${meta}</span>` : ''}</div>`;
@@ -296,7 +296,7 @@
     // 3. Live prices, not live usage: prices are public, while usage only comes in once a month.
     const list = P.prices(s, P.today(s)), h = n.getHours(), green = P.greenHours(list), level = P.priceLevel(list[h], list), up = P.upcomingPrices(s);
     const day = (ts) => (H.ymd(new Date(ts)) === P.today(s) ? '' : ' tomorrow'), slot = `${String(h).padStart(2, '0')}:00–${String((h + 1) % 24).padStart(2, '0')}:00`;
-    const live = `<section class="section">${sectionHead('Live price', '<button class="link" data-a="tab" data-tab="plan">Plan</button>')}<button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Electricity price right now. Open Plan for the whole day.">
+    const live = `<section class="section">${sectionHead('Live price', '<button class="link" data-a="tab" data-tab="plan">Whole day</button>')}<button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Electricity price right now. Open Recommendations for the whole day.">
       <div class="live-main"><div><div class="live-head"><span class="pulse" aria-hidden="true"></span><span>Electricity, ${slot}</span></div><div class="big-num num"><span data-live="price">${fmt(list[h], 2)}</span><small>kr/kWh</small></div></div>${priceStrip(list, h, green)}</div>
       <div class="live-line"><span class="tag ${level}">${{ low: 'Low', normal: 'Normal', high: 'High' }[level]}</span>${s.live ? '' : '<span class="tag">Paused</span>'}<span>${up ? `Cheapest next <b class="num">${clock(up.low.start)}</b>${day(up.low.start)}, ${fmt(up.low.price, 2)} kr` : ''}</span></div></button></section>`;
     // 4. Progress: how the last finished months went against homes like yours.
@@ -305,7 +305,7 @@
     const last = [...pts].reverse().find((p) => p.value !== null), streak = P.loggedStreak(s, H.addMonths(m, -1));
     const vs = last ? (last.value / last.typ - 1) * 100 : null;
     const headline = last ? `${H.monthName(last.m)}: <b>${fmt(Math.abs(vs))}% ${vs <= 0 ? 'less' : 'more'}</b> than homes like yours` : 'Add a month to compare with homes like yours.';
-    const progress = `<section class="section">${sectionHead('Your progress so far', streak ? `${streak}-month streak` : '')}<button class="card progress-card" data-a="tab" data-tab="usage" data-res="electricity" aria-label="Your progress. Open Usage.">
+    const progress = `<section class="section">${sectionHead('Your progress so far', streak ? `${streak}-month streak` : '')}<button class="card progress-card" data-a="tab" data-tab="usage" data-res="electricity" aria-label="Your progress. Open Consumption.">
       <p class="small progress-head">${headline}</p>
       ${lineChart(ui.homeChart = { points: pts.map((p) => ({ value: p.value, label: H.monthName(p.m, 'short'), tip: p.value === null ? `${H.monthName(p.m)} ${p.m.slice(0, 4)}|Not entered yet` : `${H.monthName(p.m)} ${p.m.slice(0, 4)}|${fmt(p.value)} kWh|Homes like yours: ${fmt(p.typ)} kWh` })), typical: pts.map((p) => p.typ), height: 92, desc: 'Your electricity per month for the last 6 months, against homes like yours' })}
       <div class="legend"><span><i style="background:var(--elec)"></i>Your electricity</span><span><i class="dash"></i>Homes like yours</span></div></button></section>`;
@@ -581,7 +581,7 @@
     const n = s.notify;
     return `<section class="section">${sectionHead('Notifications')}<div class="list">
         ${toggleRow('Price and saving tips', 'Cheap hours, price peaks and small things to try at home', n.tips, 'data-a="notify" data-key="tips"', `<span class="chip-icon elec">${ic('Moon', 'sm')}</span>`)}
-        ${toggleRow('Reminders for planned runs', 'When it\'s time to start something you planned in Plan', n.plans !== false, 'data-a="notify" data-key="plans"', `<span class="chip-icon">${ic('CalendarClock', 'sm')}</span>`)}
+        ${toggleRow('Reminders for planned runs', 'When it\'s time to start something you planned in Recommendations', n.plans !== false, 'data-a="notify" data-key="plans"', `<span class="chip-icon">${ic('CalendarClock', 'sm')}</span>`)}
       </div></section>
       <section class="section">${sectionHead('Sound')}<div class="list">${toggleRow('Sound effects', 'Taps, notifications and calls. Vibration where the phone supports it.', window.PBFX ? PBFX.enabled() : false, 'data-a="sound"', `<span class="chip-icon">${ic('Volume2', 'sm')}</span>`)}</div></section>
       <section class="section">${sectionHead('Household')}<div class="list"><button class="row" data-a="household"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">Edit your household</div><div class="row-sub">${esc(P.describeHome(s.profile))}</div></div>${ic('ChevronRight')}</button></div><p class="hint">Changing this updates the "homes like yours" comparison.</p></section>`;
@@ -629,7 +629,7 @@
     if (s.notify.plans === false) { save(); return; }
     for (const p of due) {
       const a = P.APPLIANCES.find((x) => x.id === p.appliance), price = P.priceAt(s, P.now(s));
-      const body = `Electricity is ${fmt(price, 2)} kr/kWh now${p.green ? ', a green hour' : ''}. Mark it done in Plan when it has run.`;
+      const body = `Electricity is ${fmt(price, 2)} kr/kWh now${p.green ? ', a green hour' : ''}. Mark it done in Recommendations when it has run.`;
       addNote({ kind: 'plan', icon: 'CalendarClock', title: `Time to start: ${a.cycle.name.toLowerCase()}`, body, go: 'plan' }, { icon: 'CalendarClock', text: `<b>Time to start: ${esc(a.cycle.name.toLowerCase())}</b>`, sub: body, go: 'plan', sound: 'tip', tone: 'tip' });
     }
   }
@@ -856,7 +856,7 @@
       return [esc(P.goalLabel(g)), `<div class="ch-head"><span class="chip-icon brand">${ic(keep ? 'ShieldCheck' : 'Target')}</span><div style="flex:1"><div class="row-title">${head}</div><p class="small muted">${esc(timeFrame(g))} · worth ${g.est} points</p></div></div>
         <div class="list" style="margin-top:14px">${rows}</div>
         <p class="hint">${how}</p>
-        <div class="btn-row"><button class="btn primary" data-a="go" data-tab="plan">${ic('Lightbulb', 'sm')}Ideas to cut back</button><button class="btn secondary" data-a="go" data-tab="usage" data-res="${r0}">${ic('ChartColumn', 'sm')}See usage</button></div>`];
+        <div class="btn-row"><button class="btn primary" data-a="go" data-tab="plan">${ic('Lightbulb', 'sm')}Ideas to cut back</button><button class="btn secondary" data-a="go" data-tab="usage" data-res="${r0}">${ic('ChartColumn', 'sm')}See consumption</button></div>`];
     },
     household(sh) {
       const d = sh.d;
@@ -900,7 +900,7 @@
     const last = P.lastEntered(s);
     const go = (label, attrs, primary = true) => `<button class="btn ${primary ? 'primary' : 'secondary'}" ${attrs}>${label}</button>`;
     const resRow = (r, cut) => { if (!last) return ''; const v = P.monthValue(s, r, last), u = P.usual(s, r, last); return `<div class="row"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span><div class="row-main"><div class="row-title">${resName(r)} in ${H.monthName(last)}</div><div class="row-sub">${fmtRes(r, v)} ${unit(r)}. ${cut ? `${cut}% under your usual would be ${fmtRes(r, u * (1 - cut / 100))}.` : `Your usual was ${fmtRes(r, u)}.`}</div></div>${delta(P.change(s, r, last), 1)}</div>`; };
-    const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}See usage`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
+    const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}See consumption`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
     const latest = last ? ' Your latest month:' : ' Enter a month to see where you stand.';
     let text = '', rows = '', btns = '';
     const active = s.goals.find((g) => g.status === 'active');
@@ -1166,7 +1166,7 @@
     actions() {
       if (!s) return [{ label: 'Skip to the demo home', run: () => A['ob-demo']() }];
       return [
-        { label: 'Jump to next month', hint: 'Moves to the 1st. Enter the month that just ended under Usage to settle goals', run: () => { closeSheet(); const res = P.advanceToNextMonth(s); save(); render(); celebrate(res); toast({ icon: 'CalendarDays', text: `<b>It's now ${P.now(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b>`, sub: `${H.monthName(H.addMonths(P.thisMonth(s), -1))} has ended. Enter its numbers under Usage.` }); } },
+        { label: 'Jump to next month', hint: 'Moves to the 1st. Enter the month that just ended under Consumption to settle goals', run: () => { closeSheet(); const res = P.advanceToNextMonth(s); save(); render(); celebrate(res); toast({ icon: 'CalendarDays', text: `<b>It's now ${P.now(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b>`, sub: `${H.monthName(H.addMonths(P.thisMonth(s), -1))} has ended. Enter its numbers under Consumption.` }); } },
         { label: 'Skip ahead 6 hours', hint: 'Prices and the clock move on', run: () => { P.advanceHours(s, 6); save(); render(); } },
         { label: 'Show a price tip now', run: () => pushTip(true) },
         { label: s.live ? 'Pause live updates' : 'Resume live updates', hint: 'Price tips', run: () => { s.live = !s.live; save(); render(); } },
