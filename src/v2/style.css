@@ -563,7 +563,16 @@ button.progress-card:active{transform:scale(.985)}
 .pie-row i{width:10px;height:10px;border-radius:3px}
 .pie-row .muted{font-size:12.5px;white-space:nowrap}
 .pie-row b{font-weight:650;color:var(--ink);text-align:right}
+.month-row{border-left:4px solid var(--bad)}
+.month-row.done{border-left-color:var(--good)}
+.month-row.todo .row-sub{color:var(--bad)}
 .month-row.on{background:var(--brand-soft)}
+.month-row .sep{margin:0 6px;color:var(--line-2)}
+.chip-icon.good{background:var(--good-soft);color:var(--good)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pair .input-unit .input{padding-right:46px}
+.pair-label{display:flex!important;align-items:center;gap:8px}
+.pair-label .chip-icon{width:24px;height:24px;border-radius:7px}
 .live .live-head span{white-space:nowrap}
 .content.tight .progress-card .chart{margin-top:4px}
 .content.tight .home-goal .target-bar{margin-top:7px}

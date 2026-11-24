@@ -163,8 +163,13 @@ test('No challenges, draw or friends are left in the state', () => {
 
 test('Reading validation catches errors and unlikely values', () => {
   const s = fresh(), m = addMonths(P.thisMonth(s), -1);
-  assert.ok(P.validateReading(s, { month: m, e: '', w: '5' }).errors.e);
+  assert.ok(P.validateReading(s, { month: m, e: '', w: '' }).errors.e, 'one of the two is needed');
   assert.ok(P.validateReading(s, { month: m, e: '-3', w: '5' }).errors.e);
+  assert.ok(P.validateReading(s, { month: m, e: 'abc', w: '' }).errors.e);
+  assert.ok(P.validateReading(s, { month: m, e: '', w: '5', ekr: '400' }).errors.ekr, 'a price needs its amount');
+  assert.ok(P.validateReading(s, { month: m, e: '200', w: '', ekr: '-1' }).errors.ekr);
+  assert.equal(P.validateReading(s, { month: m, e: '200', w: '6', ekr: '500', wkr: '420' }).warnings.length, 0);
+  assert.equal(P.validateReading(s, { month: m, e: '200', w: '', ekr: '6000' }).warnings.length, 1, 'a price far off per kWh is questioned');
   assert.ok(P.validateReading(s, { month: P.thisMonth(s), e: '200', w: '5' }).errors.month);
   assert.equal(P.validateReading(s, { month: m, e: '2000', w: '6' }).warnings.length, 1);
   assert.equal(P.validateReading(s, { month: m, e: '200', w: '6' }).warnings.length, 0);
@@ -176,6 +181,25 @@ test('Logging a missing month gives 10 points once', () => {
   P.logReading(s, { month: m, e: 212, w: 6 });
   assert.ok(P.available(s) >= before + 10);
   assert.equal(s.ledger.filter((l) => l.id === 'reading-' + m).length, 1);
+});
+
+test('Electricity or water can be entered alone, with or without a price', () => {
+  const s = fresh(), m = addMonths(P.thisMonth(s), -1), u = P.usual(s, 'water', m);
+  assert.equal(P.validateReading(s, { month: m, e: '', w: '6' }).ok, true);
+  assert.equal(P.validateReading(s, { month: m, e: '200', w: '' }).ok, true);
+  P.logReading(s, { month: m, e: '', w: '6', wkr: '450' });
+  assert.equal(P.monthValue(s, 'electricity', m), null);
+  assert.equal(P.monthValue(s, 'water', m), 6);
+  assert.equal(P.monthPaid(s, 'water', m), 450);
+  assert.equal(P.monthCost(s, 'water', m), 450, 'the entered price wins over the estimate');
+  assert.equal(P.monthCost(s, 'electricity', m), null);
+  assert.equal(P.change(s, 'electricity', m), null);
+  assert.ok(Math.abs(P.usual(s, 'water', addMonths(m, 1)) - u) < u, 'usual still works with a water-only month');
+  const next = addMonths(m, 1);
+  assert.ok(Number.isFinite(P.usual(s, 'electricity', next)), 'a month without electricity is skipped for the electricity usual');
+  P.logReading(s, { month: m, e: '200', w: '6', ekr: '', wkr: '' });
+  assert.equal(P.monthPaid(s, 'water', m), null, 'editing a month can clear its price');
+  assert.ok(Math.abs(P.monthCost(s, 'electricity', m) - P.cost(s, 'electricity', 200)) < 1e-9);
 });
 
 test('Sample months never earn streaks or badges', () => {

@@ -301,7 +301,7 @@
       <div class="live-line"><span class="tag ${level}">${{ low: 'Low', normal: 'Normal', high: 'High' }[level]}</span>${s.live ? '' : '<span class="tag">Paused</span>'}<span>${up ? `Cheapest next <b class="num">${clock(up.low.start)}</b>${day(up.low.start)}, ${fmt(up.low.price, 2)} kr` : ''}</span></div></button></section>`;
     // 4. Progress: how the last finished months went against homes like yours.
     const months = []; for (let i = 6; i >= 1; i--) months.push(H.addMonths(m, -i));
-    const pts = months.map((mm) => ({ m: mm, value: s.months[mm] ? s.months[mm].e : null, typ: P.typicalMonth(s.profile, 'electricity', mm) }));
+    const pts = months.map((mm) => ({ m: mm, value: P.monthValue(s, 'electricity', mm), typ: P.typicalMonth(s.profile, 'electricity', mm) }));
     const last = [...pts].reverse().find((p) => p.value !== null), streak = P.loggedStreak(s, H.addMonths(m, -1));
     const vs = last ? (last.value / last.typ - 1) * 100 : null;
     const headline = last ? `${H.monthName(last.m)}: <b>${fmt(Math.abs(vs))}% ${vs <= 0 ? 'less' : 'more'}</b> than homes like yours` : 'Add a month to compare with homes like yours.';
@@ -442,10 +442,11 @@
       const mm = H.addMonths(m, -i), v = P.monthValue(s, r, mm), typ = P.typicalMonth(s.profile, r, mm);
       typs.push(typ);
       bars.push({ value: v, cls, missing: v === null, label: i % 3 === 1 ? H.monthName(mm, 'short') : '',
-        tip: v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not entered yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${kr(P.cost(s, r, v))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
+        tip: v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not entered yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${P.monthPaid(s, r, mm) === null ? '≈ ' : ''}${kr(P.monthCost(s, r, mm))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
     }
     const logged = bars.filter((b) => !b.missing).map((b) => b.value), total = H.sum(logged);
-    const stats = [['Last 12 months', `${fmtRes(r, total)} ${unit(r)}`], ['Average month', `${fmtRes(r, logged.length ? total / logged.length : 0)} ${unit(r)}`], ['Cost', kr(P.cost(s, r, total))]];
+    const paid = H.sum(Array.from({ length: 12 }, (_, i) => P.monthCost(s, r, H.addMonths(m, -1 - i)) || 0));
+    const stats = [['Last 12 months', `${fmtRes(r, total)} ${unit(r)}`], ['Average month', `${fmtRes(r, logged.length ? total / logged.length : 0)} ${unit(r)}`], ['Cost', kr(paid)]];
     const miss = missingMonths().filter((x) => !s.months[x]);
     const est = P.estimate(s.profile)[r];
     const parts = est.parts.map((p) => ({ name: p.name, value: (p.kwh || p.m3) / 12, fmt: (v) => (r === 'water' ? `${fmt(Math.round(v * 100) * 10)} L` : `${fmt(v)} kWh`) }));
@@ -783,25 +784,36 @@
         <div class="btn-row"><button class="btn secondary" data-a="household">Edit household</button></div>`];
     },
     reading(sh) {
-      const opts = missingMonths(), m = sh.month || opts.find((x) => !s.months[x]) || opts[0], e = sh.errors || {}, v = sh.values || {}, cur = s.months[m];
+      const months = Array.from({ length: 12 }, (_, i) => H.addMonths(P.thisMonth(s), -1 - i));
+      const entered = (mm) => s.months[mm] && s.months[mm].src !== 'sample';
+      const m = sh.month || months.find((x) => !entered(x)) || months[0], e = sh.errors || {}, v = sh.values || {}, cur = entered(m) ? s.months[m] : null;
       const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m);
-      // The months entered so far sit under the form: tap one to correct it, or a missing one to add it.
-      const SRC = { bill: 'Entered', manual: 'Entered', sample: 'Sample' };
-      const history = Array.from({ length: 12 }, (_, i) => H.addMonths(P.thisMonth(s), -1 - i)).map((mm) => {
-        const x = s.months[mm], sel = mm === m;
-        const inner = `<div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${x ? `${fmt(x.e)} kWh · ${fmt(x.w, 1)} m³` : 'Not entered yet'}</div></div>`;
-        const end = sel ? '<span class="tag brand">Editing</span>' : x ? `<span class="tag">${SRC[x.src] || x.src}</span>` : '<span class="tag warn">Add</span>';
-        return `<button type="button" class="row month-row${sel ? ' on' : ''}" data-a="reading-pick" data-month="${mm}" aria-pressed="${sel}">${inner}${end}</button>`;
+      const val = (k) => esc(v[k] ?? (cur && cur[k] != null ? cur[k] : ''));
+      const input = (k, label, u, ph) => `<div class="input-unit"><input class="input" name="${k}" inputmode="decimal" placeholder="${ph}" aria-label="${label}" value="${val(k)}" aria-invalid="${!!e[k]}" autocomplete="off"><b>${u}</b></div>`;
+      // What was used and what it cost sit on one line, so it's clear the price belongs to that amount.
+      const line = (k, name, icon, cls, u) => `<div class="field"><span class="pair-label"><i class="chip-icon ${cls}">${ic(icon, 'xs')}</i>${name}</span>
+          <div class="pair">${input(k, `${name} used`, u, 'Used')}${input(k + 'kr', `${name} price for the month`, 'kr', 'Price')}</div>
+          ${[e[k], e[k + 'kr']].filter(Boolean).map((x) => `<span class="field-error">${esc(x)}</span>`).join('')}</div>`;
+      // Every finished month of the last year: green once entered, red while missing. Tap one to add or edit it.
+      const history = months.map((mm) => {
+        const x = entered(mm) ? s.months[mm] : null, sel = mm === m;
+        const part = (r, k, u, d) => { const a = P.monthValue(s, r, mm), p = P.monthPaid(s, r, mm); return a === null ? '' : `${fmt(a, d)} ${u}${p === null ? '' : ` · ${kr(p)}`}`; };
+        const sub = x ? [part('electricity', 'e', 'kWh', 0), part('water', 'w', 'm³', 1)].filter(Boolean).join('<span class="sep">|</span>') : 'Not entered yet';
+        const inner = `<span class="chip-icon ${x ? 'good' : 'bad'}">${ic(x ? 'Check' : 'CircleAlert', 'sm')}</span><div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${sub}</div></div>`;
+        const end = sel ? '<span class="tag brand">Editing</span>' : x ? `<span class="tag low">${ic('Pencil', 'xs')}Edit</span>` : `<span class="tag high">${ic('Plus', 'xs')}Add</span>`;
+        return `<button type="button" class="row month-row ${x ? 'done' : 'todo'}${sel ? ' on' : ''}" data-a="reading-pick" data-month="${mm}" aria-pressed="${sel}" aria-label="${H.monthName(mm)} ${mm.slice(0, 4)}, ${x ? 'entered. Edit' : 'not entered. Add'}">${inner}${end}</button>`;
       }).join('');
-      return [cur ? 'Correct a month' : 'Add monthly data', `<form data-form="reading" novalidate>
-        <p class="small muted">Type in what you used in the month. Homes like yours use about ${fmt(te)} kWh and ${fmt(tw, 1)} m³ in ${H.monthName(m)}.</p>
-        ${field('Month', `<select class="select" name="month" data-change="reading-month">${opts.map((x) => `<option value="${x}"${x === m ? ' selected' : ''}>${H.monthName(x)} ${x.slice(0, 4)}${s.months[x] ? ' (entered)' : ''}</option>`).join('')}</select>`, e.month)}
-        ${field('Electricity', `<div class="input-unit"><input class="input" name="e" inputmode="decimal" value="${esc(v.e ?? (cur ? cur.e : ''))}" aria-invalid="${!!e.e}" autocomplete="off"><b>kWh</b></div>`, e.e)}
-        ${field('Water', `<div class="input-unit"><input class="input" name="w" inputmode="decimal" value="${esc(v.w ?? (cur ? cur.w : ''))}" aria-invalid="${!!e.w}" autocomplete="off"><b>m³</b></div>`, e.w)}
+      const title = `${cur ? 'Edit' : 'Add'} ${H.monthName(m)} ${m.slice(0, 4)}`;
+      return [title, `<form data-form="reading" novalidate>
+        <input type="hidden" name="month" value="${m}">
+        <p class="small muted">Fill in what you have: electricity, water or both. The price is optional, the total for the month from your bill. Homes like yours use about ${fmt(te)} kWh and ${fmt(tw, 1)} m³ in ${H.monthName(m)}.</p>
+        ${e.month ? `<span class="field-error">${esc(e.month)}</span>` : ''}
+        ${line('e', 'Electricity', 'Zap', 'elec', 'kWh')}
+        ${line('w', 'Water', 'Droplet', 'water', 'm³')}
         ${(sh.warnings || []).map((w) => `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>${esc(w)}</span></div>`).join('')}
         <div class="btn-row"><button class="btn primary" type="submit">${sh.warnings && sh.warnings.length ? 'Save anyway' : 'Save'}</button></div>
         ${!s.ledger.some((l) => l.id === 'reading-' + m) ? '<p class="hint" style="text-align:center">+10 points for entering a month</p>' : ''}</form>
-        <div class="section-head" style="margin-top:22px"><h2>Monthly consumption</h2><span class="meta">last 12 months</span></div>
+        <div class="section-head" style="margin-top:22px"><h2>Monthly consumption</h2><span class="meta">tap a month to add or edit</span></div>
         <div class="list">${history}</div>`];
     },
     goal(sh) {
@@ -905,7 +917,7 @@
     let text = '', rows = '', btns = '';
     const active = s.goals.find((g) => g.status === 'active');
     switch (b.id) {
-      case 'first-reading': text = 'Type in one month of electricity and water. It takes a minute.'; btns = go('Add monthly data', 'data-a="reading"'); break;
+      case 'first-reading': text = 'Type in one month of electricity, water or both. It takes a minute.'; btns = go('Add monthly data', 'data-a="reading"'); break;
       case 'steady': { const n = P.loggedStreak(s, H.addMonths(P.thisMonth(s), -1)); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add monthly data', 'data-a="reading"'); break; }
       case 'goal-getter': text = active ? `${P.goalLabel(active)} is running. ${goalState(active, P.goalProgress(s, active)).long}.` : 'Set a goal and reach it.'; btns = active ? go('See your goal', `data-a="goal-detail" data-id="${active.id}"`) : go('Set a goal', 'data-a="goal"'); break;
       case 'ten-club': text = 'Log a month 10% under your usual on either one.' + latest; rows = resRow('electricity', 10) + resRow('water', 10); btns = usageBtns(); break;
@@ -987,7 +999,6 @@
     if (step === 'bills' && d.payment === 'bills') {
       if (d.billE !== '' && !(Number(d.billE) >= 0)) e.billE = 'Use a number, like 180.';
       if (d.billW !== '' && !(Number(d.billW) >= 0)) e.billW = 'Use a number, like 6.5.';
-      if ((d.billE === '') !== (d.billW === '')) e[d.billE === '' ? 'billE' : 'billW'] = 'Add both numbers, or leave both empty.';
     }
     if (step === 'consent' && !(d.terms && d.data)) e.consent = 'Both are needed to create a profile.';
     ob.errors = e;
@@ -995,7 +1006,7 @@
   }
   function finishOnboarding() {
     const d = ui.ob.d, m = H.addMonths(H.mkey(new Date()), -1);
-    const bill = d.payment === 'bills' && d.billE !== '' ? { month: m, e: Number(d.billE), w: Number(d.billW) } : null;
+    const bill = d.payment === 'bills' && (d.billE !== '' || d.billW !== '') ? { month: m, e: d.billE === '' ? null : Number(d.billE), w: d.billW === '' ? null : Number(d.billW) } : null;
     s = P.create(obProfile(d), { sample: d.sample, bill });
     ui.ob = null; ui.tab = 'home'; ui.page = null; save(); render();
     toast({ icon: 'House', text: `<b>Welcome, ${esc(s.profile.name)}</b>`, sub: '+20 points to start.' });
@@ -1041,7 +1052,8 @@
     /* A month picked from the list under the form: load it into the form and scroll back up to it. */
     'reading-pick'(el) {
       const mm = el.dataset.month, x = s.months[mm];
-      Object.assign(ui.sheet, { month: mm, errors: {}, warnings: [], values: x ? { e: x.e, w: x.w } : { e: '', w: '' } });
+      const g = (k) => (x && x.src !== 'sample' && x[k] != null ? x[k] : '');
+      Object.assign(ui.sheet, { month: mm, errors: {}, warnings: [], values: { e: g('e'), w: g('w'), ekr: g('ekr'), wkr: g('wkr') } });
       renderSheet();
       const b = $('.sheet-body'); if (b) b.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
       const inp = $('.sheet-body input[name="e"]'); if (inp) inp.focus({ preventScroll: true });
@@ -1102,13 +1114,15 @@
   /* ---------- forms ---------- */
   const FORMS = {
     reading(form) {
-      const fd = Object.fromEntries(new FormData(form)), values = { month: fd.month, e: fd.e.replace(',', '.'), w: fd.w.replace(',', '.') };
+      const fd = Object.fromEntries(new FormData(form)), clean = (x) => String(x || '').trim().replace(/\s/g, '').replace(',', '.');
+      const values = { month: fd.month, e: clean(fd.e), w: clean(fd.w), ekr: clean(fd.ekr), wkr: clean(fd.wkr) };
       const v = P.validateReading(s, values), sh = ui.sheet;
       if (!v.ok) { Object.assign(sh, { errors: v.errors, warnings: [], values, month: values.month }); return renderSheet(); }
       const sameWarnings = JSON.stringify(v.warnings) === JSON.stringify(sh.warnings || []);
       if (v.warnings.length && !(sh.warnings && sh.warnings.length && sameWarnings)) { Object.assign(sh, { errors: {}, warnings: v.warnings, values, month: values.month }); return renderSheet(); }
+      const isNew = !s.ledger.some((l) => l.id === 'reading-' + values.month);
       const res = P.logReading(s, values); save(); closeSheet();
-      toast({ icon: 'Receipt', text: `<b>${H.monthName(values.month)} saved</b>`, sub: s.ledger.some((l) => l.id === 'streak-' + values.month) ? '+10 points and a streak bonus' : '+10 points' });
+      toast({ icon: 'Receipt', text: `<b>${H.monthName(values.month)} ${isNew ? 'saved' : 'updated'}</b>`, sub: !isNew ? 'Your changes are saved' : s.ledger.some((l) => l.id === 'streak-' + values.month) ? '+10 points and a streak bonus' : '+10 points' });
       if (res.length) celebrate(res);
       render();
     },
@@ -1149,7 +1163,6 @@
     if (el.dataset.check && ui.ob) { ui.ob.d[el.dataset.check] = el.checked; if (ui.ob.errors.consent && ui.ob.d.terms && ui.ob.d.data) { ui.ob.errors.consent = null; } }
     if (el.dataset.change === 'plan-finish') { ui.planFinish = el.value; render(); }
     if (el.dataset.change === 'field') { currentDraft()[el.dataset.field] = el.value; updateObEstimate(); }
-    if (el.dataset.change === 'reading-month') { const f = el.form; ui.sheet.month = el.value; ui.sheet.values = { e: '', w: '' }; ui.sheet.errors = {}; ui.sheet.warnings = []; ui.sheet.values = s.months[el.value] ? { e: s.months[el.value].e, w: s.months[el.value].w } : { e: '', w: '' }; renderSheet(); void f; }
   });
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && ui.sheet) { closeSheet(); }

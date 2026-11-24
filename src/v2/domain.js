@@ -168,13 +168,18 @@ const PBD = (() => {
     const list = prices(s, day), lo = Math.min(...list), hi = Math.max(...list);
     return { avg: sum(list) / 24, min: lo, max: hi, minH: list.indexOf(lo), maxH: list.indexOf(hi) };
   }
-  /* A month's usage as entered, or null if it hasn't been. The current month is only known once it's over. */
-  const monthValue = (s, resource, m) => (s.months[m] ? s.months[m][key(resource)] : null);
+  /* A month's usage as entered, or null if it hasn't been. The current month is only known once it's over.
+     A household may enter only electricity or only water, so either can be missing from an entered month. */
+  const monthValue = (s, resource, m) => { const x = s.months[m], v = x && x[key(resource)]; return v == null ? null : v; };
+  /* What the household paid for it that month, if they typed the price in (kr for the whole month). */
+  const monthPaid = (s, resource, m) => { const x = s.months[m], v = x && x[key(resource) + 'kr']; return v == null ? null : v; };
+  /* The month's cost: what was paid if entered, otherwise an estimate from the usual rate. */
+  const monthCost = (s, resource, m) => { const v = monthValue(s, resource, m); if (v === null) return null; const p = monthPaid(s, resource, m); return p === null ? cost(s, resource, v) : p; };
   /* The latest finished month with numbers in, or null. */
   const lastEntered = (s) => Object.keys(s.months).filter((m) => m < thisMonth(s)).sort().pop() || null;
   /* "Your usual": the last three logged months before m, adjusted for season. */
   function usual(s, resource, m) {
-    const k = key(resource), prior = Object.keys(s.months).filter((x) => x < m).sort().slice(-3);
+    const k = key(resource), prior = Object.keys(s.months).filter((x) => x < m && monthValue(s, resource, x) !== null).sort().slice(-3);
     if (!prior.length) return typicalMonth(s.profile, resource, m);
     const base = sum(prior.map((x) => s.months[x][k] / seasonFactor(s.profile, resource, x))) / prior.length;
     return base * seasonFactor(s.profile, resource, m);
@@ -217,22 +222,31 @@ const PBD = (() => {
     const errors = {}, warnings = [], m = input.month;
     if (!/^\d{4}-\d{2}$/.test(m || '')) errors.month = 'Choose a month.';
     else if (m >= thisMonth(s)) errors.month = 'Only finished months can be logged.';
-    const e = Number(input.e), w = Number(input.w);
-    if (input.e === '' || input.e == null || !Number.isFinite(e)) errors.e = 'Enter electricity in kWh.'; else if (e < 0) errors.e = 'Usage cannot be negative.';
-    if (input.w === '' || input.w == null || !Number.isFinite(w)) errors.w = 'Enter water in m³.'; else if (w < 0) errors.w = 'Usage cannot be negative.';
+    // Electricity, water or both. Each price is optional and belongs to the amount on its line.
+    const blank = (x) => x === '' || x == null, has = { e: !blank(input.e), w: !blank(input.w) };
+    const e = Number(input.e), w = Number(input.w), ekr = Number(input.ekr), wkr = Number(input.wkr);
+    if (!has.e && !has.w) errors.e = 'Enter electricity, water or both.';
+    if (has.e && !Number.isFinite(e)) errors.e = 'Use a number, like 180.'; else if (e < 0) errors.e = 'Usage cannot be negative.';
+    if (has.w && !Number.isFinite(w)) errors.w = 'Use a number, like 6.5.'; else if (w < 0) errors.w = 'Usage cannot be negative.';
+    if (!blank(input.ekr)) { if (!Number.isFinite(ekr) || ekr < 0) errors.ekr = 'Use a number of kroner, like 420.'; else if (!has.e) errors.ekr = 'Add the kWh this price is for.'; }
+    if (!blank(input.wkr)) { if (!Number.isFinite(wkr) || wkr < 0) errors.wkr = 'Use a number of kroner, like 380.'; else if (!has.w) errors.wkr = 'Add the m³ this price is for.'; }
     if (!Object.keys(errors).length) {
       const te = typicalMonth(s.profile, 'electricity', m), tw = typicalMonth(s.profile, 'water', m);
-      if (e > te * 2.5) warnings.push(`${round(e)} kWh is ${round(e / te, 1)}× what homes like yours use in ${monthName(m)}. Is there an extra digit?`);
-      if (e < te * 0.3) warnings.push(`${round(e)} kWh is very low for ${monthName(m)}. Was the home empty, or is a digit missing?`);
-      if (w > tw * 2.5) warnings.push(`${w} m³ is ${round(w / tw, 1)}× the usual water use for a home like yours. Check the decimal point.`);
-      if (w < tw * 0.3) warnings.push(`${w} m³ of water is unusually low. Check the decimal point.`);
+      if (has.e && e > te * 2.5) warnings.push(`${round(e)} kWh is ${round(e / te, 1)}× what homes like yours use in ${monthName(m)}. Is there an extra digit?`);
+      if (has.e && e < te * 0.3) warnings.push(`${round(e)} kWh is very low for ${monthName(m)}. Was the home empty, or is a digit missing?`);
+      if (has.w && w > tw * 2.5) warnings.push(`${w} m³ is ${round(w / tw, 1)}× the usual water use for a home like yours. Check the decimal point.`);
+      if (has.w && w < tw * 0.3) warnings.push(`${w} m³ of water is unusually low. Check the decimal point.`);
+      // A price far from what a kWh or m³ normally costs is usually a typo, or a bill covering more than one month.
+      if (has.e && e > 0 && !blank(input.ekr) && (ekr / e > 8 || ekr / e < 0.3)) warnings.push(`${round(ekr)} kr for ${round(e)} kWh is ${round(ekr / e, 2)} kr a kWh. Electricity usually costs 1-4 kr a kWh. Is that for one month?`);
+      if (has.w && w > 0 && !blank(input.wkr) && (wkr / w > 250 || wkr / w < 15)) warnings.push(`${round(wkr)} kr for ${w} m³ is ${round(wkr / w)} kr a m³. Water usually costs 50-100 kr a m³. Is that for one month?`);
     }
     return { errors, warnings, ok: !Object.keys(errors).length };
   }
   /* Saves a month and settles any goal that was waiting for it. Returns what to celebrate. */
   function logReading(s, input) {
     const m = input.month;
-    s.months[m] = { e: round(Number(input.e), 1), w: round(Number(input.w), 2), src: 'manual' };
+    const val = (x, d) => (x === '' || x == null ? null : round(Number(x), d));
+    s.months[m] = { e: val(input.e, 1), w: val(input.w, 2), ekr: val(input.ekr, 0), wkr: val(input.wkr, 0), src: 'manual' };
     if (award(s, 'reading-' + m, 10, `Logged ${monthName(m)}`)) {
       const streak = loggedStreak(s, m);
       if (streak >= 3 && streak % 3 === 0) award(s, 'streak-' + m, 25, `${streak}-month logging streak`);
@@ -378,12 +392,13 @@ const PBD = (() => {
     let prevAbove = false;
     for (const m of ms) {
       if (Object.keys(s.months).filter((x) => x < m).length < 3) continue;
-      const ce = change(s, 'electricity', m), cw = change(s, 'water', m);
-      if (ce <= -10 || cw <= -10) ids.add('ten-club');
-      if (cw <= -10) ids.add('water-wise');
-      if (ce < 0 && cw < 0) ids.add('balance');
-      if (prevAbove && ce < 0) ids.add('comeback');
-      prevAbove = ce > 0;
+      // A resource left out of a month has no change, so it earns nothing for that month.
+      const ce = change(s, 'electricity', m), cw = change(s, 'water', m), E = ce !== null, W = cw !== null;
+      if ((E && ce <= -10) || (W && cw <= -10)) ids.add('ten-club');
+      if (W && cw <= -10) ids.add('water-wise');
+      if (E && W && ce < 0 && cw < 0) ids.add('balance');
+      if (E && prevAbove && ce < 0) ids.add('comeback');
+      if (E) prevAbove = ce > 0;
     }
     if (s.greenRuns >= 10) ids.add('off-peak');
     return ids;
@@ -489,7 +504,7 @@ const PBD = (() => {
     s.created = now(s).toISOString(); s.setup = true;
     const cur = thisMonth(s);
     if (sample) for (let i = 12; i >= 1; i--) { const m = addMonths(cur, -i); s.months[m] = { e: round(sampleMonth(s, 'electricity', m, i), 1), w: round(sampleMonth(s, 'water', m, i), 2), src: 'sample' }; }
-    if (bill) s.months[bill.month] = { e: round(bill.e, 1), w: round(bill.w, 2), src: 'manual' };
+    if (bill) s.months[bill.month] = { e: bill.e == null ? null : round(bill.e, 1), w: bill.w == null ? null : round(bill.w, 2), ekr: null, wkr: null, src: 'manual' };
     sync(s);
     evalBadges(s, true);
     for (const m of Object.keys(s.months)) if (s.months[m].src === 'manual') award(s, 'reading-' + m, 10, `Logged ${monthName(m)}`);
@@ -560,7 +575,7 @@ const PBD = (() => {
     helpers: { ymd, mkey, addMonths, addDays, daysIn, monthName, round, clamp, sum, rng, hash, parseDay, hourOf },
     now, today, thisMonth, estimate, typicalMonth, describeHome, persons,
     prices, tomorrowReady, greenHours, priceLevel, priceAt, bestStart, priceDay,
-    sync, monthValue, lastEntered, usual, change, vsTypical, rate, cost, upcomingPrices,
+    sync, monthValue, monthPaid, monthCost, lastEntered, usual, change, vsTypical, rate, cost, upcomingPrices,
     available, lifetime, award, note, validateReading, logReading, loggedStreak,
     recommendations, setRec, efficient, goalPoints, goalProgress, createGoal, goalLabel, goalMonths, goalResources, underBy,
     redeem, evalBadges, togglePin, planRun, markDone, dueRuns,
