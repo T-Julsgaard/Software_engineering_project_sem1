@@ -12,16 +12,16 @@ The gear in the top-right corner of the page switches between versions.
 
 | Version | File | What it is |
 | --- | --- | --- |
-| **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, live electricity and water prices, goals (cut back or keep steady), challenges, points, sustainable partner rewards, the monthly Green draw, badges, friends, comparison and a feed. |
+| **V2** (default) | `outputs/powerbuddy.html` | The overhaul: onboarding with a household profile, "homes like yours" estimates, live electricity and water prices, goals (cut back or keep steady), points, sustainable partner rewards and badges. |
 | V1 | `outputs/powerbuddy-v1.html` | The original prototype, kept unchanged for comparison. |
 
-In V2, the same gear menu also holds prototype controls: jump to next month (settles goals, challenges and the draw), skip ahead 6 hours, trigger a friend update or a price tip, pause live updates, or **Reset app**.
+In V2, the same gear menu also holds prototype controls: jump to next month (the month that just ended can then be entered under Usage, which settles goals), skip ahead 6 hours, show a price tip, pause live updates, or **Reset app**.
 
-Home shows live prices rather than live consumption: hourly electricity prices are public, while a household's usage only reaches the app the next day from the meter. Runs planned in Plan send a reminder when it's time to start them (can be turned off in Settings). Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
+Usage only ever comes in whole months, typed in by the household after the month ends: there is no daily or live consumption anywhere in the app. What's live is the electricity price, which is public hour by hour. Goals are judged on those monthly numbers only, so a goal shows no result until a month of it has been entered. Runs planned in Plan send a reminder when it's time to start them (can be turned off in Settings). Reset app clears the household, goes back to onboarding (where you can set up a home or skip to the demo) and restarts the visit, so Thomas calls again. Feedback comments are kept.
 
-Home fits on one screen without scrolling: one recommendation, your active goals (up to two), the live electricity price and "Your progress so far" (the last six months against homes like yours). On short phones it tightens to one line per row and the progress chart takes whatever height is left.
+Home fits on one screen without scrolling: one recommendation (something to do in the house, such as switching off standby or starting the dishwasher in tonight's cheapest hours), your active goals (up to two), the live electricity price and "Your progress so far" (the last six months against homes like yours). On short phones it tightens to one line per row and the progress chart takes whatever height is left.
 
-Usage data is entered by hand, one month at a time: **Add monthly data** at the top of Usage opens a sheet with the form and, under it, the last 12 months (tap one to correct it or add a missing one). Usage shows electricity or water month by month for the last 12 months, and a pie chart of where it usually goes in a typical household like yours (an estimate, not your own usage). The electricity price (Plan, Past months) can go back a year: use the arrows, or drag the chart sideways.
+Usage data is entered by hand, one month at a time: **Add monthly data** at the top of Usage opens a sheet with the form and, under it, the last 12 months (tap one to correct it or add a missing one). Usage shows electricity or water month by month for the last 12 finished months, and a pie chart of where it usually goes in a typical household like yours (an estimate, not your own usage). The electricity price (Plan, Past months) can go back a year: use the arrows, or drag the chart sideways.
 
 The gamification rules V2 implements are written up in [GAMIFICATION.md](GAMIFICATION.md).
 

@@ -1,9 +1,10 @@
-/* Domain checks for PowerBuddy V2: estimates, points, goals, challenges, rewards, friends. Run: node tests/v2-domain.cjs */
+/* Domain checks for PowerBuddy V2: estimates, monthly usage, points, goals, rewards and badges. Run: node tests/v2-domain.cjs */
 const assert = require('node:assert/strict');
 const P = require('../src/v2/domain.js');
 let passed = 0;
 const test = (name, fn) => { fn(); passed++; console.log('PASS', name); };
 const fresh = () => P.demo();
+const { addMonths } = P.helpers;
 
 test('Typical usage grows with people, area and electric heating', () => {
   const small = { ...P.DEMO_PROFILE, adults: 1, area: 40 };
@@ -21,37 +22,83 @@ test('Winter months are estimated higher than summer for electricity', () => {
   assert.ok(P.typicalMonth(P.DEMO_PROFILE, 'electricity', '2026-12') > P.typicalMonth(P.DEMO_PROFILE, 'electricity', '2026-07'));
 });
 
-test('Goal points follow the published formula', () => {
-  assert.equal(P.goalPoints({ target: 5, months: 1, resource: 'electricity', efficient: false }), 40);
-  assert.equal(P.goalPoints({ target: 10, months: 1, resource: 'electricity', efficient: false }), 80);
-  assert.equal(P.goalPoints({ target: 5, months: 2, resource: 'both', efficient: false }), 120);
-  assert.equal(P.goalPoints({ target: 10, months: 1, resource: 'water', efficient: true }), 100);
+test('Usage is monthly only: nothing is known about the current month', () => {
+  const s = fresh(), m = P.thisMonth(s);
+  assert.equal(P.monthValue(s, 'electricity', m), null);
+  assert.equal(P.change(s, 'electricity', m), null);
+  assert.equal(s.days, undefined);
+  assert.equal(P.lastEntered(s), addMonths(m, -2), 'the demo has last month still to enter');
+  P.advanceHours(s, 30);
+  assert.equal(P.monthValue(s, 'electricity', P.thisMonth(s)), null, 'time passing adds no usage by itself');
 });
 
-test('Keep-steady goals: 25 points a month, on track while at or under the benchmark', () => {
-  assert.equal(P.goalPoints({ kind: 'keep', target: 0, months: 3, resource: 'electricity', efficient: false }), 75);
-  assert.equal(P.goalPoints({ kind: 'keep', target: 0, months: 1, resource: 'both', efficient: true }), 47);
-  const s = fresh(), m = P.thisMonth(s);
-  const g = P.createGoal(s, { kind: 'keep', bench: 'usual', resource: 'electricity', months: 3 });
-  assert.equal(g.kind, 'keep'); assert.equal(g.target, 0); assert.equal(g.end, P.helpers.addMonths(m, 2));
-  assert.match(P.goalLabel(g), /kept steady/);
+test('Goal points: a cut is worth more with a shorter time frame; keeping steady pays per month', () => {
+  assert.equal(P.goalPoints({ kind: 'cut', target: 5, months: 1, resource: 'electricity', efficient: false }), 60);
+  assert.equal(P.goalPoints({ kind: 'cut', target: 5, months: 3, resource: 'electricity', efficient: false }), 48);
+  assert.equal(P.goalPoints({ kind: 'cut', target: 5, months: 6, resource: 'electricity', efficient: false }), 40);
+  assert.equal(P.goalPoints({ kind: 'cut', target: 10, months: 6, resource: 'both', efficient: false }), 120);
+  assert.equal(P.goalPoints({ kind: 'cut', target: 10, months: 6, resource: 'water', efficient: true }), 100);
+  assert.equal(P.goalPoints({ kind: 'keep', months: 3, resource: 'electricity', efficient: false }), 75);
+  assert.equal(P.goalPoints({ kind: 'keep', months: 1, resource: 'both', efficient: true }), 47);
+});
+
+test('A new goal has no result until a month of it is entered', () => {
+  const s = fresh();
+  const g = P.createGoal(s, { kind: 'cut', resource: 'electricity', target: 5, months: 3 });
+  assert.equal(g.end, addMonths(P.thisMonth(s), 2));
   const p = P.goalProgress(s, g);
-  assert.equal(p.onTrack, -P.change(s, 'electricity', m) >= 0);
+  assert.equal(p.reduction, null); assert.equal(p.onTrack, null); assert.equal(p.results.length, 0);
+  assert.deepEqual(P.GOAL_TIMES, [1, 3, 6]);
+  assert.equal(P.createGoal(s, { kind: 'cut', resource: 'water', target: 5, months: 2 }).months, 1, 'only the offered time frames');
+});
+
+test('Use less: reached as soon as one month in the time frame gets there', () => {
+  const s = fresh(); s.goals = s.goals.filter((g) => g.status !== 'active');
+  const start = P.thisMonth(s), g = P.createGoal(s, { kind: 'cut', resource: 'electricity', target: 10, months: 3 });
+  P.advanceToNextMonth(s);
+  assert.equal(g.status, 'active', 'moving on a month settles nothing by itself');
+  const u = P.usual(s, 'electricity', start);
+  P.logReading(s, { month: start, e: u * 0.97, w: P.usual(s, 'water', start) });
+  assert.equal(g.status, 'active', '3% under is not 10%');
+  assert.ok(Math.abs(P.goalProgress(s, g).reduction - 3) < 0.2);
+  P.advanceToNextMonth(s);
+  const m2 = addMonths(start, 1), res = P.logReading(s, { month: m2, e: P.usual(s, 'electricity', m2) * 0.88, w: 5 });
+  assert.equal(g.status, 'reached'); assert.equal(g.settledFor, m2);
+  assert.ok(res.some((r) => r.type === 'goal'));
+  assert.ok(s.ledger.some((l) => l.id === 'goal-' + g.id && l.amount === g.est));
+});
+
+test('Use less: missed only once every month of the time frame is entered', () => {
+  const s = fresh(); s.goals = s.goals.filter((g) => g.status !== 'active');
+  const start = P.thisMonth(s), g = P.createGoal(s, { kind: 'cut', resource: 'electricity', target: 10, months: 1 });
+  P.advanceToNextMonth(s); P.advanceToNextMonth(s);
+  assert.equal(g.status, 'active');
+  assert.deepEqual(P.goalProgress(s, g).waiting, [start]);
+  P.logReading(s, { month: start, e: P.usual(s, 'electricity', start) * 1.02, w: 5 });
+  assert.equal(g.status, 'missed');
+});
+
+test('Keep it steady: judged on the average of the time frame, once it is all entered', () => {
+  const s = fresh(); s.goals = s.goals.filter((g) => g.status !== 'active');
+  const start = P.thisMonth(s), g = P.createGoal(s, { kind: 'keep', bench: 'usual', resource: 'electricity', months: 3 });
+  assert.match(P.goalLabel(g), /kept steady/); assert.equal(g.target, 0);
+  for (let i = 0; i < 3; i++) {
+    P.advanceToNextMonth(s);
+    const m = addMonths(start, i);
+    P.logReading(s, { month: m, e: P.usual(s, 'electricity', m) * (i === 0 ? 1.04 : 0.97), w: 5 });
+    if (i < 2) assert.equal(g.status, 'active');
+  }
+  assert.equal(g.status, 'reached');
+  assert.ok(g.result >= 0);
   const t = P.createGoal(s, { kind: 'keep', bench: 'typical', resource: 'water', months: 1 });
   assert.match(P.goalLabel(t), /similar homes/);
-  assert.ok(Math.abs(P.goalProgress(s, t).reduction + P.vsTypical(s, 'water', m)) < 1e-9);
-  // Cutting goals are unchanged.
-  const c = P.createGoal(s, { resource: 'water', target: 5, months: 1 });
-  assert.equal(c.kind, 'cut'); assert.equal(c.est, 40);
 });
 
-test('A keep-steady goal settles when the month closes', () => {
-  const s = fresh();
-  s.goals = s.goals.filter((g) => g.status !== 'active');
-  const g = P.createGoal(s, { kind: 'keep', bench: 'usual', resource: 'electricity', months: 1 });
-  P.advanceToNextMonth(s);
-  assert.ok(['reached', 'missed'].includes(g.status));
-  assert.equal(g.status === 'reached', g.result >= 0);
+test('The demo has a goal with one month in and one waiting', () => {
+  const s = fresh(), g = s.goals.find((x) => x.id === 'g-steady'), p = P.goalProgress(s, g);
+  assert.equal(p.results.length, 1);
+  assert.deepEqual(p.waiting, [addMonths(P.thisMonth(s), -1)]);
+  assert.equal(P.goalProgress(s, s.goals.find((x) => x.id === 'g-now')).reduction, null);
 });
 
 test('Fridge and "something else" count towards the estimate', () => {
@@ -106,75 +153,29 @@ test('Every reward passes the partner test', () => {
   for (const r of P.REWARDS) assert.ok(P.PARTNER_TEST[r.cat], r.id);
 });
 
-test('Habit check-ins count once a day and complete the challenge', () => {
-  const s = fresh(), c = s.ch.find((x) => x.tpl === 'showers');
-  const n = c.checks.length;
-  const r1 = P.checkIn(s, c.id);
-  assert.ok(r1);
-  assert.equal(P.checkIn(s, c.id), null, 'second check-in the same day is ignored');
-  assert.equal(c.checks.length, n + 1);
-  c.checks.push('2000-01-01');
-  P.advanceHours(s, 24);
-  const done = P.checkIn(s, c.id);
-  assert.equal(done.type, 'challenge');
-  assert.equal(c.status, 'done');
-  assert.ok(s.ledger.some((l) => l.id === 'ch-' + c.id));
-});
-
-test('Joining alone gives no points; monthly challenges give a draw ticket', () => {
-  const s = fresh(), c = s.ch.find((x) => x.tpl === 'standby'), before = P.available(s);
-  P.joinChallenge(s, c.id);
-  assert.equal(P.available(s), before);
-  const cw = s.ch.find((x) => x.tpl === 'coldwash' && P.isActive(s, x));
-  P.joinChallenge(s, cw.id);
-  for (let i = 0; i < 5; i++) P.checkIn(s, cw.id);
-  assert.equal(cw.status, 'done');
-  assert.ok(s.tickets.some((t) => t.source === 'Cold-wash month'));
+test('No challenges, draw or friends are left in the state', () => {
+  const s = fresh();
+  for (const k of ['ch', 'tickets', 'draws', 'friends', 'feed', 'privacy', 'days']) assert.equal(s[k], undefined, k);
+  assert.equal(P.CHALLENGES, undefined); assert.equal(P.FRIENDS, undefined);
+  assert.ok(!P.BADGES.some((b) => ['company', 'team'].includes(b.id)));
+  assert.ok(!s.ledger.some((l) => l.id.startsWith('ch-') || l.id.startsWith('chk-')));
 });
 
 test('Reading validation catches errors and unlikely values', () => {
-  const s = fresh(), m = P.helpers.addMonths(P.thisMonth(s), -1);
+  const s = fresh(), m = addMonths(P.thisMonth(s), -1);
   assert.ok(P.validateReading(s, { month: m, e: '', w: '5' }).errors.e);
   assert.ok(P.validateReading(s, { month: m, e: '-3', w: '5' }).errors.e);
   assert.ok(P.validateReading(s, { month: P.thisMonth(s), e: '200', w: '5' }).errors.month);
   assert.equal(P.validateReading(s, { month: m, e: '2000', w: '6' }).warnings.length, 1);
-  assert.equal(P.validateReading(s, { month: m, e: '200', w: '6', amountE: '50' }).warnings.length, 1);
   assert.equal(P.validateReading(s, { month: m, e: '200', w: '6' }).warnings.length, 0);
 });
 
 test('Logging a missing month gives 10 points once', () => {
-  const s = fresh(), m = P.helpers.addMonths(P.thisMonth(s), -1), before = P.available(s);
+  const s = fresh(), m = addMonths(P.thisMonth(s), -1), before = P.available(s);
   P.logReading(s, { month: m, e: 210, w: 6 });
   P.logReading(s, { month: m, e: 212, w: 6 });
   assert.ok(P.available(s) >= before + 10);
   assert.equal(s.ledger.filter((l) => l.id === 'reading-' + m).length, 1);
-});
-
-test('Closing a month settles goals and runs the draw', () => {
-  const s = fresh(), m = P.thisMonth(s);
-  P.advanceToNextMonth(s);
-  assert.equal(s.months[m].src, 'meter');
-  assert.ok(s.goals.every((g) => g.end > m || g.status !== 'active'));
-  assert.ok(s.draws.some((d) => d.month === m));
-  assert.ok(s.ch.some((c) => c.tpl === 'cut10' && c.start.startsWith(P.thisMonth(s))));
-});
-
-test('Friend codes: mutual only, unknown and own codes rejected', () => {
-  const s = fresh();
-  assert.throws(() => P.addByCode(s, 'nonsense'), /look like/);
-  assert.throws(() => P.addByCode(s, 'NOBODY-1234'), /No one/);
-  assert.throws(() => P.addByCode(s, s.profile.code), /own code/);
-  const r = P.addByCode(s, 'SIGNE-3307');
-  assert.equal(r.status, 'outgoing');
-  assert.ok(!P.mutualFriends(s).some((f) => f.id === 'signe'));
-  P.acceptFriend(s, 'signe');
-  assert.ok(P.mutualFriends(s).some((f) => f.id === 'signe'));
-});
-
-test('Ranking compares % change, not absolute usage, and includes you', () => {
-  const s = fresh(), rows = P.ranking(s, 'electricity');
-  assert.ok(rows.some((r) => r.id === 'me'));
-  for (let i = 1; i < rows.length; i++) assert.ok(rows[i - 1].pct <= rows[i].pct);
 });
 
 test('Sample months never earn streaks or badges', () => {
@@ -183,57 +184,20 @@ test('Sample months never earn streaks or badges', () => {
   assert.ok(!s.badges['ten-club']);
 });
 
-test('Thomas is the only friend above his usual', () => {
-  for (const f of [...P.FRIENDS, ...P.DIRECTORY]) {
-    if (f.id === 'thomas') { assert.ok(f.e > 0 && f.w > 0); continue; }
-    assert.ok(f.e < 0 && f.w < 0, f.id);
-  }
+test('Tips rotate, the first is about cheap electricity tonight, and none compare a month in progress', () => {
   const s = fresh();
-  for (const r of ['electricity', 'water']) assert.equal(P.ranking(s, r).at(-1).id, 'thomas');
-});
-
-test('Thomas only ever joins things or logs readings in the live feed', () => {
-  const s = fresh();
-  s.friends = s.friends.filter((f) => f.id === 'thomas');
-  let seed = 1; const r = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < 40; i++) { const ev = P.friendEvent(s, r); if (ev) assert.ok(['join', 'reading'].includes(ev.kind), ev.kind); }
-});
-
-test('Friends can be muted one by one', () => {
-  const s = fresh();
-  assert.equal(P.wantsFriend(s, 'vi'), true);
-  P.setFriendMuted(s, 'vi', true);
-  assert.equal(P.wantsFriend(s, 'vi'), false);
-  assert.equal(P.wantsFriend(s, 'akshi'), true);
-  P.setFriendMuted(s, 'vi', false);
-  assert.equal(P.wantsFriend(s, 'vi'), true);
-  assert.equal(s.notify.muted.length, 0);
-});
-
-test('The first tip is about cheap electricity tonight, and tips rotate', () => {
-  const s = fresh();
-  const first = P.nextTip(s);
-  assert.match(first.title, /cheap/i);
-  assert.match(first.body, /kr\/kWh/);
-  const titles = [first, P.nextTip(s), P.nextTip(s), P.nextTip(s)].map((t) => t.title);
-  assert.equal(new Set(titles).size, 4);
+  const tips = [P.nextTip(s), P.nextTip(s), P.nextTip(s), P.nextTip(s)];
+  assert.match(tips[0].title, /cheap/i);
+  assert.match(tips[0].body, /kr\/kWh/);
+  assert.equal(new Set(tips.map((t) => t.title)).size, 4);
+  for (const t of tips) assert.doesNotMatch(t.title + t.body, /heading|so far|this month/i);
   const w = P.cheapWindow(s, 3);
   assert.ok(w.avg <= w.peak);
 });
 
-test('Older saves get notification settings and a history of notifications', () => {
-  const s = JSON.parse(JSON.stringify(fresh()));
-  delete s.notify; s.notes = s.notes.slice(0, 1);
-  assert.equal(P.ensureNotify(s), true);
-  assert.ok(s.notes.length >= 5);
-  assert.equal(new Set(s.notes.map((n) => n.id)).size, s.notes.length);
-  assert.equal(P.ensureNotify(s), false, 'runs once');
-  assert.equal(P.validate(s), true);
-});
-
-test('Demo state survives a JSON round trip', () => {
+test('Demo state survives a JSON round trip; older saves are not loaded', () => {
   assert.equal(P.validate(JSON.parse(JSON.stringify(fresh()))), true);
-  assert.equal(P.validate({ v: 1 }), false);
+  assert.equal(P.validate({ v: 2 }), false);
 });
 
 console.log(`${passed} V2 domain checks passed.`);

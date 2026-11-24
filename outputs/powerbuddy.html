@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F6F2">
-<meta name="description" content="PowerBuddy: see your household's electricity and water use, compare with similar homes, and work on it with friends. A GreenBuddies prototype.">
+<meta name="description" content="PowerBuddy: see your household's electricity and water use, compare with similar homes, and set goals to cut back. A GreenBuddies prototype.">
 <title>PowerBuddy</title>
 <style>/* PowerBuddy V2 */
 :root{
@@ -152,7 +152,7 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
 .content.tight .compare-line{padding:9px 14px}
 .content.tight .card.todo{padding:12px 14px}
 .content.tight .todo .btn-row{margin-top:8px}
-.tabs{flex:none;display:grid;grid-template-columns:repeat(5,1fr);border-top:1px solid var(--line);background:#FFFFFFEB;backdrop-filter:blur(16px);padding:6px 4px 22px}
+.tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);background:#FFFFFFEB;backdrop-filter:blur(16px);padding:6px 4px 22px}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 2px;border:0;background:none;color:var(--muted);font-size:11px;font-weight:550;min-height:48px;transition:color .2s}
 .tab .i{width:22px;height:22px;transition:transform .25s var(--spring)}
 .tab:active .i{transform:scale(.86)}
@@ -187,9 +187,9 @@ body[data-call="ringing"] .home-indicator,body[data-call="active"] .home-indicat
 .row{display:flex;align-items:center;gap:12px;padding:13px 16px;min-height:60px;width:100%;border:0;background:none;text-align:left}
 .row+.row{border-top:1px solid var(--line)}
 button.row:hover{background:#FAFAF8}
-button.row,.rank-row,.res-row,.choice,.cheer,.app-chips button,.seg button,.badge{transition:background .15s,transform .2s var(--ease),box-shadow .2s,border-color .15s,color .15s}
-button.row:active,.rank-row:active,button.res-row:active{transform:scale(.985);background:#F4F5F1}
-.choice:active,.cheer:active,.app-chips button:active,.badge:active{transform:scale(.96)}
+button.row,.res-row,.choice,.app-chips button,.seg button,.badge{transition:background .15s,transform .2s var(--ease),box-shadow .2s,border-color .15s,color .15s}
+button.row:active,button.res-row:active{transform:scale(.985);background:#F4F5F1}
+.choice:active,.app-chips button:active,.badge:active{transform:scale(.96)}
 .row-main{flex:1;min-width:0}
 .row-title{font-weight:600;font-size:15px;line-height:1.3}
 .row-sub{font-size:13px;color:var(--muted);line-height:1.35;margin-top:1px}
@@ -370,12 +370,14 @@ details.table td:first-child,details.table th:first-child{text-align:left}
 .rec .saving{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 
 /* ---------- goals & rewards ---------- */
-.wallet{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:0;padding:0}
+.wallet{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0}
 .wallet>div{padding:14px 16px}
 .wallet>div+div{border-left:1px solid var(--line)}
 .wallet span{display:block;font-size:12px;color:var(--muted)}
 .wallet b{display:block;font-size:22px;font-weight:650;letter-spacing:-.01em}
+.wallet b small{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}
 .wallet .main b{font-size:28px;color:var(--brand)}
+.wallet-note{grid-column:1/-1;padding:10px 16px 12px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.45;color:var(--ink-2)}
 .estimate{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:18px;padding:14px 16px;border-radius:var(--r);background:var(--brand-soft)}
 .estimate b{font-size:26px;font-weight:650;color:var(--brand)}
 .estimate p{font-size:13px;color:var(--ink-2)}
@@ -383,51 +385,9 @@ details.table td:first-child,details.table th:first-child{text-align:left}
 .ch-card p{font-size:13.5px;color:var(--ink-2);margin-top:2px}
 .ch-head{display:flex;gap:12px;align-items:flex-start}
 .ch-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
-.faces{display:flex;align-items:center}
-.faces .avatar{border:2px solid var(--surface);margin-left:-8px}
-.faces .avatar:first-child{margin-left:0}
-.faces em{font-style:normal;font-size:12.5px;color:var(--muted);margin-left:6px}
-.draw{background:linear-gradient(180deg,#FBF6EA,#FFFFFF 70%)}
-.draw h3{font-size:16px;font-weight:650}
-.prize-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
-.draw-label{font-weight:600;color:var(--ink-2);margin-top:14px}
-.draw-ch{margin-top:6px;border-top:1px solid var(--line)}
-.draw-ch-row{display:flex;align-items:center;gap:10px;width:100%;padding:9px 0;border:0;border-bottom:1px solid var(--line);background:none;text-align:left}
-.draw-ch-row .row-title{font-size:14px}
-.draw-ch-row:active{opacity:.7}
 .chip-icon.sm{width:28px;height:28px;border-radius:8px}
 .badge-help{margin-top:18px;padding-top:14px;border-top:1px solid var(--line)}
 .code{font:600 20px/1.2 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:.06em;padding:14px;border-radius:var(--r);background:var(--sunken);text-align:center;margin-top:12px}
-
-/* ---------- friends ---------- */
-.feed-item{display:flex;gap:12px;padding:14px 16px;align-items:flex-start}
-.feed-item+.feed-item{border-top:1px solid var(--line)}
-.feed-item.new{animation:slidein .6s var(--ease-out)}
-@keyframes slidein{from{background:var(--brand-soft);transform:translateY(-6px);opacity:.3}to{background:transparent;transform:none;opacity:1}}
-.feed-text{flex:1;min-width:0;font-size:14.5px;line-height:1.4}
-.feed-text b{font-weight:650}
-.feed-link{display:inline;padding:0;margin:0;border:0;background:none;font:inherit;font-weight:650;color:var(--brand);text-align:left;text-decoration:underline;text-decoration-color:#1F4D3A40;text-decoration-thickness:1.5px;text-underline-offset:3px;transition:text-decoration-color .15s,color .15s;cursor:pointer}
-.feed-link:hover{text-decoration-color:currentColor}
-.feed-link:active{color:var(--brand-hover)}
-.feed-meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:12.5px;color:var(--muted)}
-.cheer{flex:none;display:inline-flex;align-items:center;gap:4px;min-height:36px;padding:4px 10px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);font-size:13px;font-weight:600;color:var(--ink-2)}
-.cheer[aria-pressed="true"]{background:#FDECEA;border-color:#F1C4BC;color:var(--bad)}
-.cheer[aria-pressed="true"] .i{fill:currentColor}
-.cheer.static{border-color:transparent;background:transparent;cursor:default}
-.rank-row{display:grid;grid-template-columns:22px 36px 1fr 74px;gap:10px;align-items:center;padding:10px 16px;min-height:58px;width:100%;border:0;background:none;text-align:left}
-.rank-row+.rank-row{border-top:1px solid var(--line)}
-.rank-row.me{background:var(--brand-soft)}
-.rank-n{font-size:13px;color:var(--muted);font-weight:650;text-align:center}
-.rank-bar{height:6px;border-radius:3px;background:var(--sunken);margin-top:6px;position:relative;overflow:hidden}
-.rank-bar i{position:absolute;top:0;bottom:0;left:0;border-radius:3px}
-.compare-table{width:100%;border-collapse:collapse;font-size:14px;margin-top:14px}
-.compare-table th{font-size:12px;color:var(--muted);font-weight:600;text-align:right;padding:6px 0}
-.compare-table th:first-child{text-align:left}
-.compare-table td{padding:11px 0;border-top:1px solid var(--line);text-align:right;font-weight:600}
-.compare-table td:first-child{text-align:left;font-weight:500;color:var(--ink-2)}
-.compare-table td.win{color:var(--good)}
-.qr{width:132px;height:132px;padding:8px;background:#fff;border:1px solid var(--line);border-radius:12px}
-.share{display:flex;gap:16px;align-items:center}
 
 /* ---------- profile ---------- */
 .profile-head{display:flex;flex-direction:column;align-items:center;text-align:center;padding:8px 0 4px}
@@ -584,7 +544,7 @@ div.row.note.unread{cursor:pointer}
 .hg-top{display:flex;align-items:center;gap:10px}
 .hg-top .row-title{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hg-status{font-size:12.5px;font-weight:600;white-space:nowrap}
-.hg-status.good{color:var(--good)}.hg-status.warn{color:var(--warn)}
+.hg-status.good{color:var(--good)}.hg-status.warn{color:var(--warn)}.hg-status.muted{color:var(--muted);font-weight:550}
 .live-line{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden}
 .live-line>span:last-child{overflow:hidden;text-overflow:ellipsis}
 .live-line b{color:var(--ink);font-weight:650}
@@ -1012,10 +972,12 @@ const PBFX = (() => {
 })();
 window.PBFX = PBFX;
 </script>
-<script>/* PowerBuddy V2 domain: household model, typical-usage estimates, simulated meter data,
-   prices, goals, challenges, points, rewards, badges and friends. No DOM access. */
+<script>/* PowerBuddy V2 domain: household model, typical-usage estimates, monthly usage the household enters,
+   prices, goals, points, rewards and badges. No DOM access.
+   Usage only ever arrives as whole months, typed in by the household after the month ends. There is no
+   daily or live consumption: what's live is the electricity price, which is public hour by hour. */
 const PBD = (() => {
-  const VERSION = 2;
+  const VERSION = 3;
   const KEY = 'greenbuddies.powerbuddy.v2';
   const DAY = 864e5;
 
@@ -1094,9 +1056,6 @@ const PBD = (() => {
   const SEASON_E = [1.17, 1.10, 1.03, 0.95, 0.88, 0.82, 0.80, 0.84, 0.92, 1.03, 1.15, 1.31];
   const SEASON_HEAT = [1.9, 1.7, 1.4, 0.9, 0.4, 0.1, 0.05, 0.05, 0.3, 0.9, 1.4, 1.9].map((v, _, a) => v * 12 / sum(a));
   const SEASON_W = [0.97, 0.95, 0.97, 0.99, 1.02, 1.06, 1.07, 1.06, 1.0, 0.98, 0.96, 0.97];
-  /* Daily shape (relative weight per hour). */
-  const HOURS_E = [0.55, 0.5, 0.48, 0.47, 0.48, 0.55, 0.8, 1.1, 1.05, 0.9, 0.85, 0.85, 0.9, 0.85, 0.85, 0.95, 1.15, 1.45, 1.55, 1.4, 1.2, 1.0, 0.85, 0.68];
-  const HOURS_W = [0.1, 0.05, 0.05, 0.05, 0.1, 0.4, 1.6, 2.2, 1.6, 1.0, 0.8, 0.8, 0.9, 0.7, 0.6, 0.7, 0.9, 1.3, 1.5, 1.3, 1.1, 1.0, 0.8, 0.4];
   const CO2_PER_KWH = 0.12;
 
   const otherName = (p) => (p.otherNote && p.otherNote.trim() ? `Other: ${p.otherNote.trim()}` : 'Other appliances');
@@ -1167,93 +1126,30 @@ const PBD = (() => {
     return { ...best, nowCost: options[0].cost, saving: options[0].cost - best.cost, green, hours: a.hours, kwh: a.kwh };
   }
 
-  /* ---------- simulated meter data ---------- */
-  function cumShare(resource, h) {
-    const w = resource === 'water' ? HOURS_W : HOURS_E, total = sum(w), whole = Math.floor(h);
-    return (sum(w.slice(0, whole)) + (h - whole) * (w[whole] || 0)) / total;
-  }
-  function savingsPerDay(s, resource, day) {
-    let save = 0;
-    for (const r of recommendations(s)) {
-      const st = s.recs[r.id];
-      if (st && st.status === 'accepted' && st.at.slice(0, 10) <= day) save += (resource === 'water' ? r.saveW : r.saveE) / 30;
-    }
-    return save;
-  }
-  /* What the (simulated) meter measures for one day. Deterministic per household and date. */
-  function dayValue(s, resource, day) {
-    const m = day.slice(0, 7), d = parseDay(day), weekend = d.getDay() === 0 || d.getDay() === 6;
-    const habit = (s.profile.momentum && s.profile.momentum[resource === 'water' ? 'w' : 'e']) || 1;
-    const base = typicalMonth(s.profile, resource, m) / daysIn(m) * s.profile.level * habit * (weekend ? 1.12 : 0.952) * wobble(s.seed + resource + day, resource === 'water' ? 0.16 : 0.11);
-    let v = base - savingsPerDay(s, resource, day);
-    if (resource === 'water') {
-      const showers = s.ch.find((c) => c.tpl === 'showers' && c.checks.includes(day));
-      if (showers) v *= 0.93;
-    }
-    return Math.max(base * 0.5, v);
-  }
+  /* ---------- monthly usage ---------- */
+  const key = (resource) => (resource === 'water' ? 'w' : 'e');
+  /* Prototype filler: a plausible month for a household that hasn't typed in its own yet. */
   function sampleMonth(s, resource, m, monthsAgo) {
     const trend = 1 + 0.0045 * monthsAgo;
     return typicalMonth(s.profile, resource, m) * s.profile.level * trend * wobble(s.seed + 'bill' + resource + m, 0.05);
   }
-  /* Generate meter days up to yesterday and close finished months. Returns notes created. */
+  /* Settles goals whose numbers are in and checks badges. Returns what to celebrate. */
   function sync(s) {
-    const t = today(s), created = [];
-    let d = s.lastSync ? addDays(s.lastSync, 1) : s.feedStart;
-    while (d < t) { s.days[d] = { e: round(dayValue(s, 'electricity', d), 3), w: round(dayValue(s, 'water', d), 4) }; s.lastSync = d; d = addDays(d, 1); }
-    const cur = thisMonth(s);
-    for (let m = s.feedStart.slice(0, 7); m < cur; m = addMonths(m, 1)) {
-      if (!s.closed.includes(m)) {
-        const days = Object.keys(s.days).filter((k) => k.startsWith(m));
-        if (days.length) s.months[m] = { e: round(sum(days.map((k) => s.days[k].e)), 1), w: round(sum(days.map((k) => s.days[k].w)), 2), src: 'meter' };
-        s.closed.push(m);
-        created.push(...closeMonth(s, m));
-      }
-    }
-    ensureChallenges(s);
-    created.push(...expireChallenges(s));
-    created.push(...evalBadges(s));
-    return created;
-  }
-  const key = (resource) => (resource === 'water' ? 'w' : 'e');
-  function todaySoFar(s, resource) { const n = now(s); return dayValue(s, resource, ymd(n)) * cumShare(resource, hourOf(n)); }
-  function monthSoFar(s, resource, m = thisMonth(s)) {
-    const k = key(resource);
-    return sum(Object.keys(s.days).filter((d) => d.startsWith(m)).map((d) => s.days[d][k])) + (m === thisMonth(s) ? todaySoFar(s, resource) : 0);
-  }
-  /* Day by day for an earlier month. Meter days where we have them; otherwise the logged monthly total
-     spread over its days in the household's usual daily pattern (an estimate, marked 'split'). */
-  function monthDays(s, resource, m) {
-    const k = key(resource), days = Array.from({ length: daysIn(m) }, (_, i) => `${m}-${String(i + 1).padStart(2, '0')}`);
-    if (days.some((d) => s.days[d])) return { source: 'meter', days, values: days.map((d) => (s.days[d] ? s.days[d][k] : null)) };
-    const total = s.months[m] && s.months[m][k];
-    if (!total) return { source: null, days, values: days.map(() => null) };
-    const w = days.map((d) => dayValue(s, resource, d)), sw = sum(w);
-    return { source: 'split', days, values: w.map((x) => x / sw * total) };
+    return [...settleGoals(s), ...evalBadges(s)];
   }
   /* One day's prices in brief: average, cheapest and priciest hour. */
   function priceDay(s, day) {
     const list = prices(s, day), lo = Math.min(...list), hi = Math.max(...list);
     return { avg: sum(list) / 24, min: lo, max: hi, minH: list.indexOf(lo), maxH: list.indexOf(hi) };
   }
-  function recentDaily(s, resource) {
-    const k = key(resource), last = Object.keys(s.days).sort().slice(-7);
-    return last.length ? sum(last.map((d) => s.days[d][k])) / last.length : typicalMonth(s.profile, resource, thisMonth(s)) / daysIn(thisMonth(s)) * s.profile.level;
-  }
-  function projected(s, resource) {
-    const n = now(s), m = thisMonth(s), left = daysIn(m) - n.getDate() + (1 - cumShare(resource, hourOf(n)));
-    return monthSoFar(s, resource) + left * recentDaily(s, resource);
-  }
-  /* Value of a month: logged/metered, projected (current) or null (missing). */
-  function monthValue(s, resource, m) {
-    if (s.months[m]) return s.months[m][key(resource)];
-    if (m === thisMonth(s)) return projected(s, resource);
-    return null;
-  }
+  /* A month's usage as entered, or null if it hasn't been. The current month is only known once it's over. */
+  const monthValue = (s, resource, m) => (s.months[m] ? s.months[m][key(resource)] : null);
+  /* The latest finished month with numbers in, or null. */
+  const lastEntered = (s) => Object.keys(s.months).filter((m) => m < thisMonth(s)).sort().pop() || null;
   /* "Your usual": the last three logged months before m, adjusted for season. */
   function usual(s, resource, m) {
     const k = key(resource), prior = Object.keys(s.months).filter((x) => x < m).sort().slice(-3);
-    if (!prior.length) return typicalMonth(s.profile, resource, m) * s.profile.level;
+    if (!prior.length) return typicalMonth(s.profile, resource, m);
     const base = sum(prior.map((x) => s.months[x][k] / seasonFactor(s.profile, resource, x))) / prior.length;
     return base * seasonFactor(s.profile, resource, m);
   }
@@ -1286,12 +1182,6 @@ const PBD = (() => {
     s.notes.unshift(item); s.notes = s.notes.slice(0, 60);
     return item;
   }
-  function post(s, item) {
-    if (item.actor === 'me' && !s.privacy.feed) return null;
-    const entry = { id: 'f' + s.seq++, at: now(s).toISOString(), cheers: 0, cheered: false, ...item };
-    s.feed.unshift(entry); s.feed = s.feed.slice(0, 80);
-    return entry;
-  }
 
   /* ---------- readings ---------- */
   /* Sample months (prototype filler) never count towards streaks or badges. */
@@ -1301,7 +1191,6 @@ const PBD = (() => {
     const errors = {}, warnings = [], m = input.month;
     if (!/^\d{4}-\d{2}$/.test(m || '')) errors.month = 'Choose a month.';
     else if (m >= thisMonth(s)) errors.month = 'Only finished months can be logged.';
-    else if (s.months[m] && s.months[m].src === 'meter') errors.month = `${monthName(m)} already comes from your meter.`;
     const e = Number(input.e), w = Number(input.w);
     if (input.e === '' || input.e == null || !Number.isFinite(e)) errors.e = 'Enter electricity in kWh.'; else if (e < 0) errors.e = 'Usage cannot be negative.';
     if (input.w === '' || input.w == null || !Number.isFinite(w)) errors.w = 'Enter water in m³.'; else if (w < 0) errors.w = 'Usage cannot be negative.';
@@ -1311,23 +1200,18 @@ const PBD = (() => {
       if (e < te * 0.3) warnings.push(`${round(e)} kWh is very low for ${monthName(m)}. Was the home empty, or is a digit missing?`);
       if (w > tw * 2.5) warnings.push(`${w} m³ is ${round(w / tw, 1)}× the usual water use for a home like yours. Check the decimal point.`);
       if (w < tw * 0.3) warnings.push(`${w} m³ of water is unusually low. Check the decimal point.`);
-      const ae = Number(input.amountE), aw = Number(input.amountW);
-      if (input.amountE && e > 0 && (ae / e < 1 || ae / e > 5)) warnings.push(`The electricity bill works out at ${round(ae / e, 2)} kr per kWh. It's normally 1.5-3.5 kr. Check the amount or the kWh.`);
-      if (input.amountW && w > 0 && (aw / w < 30 || aw / w > 130)) warnings.push(`The water bill works out at ${round(aw / w)} kr per m³. It's normally 50-90 kr. Check the amount or the m³.`);
     }
     return { errors, warnings, ok: !Object.keys(errors).length };
   }
+  /* Saves a month and settles any goal that was waiting for it. Returns what to celebrate. */
   function logReading(s, input) {
-    const m = input.month, existed = !!s.months[m];
+    const m = input.month;
     s.months[m] = { e: round(Number(input.e), 1), w: round(Number(input.w), 2), src: 'manual' };
-    const out = [];
     if (award(s, 'reading-' + m, 10, `Logged ${monthName(m)}`)) {
       const streak = loggedStreak(s, m);
       if (streak >= 3 && streak % 3 === 0) award(s, 'streak-' + m, 25, `${streak}-month logging streak`);
-      if (!existed) post(s, { actor: 'me', kind: 'reading', title: monthName(m) });
     }
-    out.push(...evalBadges(s));
-    return out;
+    return sync(s);
   }
 
   /* ---------- recommendations ---------- */
@@ -1350,29 +1234,48 @@ const PBD = (() => {
   }
   function setRec(s, id, status) { s.recs[id] = { status, at: now(s).toISOString() }; }
 
-  /* ---------- goals ---------- */
+  /* ---------- goals ----------
+     Usage comes in a month at a time, so a goal is judged on whole months, once their numbers are entered.
+     The time frame is how long you give yourself:
+     - Use less: get the cut in any month within the time frame. The first month that gets there, the goal is reached.
+     - Keep it steady: over the time frame, stay at or under the benchmark on average. */
+  const GOAL_TIMES = [1, 3, 6];
+  /* A shorter time frame is harder, so a cut is worth a little more. */
+  const SPEED = { 1: 1.5, 3: 1.2, 6: 1 };
   function efficient(s, resource) {
     const m = thisMonth(s), check = (r) => usual(s, r, m) < typicalMonth(s.profile, r, m);
     return resource === 'both' ? check('electricity') && check('water') : check(resource);
   }
-  /* Cutting: 8 points per % per month. Keeping steady (at or under a benchmark): 25 points per month. */
+  /* Use less: 8 points per %, more for a shorter time frame. Keep it steady: 25 points per month held. */
   function goalPoints({ kind, target, months, resource, efficient: eff }) {
-    const per = kind === 'keep' ? 25 : 8 * target;
-    return Math.round(per * months * (resource === 'both' ? 1.5 : 1) * (eff ? 1.25 : 1));
+    const base = kind === 'keep' ? 25 * months : 8 * target * (SPEED[months] || 1);
+    return Math.round(base * (resource === 'both' ? 1.5 : 1) * (eff ? 1.25 : 1));
   }
   function goalMonths(g) { const out = []; for (let m = g.start; m <= g.end; m = addMonths(m, 1)) out.push(m); return out; }
   const goalResources = (g) => (g.resource === 'both' ? ['electricity', 'water'] : [g.resource]);
   /* How far under the goal's benchmark a month is, in %. Positive is under. Cutting goals and "kept steady"
      use your usual; "under similar homes" uses the typical home like yours. */
   const underBy = (s, g, r, m) => { const c = g.bench === 'typical' ? vsTypical(s, r, m) : change(s, r, m); return c === null ? null : -c; };
+  /* Where a goal stands from the months entered so far.
+     results: finished months in the time frame that have numbers, and how far under each was (the weaker resource counts).
+     waiting: finished months in the time frame still without numbers. reduction: the best month (use less) or the average (keep). */
   function goalProgress(s, g) {
-    const ms = goalMonths(g).filter((m) => m <= thisMonth(s));
-    const per = goalResources(g).map((r) => { const c = ms.map((m) => underBy(s, g, r, m)).filter((v) => v !== null); return c.length ? sum(c) / c.length : 0; });
-    const reduction = Math.min(...per);
-    return { reduction, per, onTrack: reduction >= (g.kind === 'keep' ? 0 : g.target), monthsIn: ms.length };
+    const cur = thisMonth(s), all = goalMonths(g), keep = g.kind === 'keep';
+    const finished = all.filter((m) => m < cur);
+    const results = finished.filter((m) => goalResources(g).every((r) => monthValue(s, r, m) !== null))
+      .map((m) => ({ m, under: Math.min(...goalResources(g).map((r) => underBy(s, g, r, m))) }));
+    const waiting = finished.filter((m) => !results.some((x) => x.m === m));
+    let reduction = null, hit = null;
+    if (results.length) {
+      if (keep) reduction = sum(results.map((x) => x.under)) / results.length;
+      else { reduction = Math.max(...results.map((x) => x.under)); hit = (results.find((x) => x.under >= g.target) || {}).m || null; }
+    }
+    const onTrack = reduction === null ? null : reduction >= (keep ? 0 : g.target);
+    return { reduction, onTrack, results, waiting, hit, over: g.end < cur, left: all.filter((m) => m >= cur).length, total: all.length };
   }
   function createGoal(s, { kind, bench, resource, target, months, source }) {
-    const start = thisMonth(s), eff = efficient(s, resource), keep = kind === 'keep';
+    const start = thisMonth(s), keep = kind === 'keep', eff = efficient(s, resource);
+    months = GOAL_TIMES.includes(months) ? months : 1;
     const g = { id: 'g' + s.seq++, kind: keep ? 'keep' : 'cut', bench: keep && bench === 'typical' ? 'typical' : 'usual', resource, target: keep ? 0 : target, months, start, end: addMonths(start, months - 1), est: goalPoints({ kind, target, months, resource, efficient: eff }), status: 'active', source: source || 'custom', at: now(s).toISOString() };
     s.goals.unshift(g);
     award(s, 'first-goal', 10, 'First goal set');
@@ -1383,104 +1286,26 @@ const PBD = (() => {
     if (g.kind === 'keep') return g.bench === 'typical' ? `${what} under similar homes` : `${what} kept steady`;
     return `${what} −${g.target}%`;
   };
-
-  /* ---------- challenges ---------- */
-  const CHALLENGES = {
-    cut10: { title: 'Ten percent month', kind: 'reduction', resource: 'electricity', target: 10, points: 150, ticket: true, icon: 'Zap', blurb: 'Use 10% less electricity than usual this month.', how: 'Measured from your meter when the month closes, against your usual for the month.' },
-    showers: { title: 'Five-minute showers', kind: 'habit', goal: 7, per: 5, points: 60, icon: 'ShowerHead', blurb: 'Keep showers under five minutes on 7 days within two weeks.', how: 'Check in once a day. Self-reported, 5 points per check-in.' },
-    greenwash: { title: 'Green-hour laundry', kind: 'offpeak', goal: 4, per: 8, points: 80, ticket: true, icon: 'WashingMachine', blurb: 'Run 4 loads in the cheapest hours this month.', how: 'Plan a load in Plan and mark it done. 8 points per load.' },
-    coldwash: { title: 'Cold-wash month', kind: 'habit', goal: 5, per: 5, points: 50, ticket: true, icon: 'Snowflake', blurb: 'Wash 5 loads at 30 °C or lower this month.', how: 'Check in after each load. Self-reported, 5 points per check-in.' },
-    standby: { title: 'Standby sweep', kind: 'quick', goal: 1, per: 0, points: 30, icon: 'Plug', blurb: 'Switch off everything on standby for one weekend.', how: 'Check in once when you have done it.' },
-    league: { title: "Friends' league", kind: 'team', resource: 'electricity', target: 8, points: 100, ticket: true, icon: 'Users', blurb: 'Team up with friends. The team average must be 8% under usual this month.', how: 'Everyone is measured against their own usual, so household size does not matter.' }
-  };
-  function instance(tpl, start, end) { return { id: `${tpl}-${start}`, tpl, start, end, joined: false, joinedAt: null, checks: [], status: 'open', team: [] }; }
-  function ensureChallenges(s) {
-    const m = thisMonth(s), start = m + '-01', end = `${m}-${pad(daysIn(m))}`;
-    for (const tpl of ['cut10', 'greenwash', 'coldwash', 'standby', 'league']) if (!s.ch.some((c) => c.tpl === tpl && c.start === start)) s.ch.push(instance(tpl, start, end));
-    if (!s.ch.some((c) => c.tpl === 'showers' && c.end >= today(s))) s.ch.push(instance('showers', today(s), addDays(today(s), 13)));
-  }
-  const tplOf = (c) => CHALLENGES[c.tpl];
-  const isActive = (s, c) => c.status === 'open' && c.start <= today(s) && c.end >= today(s);
-  function joinChallenge(s, id, team = []) {
-    const c = s.ch.find((x) => x.id === id);
-    if (!c || c.joined) return;
-    c.joined = true; c.joinedAt = now(s).toISOString(); c.team = team;
-    post(s, { actor: 'me', kind: c.tpl === 'league' ? 'team' : 'join', title: tplOf(c).title, with: team });
-  }
-  function completeChallenge(s, c, detail) {
-    const t = tplOf(c);
-    c.status = 'done'; c.doneAt = now(s).toISOString();
-    award(s, 'ch-' + c.id, t.points, t.title);
-    if (t.ticket) s.tickets.push({ id: 't-' + c.id, month: c.start.slice(0, 7), source: t.title });
-    post(s, { actor: 'me', kind: 'challenge', title: t.title, detail, pts: t.points });
-    note(s, { icon: 'Trophy', title: `${t.title} complete`, body: `+${t.points} points${t.ticket ? ' and a ticket for the Green draw' : ''}.` });
-    return { type: 'challenge', id: c.id, title: t.title, points: t.points, ticket: !!t.ticket };
-  }
-  function checkIn(s, id) {
-    const c = s.ch.find((x) => x.id === id), t = c && tplOf(c), d = today(s);
-    if (!c || !c.joined || !isActive(s, c) || !['habit', 'quick'].includes(t.kind)) return null;
-    if (c.tpl !== 'coldwash' && c.checks.includes(d)) return null;
-    const stamp = c.tpl === 'coldwash' ? d + '#' + (c.checks.length + 1) : d;
-    c.checks.push(stamp);
-    if (t.per) award(s, `chk-${c.id}-${stamp}`, t.per, `${t.title} check-in`);
-    if (c.checks.length >= t.goal) return completeChallenge(s, c);
-    return { type: 'checkin', points: t.per };
-  }
-  const canCheckIn = (s, c) => c.joined && isActive(s, c) && ['habit', 'quick'].includes(tplOf(c).kind) && (c.tpl === 'coldwash' || !c.checks.includes(today(s)));
-  function challengeProgress(s, c) {
-    const t = tplOf(c);
-    if (t.kind === 'reduction') { const r = -(change(s, t.resource, c.start.slice(0, 7)) || 0); return { value: r, goal: t.target, label: `${r >= 0 ? '−' : '+'}${Math.abs(round(r, 1))}% so far`, ratio: clamp(r / t.target, 0, 1) }; }
-    if (t.kind === 'team') { const r = teamReduction(s, c); return { value: r, goal: t.target, label: `Team ${r >= 0 ? '−' : '+'}${Math.abs(round(r, 1))}%`, ratio: clamp(r / t.target, 0, 1) }; }
-    return { value: c.checks.length, goal: t.goal, label: `${c.checks.length} of ${t.goal}`, ratio: c.checks.length / t.goal };
-  }
-  function teamReduction(s, c) {
-    const mine = -(change(s, 'electricity', c.start.slice(0, 7)) || 0);
-    const others = c.team.map((id) => person(id)).filter(Boolean).map((f) => -f.e);
-    return sum([mine, ...others]) / (others.length + 1);
-  }
-  function expireChallenges(s) {
-    for (const c of s.ch) if (c.status === 'open' && c.end < today(s)) c.status = c.joined ? 'missed' : 'closed';
-    return [];
-  }
-  const participants = (c) => FRIENDS.filter((f) => (hash(f.id + c.tpl + c.start) % 10) < 4).map((f) => f.id);
-
-  /* ---------- month close: goals, measured challenges, draw ---------- */
-  function closeMonth(s, m) {
+  /* A goal settles once its result is known: a use-less goal as soon as a month gets there, or when every
+     month of its time frame is entered; a keep-steady goal when every month of its time frame is entered. */
+  function settleGoals(s) {
     const out = [];
-    for (const g of s.goals.filter((x) => x.status === 'active' && x.end <= m)) {
-      const p = goalProgress(s, g);
-      g.status = p.onTrack ? 'reached' : 'missed'; g.result = round(p.reduction, 1);
-      const keep = g.kind === 'keep', than = g.bench === 'typical' ? 'similar homes' : 'your usual';
-      if (p.onTrack) {
+    for (const g of s.goals.filter((x) => x.status === 'active')) {
+      const p = goalProgress(s, g), keep = g.kind === 'keep', complete = p.over && !p.waiting.length;
+      if (!(complete || (!keep && p.hit))) continue;
+      const reached = keep ? p.onTrack : !!p.hit, than = g.bench === 'typical' ? 'similar homes' : 'your usual';
+      g.status = reached ? 'reached' : 'missed'; g.result = round(p.reduction, 1); g.settledFor = p.hit || g.end;
+      if (reached) {
         award(s, 'goal-' + g.id, g.est, goalLabel(g));
-        post(s, { actor: 'me', kind: 'goal', title: `${goalLabel(g)} in ${monthName(m)}`, pts: g.est });
-        note(s, { icon: 'Target', title: 'Goal reached', body: keep ? `${goalLabel(g)}: you stayed ${round(p.reduction, 1)}% under ${than}. +${g.est} points.` : `${goalLabel(g)}: you cut ${round(p.reduction, 1)}%. +${g.est} points.` });
+        note(s, { icon: 'Target', title: 'Goal reached', body: keep ? `${goalLabel(g)}: you stayed ${round(p.reduction, 1)}% under ${than}. +${g.est} points.` : `${goalLabel(g)}: ${monthName(p.hit)} was ${round(p.reduction, 1)}% under your usual. +${g.est} points.` });
         out.push({ type: 'goal', title: goalLabel(g), points: g.est });
       } else if (keep) {
         note(s, { icon: 'Target', title: 'Not this time', body: `${goalLabel(g)} was the aim. You ended ${round(-p.reduction, 1)}% over ${than}. A small step is enough to get back under.` });
       } else {
-        note(s, { icon: 'Target', title: 'Not this time', body: p.reduction > 0 ? `${goalLabel(g)} was the aim. You still used ${round(p.reduction, 1)}% less than usual.` : `${goalLabel(g)} was the aim. Want to try a smaller step this month?` });
+        note(s, { icon: 'Target', title: 'Not this time', body: p.reduction > 0 ? `${goalLabel(g)} was the aim. Your best month was still ${round(p.reduction, 1)}% under your usual.` : `${goalLabel(g)} was the aim. Want to try a smaller step?` });
       }
     }
-    for (const c of s.ch.filter((x) => x.status === 'open' && x.start.slice(0, 7) === m && x.joined)) {
-      const t = tplOf(c);
-      if (t.kind === 'reduction') { const r = -change(s, t.resource, m); if (r >= t.target) out.push(completeChallenge(s, c, `−${round(r)}% electricity`)); else c.status = 'missed'; }
-      if (t.kind === 'team') { const r = teamReduction(s, c); if (r >= t.target) { out.push(completeChallenge(s, c, `team −${round(r)}%`)); s.leagueWins = (s.leagueWins || 0) + 1; } else c.status = 'missed'; }
-    }
-    const streak = loggedStreak(s, m);
-    if (streak >= 3 && streak % 3 === 0) award(s, 'streak-' + m, 25, `${streak}-month logging streak`);
-    award(s, 'reading-' + m, 10, `${monthName(m)} recorded`);
-    runDraw(s, m);
     return out;
-  }
-  function runDraw(s, m) {
-    if (s.draws.some((d) => d.month === m)) return;
-    const tickets = s.tickets.filter((t) => t.month === m).length, r = rng(s.seed + 'draw' + m), prize = PRIZES[Math.floor(r() * PRIZES.length)];
-    const youWin = tickets > 0 && r() < 0.12 * tickets;
-    const winner = youWin ? 'me' : FRIENDS[Math.floor(r() * FRIENDS.length)].id;
-    s.draws.unshift({ month: m, winner, prize: prize.name, tickets });
-    if (youWin) { note(s, { icon: 'Ticket', title: `You won the ${monthName(m)} Green draw`, body: `${prize.name}. We'll email the details.` }); post(s, { actor: 'me', kind: 'draw', title: `${monthName(m)} Green draw`, detail: prize.name }); }
-    else if (tickets) note(s, { icon: 'Ticket', title: `${monthName(m)} Green draw`, body: `Not this time: ${friendName(winner)} won ${prize.name.toLowerCase()}.` });
   }
 
   /* ---------- rewards ---------- */
@@ -1493,13 +1318,6 @@ const PBD = (() => {
     { id: 'furniture', name: '15% off second-hand furniture', partner: 'Genbrugsloftet', cost: 180, cat: 'life', icon: 'Sofa', why: 'Second-hand furniture avoids most of the footprint of making new.' },
     { id: 'vegbox', name: '25% off your first organic veg box', partner: 'Markkassen', cost: 160, cat: 'swap', icon: 'Carrot', why: 'Seasonal vegetables from Zealand farms, delivered in a returnable crate.' },
     { id: 'refill', name: '10% off at a refill shop', partner: 'Fyld Op', cost: 90, cat: 'swap', icon: 'PackageOpen', why: 'Bring your own containers for soap, oats and pasta.' }
-  ];
-  const PRIZES = [
-    { name: 'A month of organic veg boxes', icon: 'Carrot' },
-    { name: 'A night in a Green Key cabin', icon: 'TentTree' },
-    { name: 'A smart-plug starter kit', icon: 'PlugZap' },
-    { name: 'A tree planted in your name', icon: 'TreePine' },
-    { name: 'A full bike service', icon: 'Bike' }
   ];
   function redeem(s, rewardId) {
     const r = REWARDS.find((x) => x.id === rewardId);
@@ -1520,13 +1338,11 @@ const PBD = (() => {
     { id: 'first-reading', name: 'First reading', icon: 'Receipt', how: 'Log your first month of usage.' },
     { id: 'steady', name: 'Steady logger', icon: 'CalendarDays', how: 'Have three months in a row logged.' },
     { id: 'goal-getter', name: 'Goal getter', icon: 'Target', how: 'Reach a goal you set.' },
-    { id: 'ten-club', name: '10% club', icon: 'TrendingDown', how: 'Finish a month 10% under your usual on electricity or water.' },
-    { id: 'water-wise', name: 'Water wise', icon: 'Droplet', how: 'Finish a month with water 10% under your usual.' },
-    { id: 'balance', name: 'Both in balance', icon: 'Activity', how: 'Finish a month under your usual on both electricity and water.' },
+    { id: 'ten-club', name: '10% club', icon: 'TrendingDown', how: 'Log a month 10% under your usual on electricity or water.' },
+    { id: 'water-wise', name: 'Water wise', icon: 'Droplet', how: 'Log a month with water 10% under your usual.' },
+    { id: 'balance', name: 'Both in balance', icon: 'Activity', how: 'Log a month under your usual on both electricity and water.' },
     { id: 'off-peak', name: 'Off-peak pro', icon: 'Clock', how: 'Run 10 appliance loads in green hours.' },
-    { id: 'comeback', name: 'Comeback', icon: 'RotateCcw', how: 'Used more than your usual last month? Bring it back under your usual this month.' },
-    { id: 'company', name: 'Good company', icon: 'Users', how: 'Have your first mutual friend.' },
-    { id: 'team', name: 'Team player', icon: 'HandHeart', how: "Finish a Friends' league with your team." }
+    { id: 'comeback', name: 'Comeback', icon: 'RotateCcw', how: 'After a month over your usual, log one back under it.' }
   ];
   function earnedBadgeIds(s) {
     const ids = new Set(), ms = Object.keys(s.months).filter((m) => real(s, m)).sort();
@@ -1544,8 +1360,6 @@ const PBD = (() => {
       prevAbove = ce > 0;
     }
     if (s.greenRuns >= 10) ids.add('off-peak');
-    if (s.friends.some((f) => f.status === 'mutual')) ids.add('company');
-    if (s.leagueWins) ids.add('team');
     return ids;
   }
   function evalBadges(s, silent = s.setup) {
@@ -1555,7 +1369,6 @@ const PBD = (() => {
       s.badges[id] = { at: now(s).toISOString(), pinned: false };
       if (silent) continue;
       const b = BADGES.find((x) => x.id === id);
-      post(s, { actor: 'me', kind: 'badge', title: b.name });
       note(s, { icon: 'Award', title: `New badge: ${b.name}`, body: b.how });
       out.push({ type: 'badge', id, title: b.name });
     }
@@ -1584,129 +1397,23 @@ const PBD = (() => {
     const p = s.plans.find((x) => x.id === planId);
     if (!p || p.status !== 'planned') return [];
     p.status = 'done'; p.doneAt = now(s).toISOString();
-    const out = [];
-    if (p.green) {
-      s.greenRuns++;
-      const c = s.ch.find((x) => x.tpl === 'greenwash' && x.joined && isActive(s, x));
-      if (c && ['washer', 'dryer'].includes(p.appliance) && !c.checks.includes(p.id)) {
-        c.checks.push(p.id); award(s, `chk-${c.id}-${p.id}`, CHALLENGES.greenwash.per, 'Green-hour load');
-        if (c.checks.length >= CHALLENGES.greenwash.goal && c.status === 'open') out.push(completeChallenge(s, c));
-        else out.push({ type: 'checkin', points: CHALLENGES.greenwash.per });
-      }
-    }
-    out.push(...evalBadges(s));
-    return out;
-  }
-
-  /* ---------- friends (mock) ---------- */
-  const FRIENDS = [
-    { id: 'akshi', name: 'Akshi', home: '2 people · apartment', city: 'Frederiksberg', e: -6, w: -9, streak: 3, pts: 640, perE: 92, perW: 2.9, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'water-wise', 'company'], done: 5 },
-    { id: 'mikael', name: 'Mikael', home: '1 person · apartment', city: 'Nørrebro', e: -11, w: -2, streak: 5, pts: 910, perE: 118, perW: 3.4, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'ten-club', 'off-peak', 'company'], done: 8 },
-    { id: 'piotr', name: 'Piotr', home: '3 people · house', city: 'Valby', e: -4, w: -8, streak: 2, pts: 480, perE: 101, perW: 3.1, share: false, badges: ['first-reading', 'ten-club', 'company'], done: 4 },
-    { id: 'vi', name: 'Vi', home: '2 people · apartment', city: 'Østerbro', e: -12, w: -5, streak: 6, pts: 1120, perE: 84, perW: 2.6, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'ten-club', 'balance', 'off-peak', 'company', 'team'], done: 11 },
-    // Thomas (who built this mockup) is the one friend above his usual. Everyone else is cutting back.
-    { id: 'thomas', name: 'Thomas', home: '3 people · apartment', city: 'Amager', e: 6, w: 4, streak: 1, pts: 190, perE: 139, perW: 3.9, share: false, badges: ['first-reading', 'company'], done: 1 },
-    { id: 'mathias', name: 'Mathias', home: '1 person · apartment', city: 'Vesterbro', e: -7, w: -3, streak: 4, pts: 720, perE: 97, perW: 3.0, share: true, badges: ['first-reading', 'steady', 'balance', 'company', 'team'], done: 6 },
-    { id: 'maninder', name: 'Maninder', home: '4 people · house', city: 'Roskilde', e: -5, w: -6, streak: 4, pts: 830, perE: 88, perW: 2.8, share: true, badges: ['first-reading', 'steady', 'goal-getter', 'balance', 'company'], done: 7 },
-    { id: 'konstantina', name: 'Konstantina', home: '2 people · apartment', city: 'Christianshavn', e: -9, w: -1, streak: 2, pts: 540, perE: 95, perW: 3.2, share: true, badges: ['first-reading', 'comeback', 'company'], done: 4 }
-  ];
-  const DIRECTORY = [
-    { id: 'signe', name: 'Signe', home: '2 people · terraced house', city: 'Aarhus', e: -3, w: -7, streak: 2, pts: 310, perE: 104, perW: 3.3, share: true, badges: ['first-reading', 'company'], done: 2, code: 'SIGNE-3307' },
-    { id: 'jonas', name: 'Jonas', home: '1 person · student room', city: 'Odense', e: -8, w: -2, streak: 3, pts: 450, perE: 76, perW: 3.0, share: false, badges: ['first-reading', 'steady', 'company'], done: 3, code: 'JONAS-5120' }
-  ];
-  for (const f of FRIENDS) f.code = f.name.toUpperCase() + '-' + (1000 + (hash(f.id) % 9000));
-  const people = () => [...FRIENDS, ...DIRECTORY];
-  const person = (id) => people().find((f) => f.id === id);
-  const friendName = (id) => (id === 'me' ? 'You' : (person(id) || { name: 'Someone' }).name);
-  const mutualFriends = (s) => s.friends.filter((f) => f.status === 'mutual').map((f) => person(f.id)).filter(Boolean);
-  function addByCode(s, code) {
-    const c = String(code || '').trim().toUpperCase();
-    if (!/^[A-Z]+-\d{4}$/.test(c)) throw Error('Friend codes look like NAME-1234.');
-    if (c === s.profile.code) throw Error('That is your own code.');
-    const p = people().find((x) => x.code === c);
-    if (!p) throw Error('No one has that code. Check it with your friend.');
-    const existing = s.friends.find((f) => f.id === p.id);
-    if (existing && existing.status === 'mutual') throw Error(`You and ${p.name} are already friends.`);
-    if (existing && existing.status === 'incoming') { acceptFriend(s, p.id); return { person: p, status: 'mutual' }; }
-    if (!existing) s.friends.push({ id: p.id, status: 'outgoing', at: now(s).toISOString() });
-    return { person: p, status: 'outgoing' };
-  }
-  function acceptFriend(s, id) {
-    const f = s.friends.find((x) => x.id === id); if (!f) return [];
-    f.status = 'mutual'; f.at = now(s).toISOString();
-    note(s, { icon: 'Users', title: `You and ${friendName(id)} are now friends`, body: 'You can compare progress and see each other in the feed.' });
+    if (p.green) s.greenRuns++;
     return evalBadges(s);
-  }
-  function declineFriend(s, id) { s.friends = s.friends.filter((x) => x.id !== id); }
-  function ranking(s, resource) {
-    const m = thisMonth(s), mine = change(s, resource, m);
-    const rows = mutualFriends(s).map((f) => ({ id: f.id, name: f.name, pct: resource === 'water' ? f.w : f.e }));
-    rows.push({ id: 'me', name: 'You', pct: round(mine, 1) });
-    return rows.sort((a, b) => a.pct - b.pct);
-  }
-
-  /* Simulated activity from friends while the app is open. */
-  const EVENT_POOL = [
-    (f) => ({ kind: 'join', title: pick(f, ['Five-minute showers', 'Cold-wash month', 'Ten percent month', 'Green-hour laundry']) }),
-    (f) => ({ kind: 'challenge', title: pick(f, ['Standby sweep', 'Five-minute showers', 'Cold-wash month']), pts: null }),
-    (f) => { const b = BADGES.filter((x) => !f.badges.includes(x.id)); return b.length ? { kind: 'badge', title: pick(f, b).name } : null; },
-    (f) => ({ kind: 'streak', title: `${f.streak + 1}-month logging streak` }),
-    (f) => ({ kind: 'reading', title: 'a meter reading' })
-  ];
-  function pick(f, list) { return list[hash(f.id + list.length + Date.now()) % list.length]; }
-  function friendEvent(s, r) {
-    const friends = mutualFriends(s); if (!friends.length) return null;
-    for (let tries = 0; tries < 6; tries++) {
-      // Thomas only joins things or logs readings: no badges or completed challenges for him.
-      const f = friends[Math.floor(r() * friends.length)], pool = f.id === 'thomas' ? [EVENT_POOL[0], EVENT_POOL[4]] : EVENT_POOL;
-      const ev = pool[Math.floor(r() * pool.length)](f);
-      if (!ev) continue;
-      if (ev.kind === 'challenge') ev.pts = Object.values(CHALLENGES).find((c) => c.title === ev.title).points;
-      const dup = s.feed.slice(0, 25).some((x) => x.actor === f.id && x.kind === ev.kind && x.title === ev.title);
-      if (dup) continue;
-      if (ev.kind === 'badge') f.badges.push(BADGES.find((b) => b.name === ev.title).id);
-      if (ev.kind === 'streak') f.streak++;
-      if (ev.pts) f.pts += ev.pts;
-      return post(s, { actor: f.id, ...ev, cheers: Math.floor(r() * 2) });
-    }
-    return null;
-  }
-  function cheer(s, feedId) {
-    const f = s.feed.find((x) => x.id === feedId); if (!f || f.actor === 'me') return;
-    f.cheered = !f.cheered; f.cheers += f.cheered ? 1 : -1;
-  }
-  /* A friend cheers one of your recent posts. */
-  function friendCheers(s, r) {
-    const friends = mutualFriends(s), mine = s.feed.filter((x) => x.actor === 'me' && (x.by || []).length < friends.length).slice(0, 5);
-    if (!mine.length || !friends.length) return null;
-    const item = mine[Math.floor(r() * mine.length)], who = friends.filter((f) => !(item.by || []).includes(f.id));
-    if (!who.length) return null;
-    const f = who[Math.floor(r() * who.length)];
-    item.by = [...(item.by || []), f.id]; item.cheers++;
-    return { friend: f, item };
   }
 
   /* ---------- notifications: settings, history and tips ---------- */
-  function defaultNotify() { return { tips: true, cheers: true, plans: true, muted: [] }; }
-  const wantsFriend = (s, id) => !(s.notify && s.notify.muted.includes(id));
-  function setFriendMuted(s, id, muted) {
-    ensureNotify(s);
-    s.notify.muted = s.notify.muted.filter((x) => x !== id);
-    if (muted) s.notify.muted.push(id);
-  }
-  /* Older saves (from before notification settings) get defaults and a short history built from the feed. */
+  function defaultNotify() { return { tips: true, plans: true }; }
   function ensureNotify(s) {
-    if (s.notify && Array.isArray(s.notify.muted)) { if (s.notify.plans === undefined) s.notify.plans = true; return false; }
+    if (s.notify) { if (s.notify.plans === undefined) s.notify.plans = true; return false; }
     s.notify = defaultNotify(); s.tipSeq = s.tipSeq || 0;
-    seedNotes(s);
     return true;
   }
+  /* Yesterday evening's cheap-hours tip, so the bell has something in it from the start. */
   function seedNotes(s) {
-    const fromFeed = s.feed.filter((f) => f.actor !== 'me').slice(0, 5).map((f) => ({ id: 'n-' + f.id, at: f.at, read: true, kind: 'friend', actor: f.actor, feedId: f.id, icon: 'Users', go: 'friends' }));
     const y = new Date(now(s).getTime() - DAY); y.setHours(19, 40, 0, 0);
     const tip = { id: 'n-seed-tip', at: y.toISOString(), read: true, kind: 'tip', icon: 'Moon', title: 'Cheap electricity overnight', body: 'Prices were lowest between 01:00 and 05:00. A good time for the dishwasher or washing machine on a delay timer.', go: 'plan' };
-    const seen = new Set();
-    s.notes = [...s.notes, ...fromFeed, tip].filter((n) => (seen.has(n.id) ? false : seen.add(n.id))).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 60);
+    if (!s.notes.some((n) => n.id === tip.id)) s.notes.push(tip);
+    s.notes.sort((a, b) => b.at.localeCompare(a.at));
   }
   /* Cheapest run of `hours` consecutive hours from 21:00 tonight (or the next hour, if later) until 07:00. */
   function cheapWindow(s, hours = 3) {
@@ -1727,7 +1434,7 @@ const PBD = (() => {
   const hh = (ts) => pad(new Date(ts).getHours()) + ':00';
   /* Household tips, rotated. The first one is always the cheap-tonight nudge. */
   function nextTip(s) {
-    const p = s.profile, has = (id) => p.appliances.includes(id), i = (s.tipSeq || 0) % 4, m = thisMonth(s);
+    const p = s.profile, has = (id) => p.appliances.includes(id), i = (s.tipSeq || 0) % 4;
     s.tipSeq = (s.tipSeq || 0) + 1;
     if (i === 0) {
       const w = cheapWindow(s, has('dishwasher') ? 3 : 2);
@@ -1740,54 +1447,23 @@ const PBD = (() => {
       const late = now(s).getHours() >= 20, list = prices(s, late ? addDays(today(s), 1) : today(s)), top = list.indexOf(Math.max(...list));
       return { kind: 'tip', icon: 'Clock', title: late ? 'Prices peak tomorrow evening' : 'Prices peak this evening', body: `Up to ${list[top].toFixed(2)} kr/kWh around ${pad(top)}:00. If you can, wait with laundry and the oven until after 21:00.`, go: 'plan' };
     }
-    if (i === 2) {
-      const c = change(s, 'electricity', m) || 0, below = c <= 0;
-      return below
-        ? { kind: 'tip', icon: 'TrendingDown', title: `${round(Math.abs(c))}% below your usual`, body: `Your electricity this ${monthName(m)} is heading under your usual. Keep it going.`, go: 'home' }
-        : { kind: 'tip', icon: 'Activity', title: `${round(c)}% above your usual`, body: `Your electricity this ${monthName(m)} is heading over your usual. The Plan tab has ideas for your home.`, go: 'plan' };
-    }
+    if (i === 2) return { kind: 'tip', icon: 'Plug', title: 'Switch off standby at the wall', body: 'TV boxes, consoles and chargers on standby draw about 10 W around the clock. A switched power strip turns them all off in one go.', go: 'plan' };
     const people = persons(p);
     return { kind: 'tip', icon: 'ShowerHead', title: 'One minute less in the shower', body: `For ${people} ${people === 1 ? 'person' : 'people'} that saves about ${round(people * 200, -1).toLocaleString('en-GB')} litres of water a month.`, go: 'plan' };
   }
 
   /* ---------- creating state ---------- */
   function base(profile, seed, offset = 0) {
-    return { v: VERSION, seed, offset, seq: 1, profile, privacy: { feed: true, percent: true, exact: false, league: true }, months: {}, days: {}, closed: [], lastSync: null, feedStart: null, recs: {}, plans: [], greenRuns: 0, goals: [], ch: [], ledger: [], redemptions: [], tickets: [], draws: [], badges: {}, friends: [], feed: [], notes: [], live: true, notify: defaultNotify(), tipSeq: 0 };
-  }
-  function friendCode(name, seed) { return (name || 'HOME').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 10) + '-' + (1000 + (hash(name + seed) % 9000)); }
-  function seedSocial(s, includePending = true) {
-    for (const f of FRIENDS) if (f.id !== 'konstantina') s.friends.push({ id: f.id, status: 'mutual', at: s.created });
-    if (includePending) s.friends.push({ id: 'konstantina', status: 'incoming', at: now(s).toISOString() });
-    const n = now(s).getTime(), h = 36e5, monthStart = new Date(now(s).getFullYear(), now(s).getMonth(), 1, 9).getTime(), prev = monthName(addMonths(thisMonth(s), -1));
-    const items = [
-      ['vi', 'challenge', 'Five-minute showers', null, 60, 2 * h, 5],
-      ['mikael', 'badge', 'Off-peak pro', null, null, 5 * h, 3],
-      ['piotr', 'join', 'Ten percent month', null, null, 26 * h, 2],
-      ['akshi', 'join', 'Five-minute showers', null, null, 30 * h, 2],
-      ['maninder', 'streak', '4-month logging streak', null, null, 50 * h, 4],
-      ['mathias', 'team', "Friends' league", null, null, 54 * h, 7, ['vi']],
-      ['konstantina', 'badge', 'Comeback', null, null, 74 * h, 8],
-      ['thomas', 'reading', 'a meter reading', null, null, 98 * h, 1],
-      ['vi', 'goal', `Electricity −12% in ${prev}`, null, 115, n - monthStart + 2 * h, 9],
-      ['akshi', 'draw', `${prev} Green draw`, 'A month of organic veg boxes', null, n - monthStart, 12],
-      ['piotr', 'goal', `Water −8% in ${prev}`, null, 64, n - monthStart + 3 * h, 6],
-      ['mikael', 'badge', '10% club', null, null, n - monthStart + 4 * h, 3]
-    ];
-    s.feed = items.map(([actor, kind, title, detail, pts, ago, cheers, w], i) => ({ id: 'seed' + i, actor, kind, title, detail, pts, with: w, at: new Date(n - Math.max(ago, 600000)).toISOString(), cheers, cheered: false })).sort((a, b) => b.at.localeCompare(a.at));
-    s.draws.push({ month: addMonths(thisMonth(s), -1), winner: 'akshi', prize: 'A month of organic veg boxes', tickets: 0 });
+    return { v: VERSION, seed, offset, seq: 1, profile, months: {}, recs: {}, plans: [], greenRuns: 0, goals: [], ledger: [], redemptions: [], badges: {}, notes: [], live: true, notify: defaultNotify(), tipSeq: 0 };
   }
   /* Fresh household from onboarding. */
   function create(profile, { sample = true, bill = null, offset = 0 } = {}) {
     const seed = hash(profile.name + JSON.stringify(profile) + Date.now()) % 1e6;
-    // New households trend about 6% under their usual this month, so in the friends' ranking only Thomas is above his.
-    const s = base({ ...profile, level: profile.level || round(0.94 + (seed % 100) / 100 * 0.2, 2), momentum: profile.momentum || { e: 0.94, w: 0.94 } }, seed, offset);
+    const s = base({ ...profile, level: profile.level || round(0.94 + (seed % 100) / 100 * 0.2, 2) }, seed, offset);
     s.created = now(s).toISOString(); s.setup = true;
-    s.profile.code = friendCode(profile.name, seed);
     const cur = thisMonth(s);
-    s.feedStart = cur + '-01';
     if (sample) for (let i = 12; i >= 1; i--) { const m = addMonths(cur, -i); s.months[m] = { e: round(sampleMonth(s, 'electricity', m, i), 1), w: round(sampleMonth(s, 'water', m, i), 2), src: 'sample' }; }
     if (bill) s.months[bill.month] = { e: round(bill.e, 1), w: round(bill.w, 2), src: 'manual' };
-    seedSocial(s);
     sync(s);
     evalBadges(s, true);
     for (const m of Object.keys(s.months)) if (s.months[m].src === 'manual') award(s, 'reading-' + m, 10, `Logged ${monthName(m)}`);
@@ -1798,64 +1474,50 @@ const PBD = (() => {
     return s;
   }
   /* The demo household: Freja, two adults in a Copenhagen apartment. */
-  const DEMO_PROFILE = { name: 'Freja', region: 'capital', housing: 'apartment', area: 68, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv', 'office'], payment: 'bills', level: 1.07, momentum: { e: 0.955, w: 0.99 } };
+  const DEMO_PROFILE = { name: 'Freja', region: 'capital', housing: 'apartment', area: 68, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv', 'office'], payment: 'bills', level: 1.07 };
   function demo(offset = 0) {
     const s = base(clone(DEMO_PROFILE), 4821, offset);
     s.created = now(s).toISOString(); s.setup = true;
-    s.profile.code = 'FREJA-4821';
-    const cur = thisMonth(s), prev = addMonths(cur, -1), t = today(s);
-    s.feedStart = cur + '-01';
-    for (let i = 12; i >= 2; i--) { const m = addMonths(cur, -i); s.months[m] = { e: round(sampleMonth(s, 'electricity', m, i), 1), w: round(sampleMonth(s, 'water', m, i), 2), src: 'bill' }; }
+    const cur = thisMonth(s), prev = addMonths(cur, -1);
+    // Every month up to two months ago is entered. Last month is still to be typed in.
+    for (let i = 12; i >= 2; i--) { const m = addMonths(cur, -i); s.months[m] = { e: round(sampleMonth(s, 'electricity', m, i), 1), w: round(sampleMonth(s, 'water', m, i), 2), src: 'manual' }; }
     // Award history, oldest first.
     const months = Object.keys(s.months).sort();
     months.forEach((m, i) => { s.ledger.push({ id: 'reading-' + m, amount: 10, reason: `Logged ${monthName(m)}`, at: `${addMonths(m, 1)}-05T18:00:00.000Z` }); if ((i + 1) % 3 === 0) s.ledger.push({ id: 'streak-' + m, amount: 25, reason: `${i + 1}-month logging streak`, at: `${addMonths(m, 1)}-05T18:00:00.000Z` }); });
-    const m3 = addMonths(cur, -3), m2 = addMonths(cur, -2);
-    s.goals.push({ id: 'g-past', resource: 'electricity', target: 5, months: 1, start: m3, end: m3, est: 40, status: 'reached', result: 6.2, source: 'custom', at: `${m3}-02T10:00:00.000Z` });
-    s.ledger.push({ id: 'first-goal', amount: 10, reason: 'First goal set', at: `${m3}-02T10:00:00.000Z` });
-    s.ledger.push({ id: 'goal-g-past', amount: 40, reason: 'Electricity −5%', at: `${m2}-01T09:00:00.000Z` });
-    s.ledger.push({ id: 'ch-standby-' + m2, amount: 30, reason: 'Standby sweep', at: `${m2}-14T11:00:00.000Z` });
-    s.ledger.push({ id: 'ch-coldwash-' + prev, amount: 50, reason: 'Cold-wash month', at: `${prev}-24T19:00:00.000Z` });
-    s.ledger.push({ id: 'chk-coldwash-' + prev, amount: 25, reason: 'Cold-wash check-ins', at: `${prev}-24T19:00:00.000Z` });
+    const m4 = addMonths(cur, -4), m3 = addMonths(cur, -3), m2 = addMonths(cur, -2);
+    s.goals.push({ id: 'g-past', kind: 'cut', bench: 'usual', resource: 'electricity', target: 5, months: 1, start: m4, end: m4, est: 60, status: 'reached', result: 6.2, settledFor: m4, source: 'custom', at: `${m4}-02T10:00:00.000Z` });
+    s.ledger.push({ id: 'first-goal', amount: 10, reason: 'First goal set', at: `${m4}-02T10:00:00.000Z` });
+    s.ledger.push({ id: 'goal-g-past', amount: 60, reason: 'Electricity −5%', at: `${m3}-05T18:00:00.000Z` });
     s.redemptions.push({ id: 'v-demo', rewardId: 'repair', code: 'PB-7KQM-R2DX', at: `${prev}-26T12:00:00.000Z` });
     s.ledger.push({ id: 'claim-v-demo', amount: -80, reason: 'A seat at the repair café', at: `${prev}-26T12:00:00.000Z` });
     s.greenRuns = 7;
-    // Active goal and challenges this month.
-    s.goals.unshift({ id: 'g-now', resource: 'water', target: 5, months: 1, start: cur, end: cur, est: 40, status: 'active', source: 'shower', at: `${cur}-01T09:30:00.000Z` });
+    // Two goals running: electricity kept steady since two months ago (one month entered, one still to type in),
+    // and a water cut started this month, so nothing is known about it yet.
+    s.goals.unshift({ id: 'g-steady', kind: 'keep', bench: 'usual', resource: 'electricity', target: 0, months: 3, start: m2, end: cur, est: goalPoints({ kind: 'keep', months: 3, resource: 'electricity' }), status: 'active', source: 'custom', at: `${m2}-01T09:30:00.000Z` });
+    s.goals.unshift({ id: 'g-now', kind: 'cut', bench: 'usual', resource: 'water', target: 5, months: 1, start: cur, end: cur, est: goalPoints({ kind: 'cut', target: 5, months: 1, resource: 'water' }), status: 'active', source: 'shower', at: `${cur}-01T09:30:00.000Z` });
     s.recs.shower = { status: 'accepted', at: `${cur}-01T09:30:00.000Z` };
     s.recs.shiftwash = { status: 'accepted', at: `${prev}-10T09:30:00.000Z` };
-    sync(s);
-    const sh = s.ch.find((c) => c.tpl === 'showers');
-    sh.start = addDays(t, -6); sh.end = addDays(t, 7); sh.id = 'showers-' + sh.start; sh.joined = true; sh.joinedAt = sh.start + 'T07:00:00.000Z';
-    sh.checks = [-6, -5, -4, -2, -1].map((n) => addDays(t, n));
-    sh.checks.forEach((d) => s.ledger.push({ id: `chk-${sh.id}-${d}`, amount: 5, reason: 'Five-minute showers check-in', at: d + 'T07:30:00.000Z' }));
-    const gw = s.ch.find((c) => c.tpl === 'greenwash' && c.start === cur + '-01');
-    gw.joined = true; gw.joinedAt = cur + '-02T08:00:00.000Z';
     for (let i = 0; i < 2; i++) {
       const start = new Date(now(s).getFullYear(), now(s).getMonth(), Math.max(1, now(s).getDate() - 6 + i * 3), 13).getTime();
-      const p = { id: 'p-demo' + i, appliance: 'washer', start, kwh: 0.8, hours: 2, green: true, status: 'done', doneAt: new Date(start + 72e5).toISOString() };
-      if (p.start < now(s).getTime()) { s.plans.push(p); gw.checks.push(p.id); s.ledger.push({ id: `chk-${gw.id}-${p.id}`, amount: 8, reason: 'Green-hour load', at: p.doneAt }); s.greenRuns++; }
+      if (start < now(s).getTime()) { s.plans.push({ id: 'p-demo' + i, appliance: 'washer', start, kwh: 0.8, hours: 2, green: true, status: 'done', doneAt: new Date(start + 72e5).toISOString() }); s.greenRuns++; }
     }
-    // Recompute the meter days now that showers check-ins exist.
-    s.days = {}; s.lastSync = null; sync(s);
-    seedSocial(s);
-    s.feed.push({ id: 'seed-me1', actor: 'me', kind: 'challenge', title: 'Cold-wash month', pts: 50, at: `${prev}-24T19:00:00.000Z`, cheers: 4, by: ['vi', 'akshi', 'mikael', 'thomas'], cheered: false });
-    s.feed.sort((a, b) => b.at.localeCompare(a.at));
+    sync(s);
     evalBadges(s, true);
     for (const id of Object.keys(s.badges)) s.badges[id].at = `${prev}-05T18:00:00.000Z`;
-    ['steady', 'goal-getter', 'company'].forEach((id) => { if (s.badges[id]) s.badges[id].pinned = true; });
+    ['steady', 'goal-getter', 'first-reading'].forEach((id) => { if (s.badges[id]) s.badges[id].pinned = true; });
     s.ledger.sort((a, b) => a.at.localeCompare(b.at));
     delete s.setup;
     seedNotes(s);
-    note(s, { icon: 'Receipt', title: `${monthName(prev)} isn't logged yet`, body: 'Enter it under Usage to keep your streak going. +10 points.' });
+    note(s, { icon: 'Receipt', title: `${monthName(prev)} isn't logged yet`, body: 'Enter it under Usage to keep your streak going. +10 points.', go: 'usage' });
     return s;
   }
 
   /* ---------- persistence ---------- */
   function validate(x) {
     if (!x || typeof x !== 'object' || x.v !== VERSION) return false;
-    const arrays = ['closed', 'plans', 'goals', 'ch', 'ledger', 'redemptions', 'tickets', 'draws', 'friends', 'feed', 'notes'];
+    const arrays = ['plans', 'goals', 'ledger', 'redemptions', 'notes'];
     if (arrays.some((k) => !Array.isArray(x[k]))) return false;
-    if (!x.profile || !Array.isArray(x.profile.appliances) || !x.months || !x.days || !x.badges || !x.recs) return false;
+    if (!x.profile || !Array.isArray(x.profile.appliances) || !x.months || !x.badges || !x.recs) return false;
     if (x.ledger.some((l) => typeof l.id !== 'string' || !Number.isInteger(l.amount))) return false;
     if (new Set(x.ledger.map((l) => l.id)).size !== x.ledger.length) return false;
     return available(x) >= 0;
@@ -1868,17 +1530,15 @@ const PBD = (() => {
   function advanceHours(s, h) { s.offset += h * 36e5; return sync(s); }
 
   return {
-    VERSION, KEY, REGIONS, HOUSING, HEATING, HOT_WATER, APPLIANCES, CHALLENGES, REWARDS, PRIZES, PARTNER_TEST, BADGES, FRIENDS, DIRECTORY, CO2_PER_KWH, DEMO_PROFILE,
+    VERSION, KEY, REGIONS, HOUSING, HEATING, HOT_WATER, APPLIANCES, REWARDS, PARTNER_TEST, BADGES, CO2_PER_KWH, DEMO_PROFILE, GOAL_TIMES,
     helpers: { ymd, mkey, addMonths, addDays, daysIn, monthName, round, clamp, sum, rng, hash, parseDay, hourOf },
     now, today, thisMonth, estimate, typicalMonth, describeHome, persons,
     prices, tomorrowReady, greenHours, priceLevel, priceAt, bestStart, priceDay,
-    sync, dayValue, monthDays, todaySoFar, monthSoFar, projected, monthValue, usual, change, vsTypical, rate, cost, upcomingPrices, cumShare,
-    available, lifetime, award, note, post, validateReading, logReading, loggedStreak,
+    sync, monthValue, lastEntered, usual, change, vsTypical, rate, cost, upcomingPrices,
+    available, lifetime, award, note, validateReading, logReading, loggedStreak,
     recommendations, setRec, efficient, goalPoints, goalProgress, createGoal, goalLabel, goalMonths, goalResources, underBy,
-    tplOf, isActive, joinChallenge, checkIn, canCheckIn, challengeProgress, participants, teamReduction,
     redeem, evalBadges, togglePin, planRun, markDone, dueRuns,
-    person, friendName, mutualFriends, addByCode, acceptFriend, declineFriend, ranking, friendEvent, cheer, friendCheers,
-    wantsFriend, setFriendMuted, ensureNotify, cheapWindow, nextTip,
+    ensureNotify, cheapWindow, nextTip,
     create, demo, validate, advanceToNextMonth, advanceHours, clone
   };
 })();
@@ -1901,10 +1561,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
   const clock = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   const dateShort = (d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
   const initials = (name) => String(name || '?').trim().slice(0, 1).toUpperCase() + (String(name).split(/\s+/)[1] || '').slice(0, 1).toUpperCase();
-  const AV = ['#3E6B5A', '#6B5B95', '#A65E36', '#2F6CA3', '#80553F', '#4F7C2E', '#9A4A66', '#55687A', '#7A6A2E', '#3F7F86'];
-  const avatar = (id, cls = '') => (id === 'me'
-    ? `<span class="avatar me ${cls}" aria-hidden="true">${esc(initials(s.profile.name))}</span>`
-    : `<span class="avatar ${cls}" style="background:${AV[H.hash(id) % AV.length]}" aria-hidden="true">${esc(initials(P.friendName(id)))}</span>`);
+  const avatar = (cls = '') => `<span class="avatar me ${cls}" aria-hidden="true">${esc(initials(s.profile.name))}</span>`;
   function ago(iso) {
     const diff = (P.now(s).getTime() - new Date(iso).getTime()) / 1000;
     if (diff < 60) return 'Just now';
@@ -1925,11 +1582,11 @@ if (typeof module !== 'undefined') module.exports = PBD;
   function save() { try { if (s) localStorage.setItem(P.KEY, JSON.stringify(s)); else localStorage.removeItem(P.KEY); } catch { /* storage unavailable: keep running in memory */ } }
   let s = load();
   const OB_DEFAULT = () => ({ name: '', region: 'capital', housing: 'apartment', area: 70, adults: 2, children: 0, heating: 'district', hotWater: 'heating', appliances: ['fridge', 'washer', 'cooking', 'tv'], payment: 'bills', billE: '', billW: '', sample: true, terms: false, data: false });
-  const ui = { tab: 'home', page: null, goalsSeg: 'goals', friendsSeg: 'feed', rankRes: 'electricity', usageRes: 'electricity', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, sheetToken: 0 };
+  const ui = { tab: 'home', page: null, goalsSeg: 'goals', usageRes: 'electricity', planDay: 'today', planApp: null, planFinish: 'tonight', sheet: null, ob: s ? null : { step: 0, d: OB_DEFAULT(), errors: {} }, fresh: new Set(), toasts: [], lastDay: null, nextNotify: Date.now() + 12000, notifySeq: 0, sheetToken: 0 };
   if (s) { P.ensureNotify(s); P.sync(s); }
 
   /* ---------- render ---------- */
-  const TAB_ORDER = ['home', 'usage', 'plan', 'goals', 'friends'];
+  const TAB_ORDER = ['home', 'usage', 'plan', 'goals'];
   const PAGE_DEPTH = { profile: 1, settings: 2 };
   /* How the screen should animate in, given where we were: push/pop for pages, slide for tabs. */
   function navMotion(prev, next) {
@@ -1948,7 +1605,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
       ui.lastObStep = ui.ob ? ui.ob.step : 0; ui.lastKey = obKey;
       focusOb(); emitRender(); return;
     }
-    // Switching a segment (Goals / Challenges, Feed / Ranking...) is not navigation: the page and its controls stay put.
+    // Switching a segment (Goals / Rewards, Electricity / Water...) is not navigation: the page and its controls stay put.
     const key = ui.page || ui.tab;
     const prev = $('#content'), top = prev ? prev.scrollTop : 0, navigated = key !== ui.lastKey;
     const gliders = navigated ? null : snapSegs(app), segMove = ui.segMotion; ui.segMotion = null;
@@ -2078,28 +1735,27 @@ if (typeof module !== 'undefined') module.exports = PBD;
   function view() {
     if (ui.page === 'profile') return viewProfile();
     if (ui.page === 'settings') return viewSettings();
-    return { home: viewHome, usage: viewUsage, plan: viewPlan, goals: viewGoals, friends: viewFriends }[ui.tab]();
+    return { home: viewHome, usage: viewUsage, plan: viewPlan, goals: viewGoals }[ui.tab]();
   }
   function header() {
-    if (ui.page === 'profile') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Profile</h1><p>Visible to your friends: name, badges and goals</p></div><button class="icon-btn" data-a="settings" aria-label="Settings">${ic('Settings')}</button></header>`;
-    if (ui.page === 'settings') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Settings</h1><p>Notifications, privacy and your household</p></div></header>`;
+    if (ui.page === 'profile') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Profile</h1><p>Your badges, points and household</p></div><button class="icon-btn" data-a="settings" aria-label="Settings">${ic('Settings')}</button></header>`;
+    if (ui.page === 'settings') return `<header class="top"><button class="icon-btn" data-a="back" aria-label="Back">${ic('ChevronLeft')}</button><div class="top-title"><h1>Settings</h1><p>Notifications, sound and your household</p></div></header>`;
     const region = P.REGIONS.find((r) => r.id === s.profile.region);
     const t = {
       home: [`${s.profile.name}'s home`, region.name],
       usage: ['Usage', 'Electricity and water, month by month'],
       plan: ['Plan', 'Plan runs in cheap hours. We remind you.'],
-      goals: ['Goals', 'Your goals, challenges and rewards'],
-      friends: ['Friends', `${P.mutualFriends(s).length} friends`]
+      goals: ['Goals', 'Your goals and rewards']
     }[ui.tab];
     const unread = s.notes.filter((n) => !n.read).length;
     return `<header class="top">
-      <button class="icon-btn" data-a="profile" aria-label="Your profile">${avatar('me', 'sm')}</button>
+      <button class="icon-btn" data-a="profile" aria-label="Your profile">${avatar('sm')}</button>
       <div class="top-title"><h1>${esc(t[0])}</h1><p>${esc(t[1])}</p></div>
       <button class="icon-btn" data-a="notes" aria-label="Notifications${unread ? `, ${unread} unread` : ''}">${ic('Bell')}${unread ? `<span class="count">${unread > 9 ? '9+' : unread}</span>` : ''}</button>
     </header>`;
   }
   function tabs() {
-    const items = [['home', 'Home', 'House'], ['usage', 'Usage', 'ChartColumn'], ['plan', 'Plan', 'CalendarClock'], ['goals', 'Goals', 'Target'], ['friends', 'Friends', 'Users']];
+    const items = [['home', 'Home', 'House'], ['usage', 'Usage', 'ChartColumn'], ['plan', 'Plan', 'CalendarClock'], ['goals', 'Goals', 'Target']];
     return `<nav class="tabs" aria-label="Main">${items.map(([id, label, icon]) => `<button class="tab" data-a="tab" data-tab="${id}"${ui.tab === id ? ' aria-current="page"' : ''}>${ic(icon)}<span>${label}</span></button>`).join('')}</nav>`;
   }
   const seg = (key, options, cls = '') => `<div class="seg ${cls}" role="group">${options.map(([v, label]) => `<button data-a="seg" data-key="${key}" data-val="${v}" aria-pressed="${ui[key] === v}">${label}</button>`).join('')}</div>`;
@@ -2161,27 +1817,29 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
 
   /* ---------- home ---------- */
-  function missingMonth() {
-    const last = H.addMonths(P.thisMonth(s), -1);
-    return s.months[last] ? null : last;
+  /* Something to do in the house: the best idea not answered yet, or, once every idea has been, when to run
+     the next appliance cheaply tonight. */
+  function homeTask() {
+    const rec = P.recommendations(s).find((r) => !s.recs[r.id]);
+    if (rec) return { icon: rec.icon, tone: rec.resource === 'water' ? 'water' : 'elec', title: rec.title, sub: savingText(rec) };
+    const has = (id) => s.profile.appliances.includes(id);
+    const what = has('dishwasher') ? 'the dishwasher' : has('washer') ? 'the washing machine' : has('ev') ? 'the car charging' : null;
+    const w = P.cheapWindow(s, has('dishwasher') ? 3 : 2), when = `${clock(w.start)}${w.late ? '' : ' tonight'}`;
+    return { icon: 'Moon', tone: 'elec', title: what ? `Start ${what} from ${when}` : `Charge laptops and phones from ${when}`, sub: `About ${fmt(w.avg, 2)} kr/kWh then, ${w.below}% below this evening's peak. Use the delay timer.` };
   }
   function viewHome() {
     const m = P.thisMonth(s), n = P.now(s);
-    // 1. One recommendation: logging last month comes first (the app only knows what you enter), then the best saving idea.
-    const miss = missingMonth(), rec = P.recommendations(s).find((r) => !s.recs[r.id]);
-    const recRow = miss
-      ? `<button class="row home-row" data-a="reading" data-month="${miss}"><span class="chip-icon brand">${ic('Receipt')}</span><div class="row-main"><div class="row-title">Add ${H.monthName(miss)}'s numbers</div><div class="row-sub">Enter what you used to keep your streak going. +10 points.</div></div>${ic('ChevronRight', 'sm muted')}</button>`
-      : rec ? `<button class="row home-row" data-a="tab" data-tab="plan"><span class="chip-icon ${rec.resource === 'water' ? 'water' : 'elec'}">${ic(rec.icon)}</span><div class="row-main"><div class="row-title">${esc(rec.title)}</div><div class="row-sub">${savingText(rec)}</div></div>${ic('ChevronRight', 'sm muted')}</button>`
-        : `<div class="row home-row"><span class="chip-icon brand">${ic('CircleCheck')}</span><div class="row-main"><div class="row-title">You're on top of things</div><div class="row-sub">You've been through every idea for now.</div></div></div>`;
-    const recs = `<section class="section">${sectionHead('Recommendation', '<button class="link" data-a="tab" data-tab="plan">More ideas</button>')}<div class="list">${recRow}</div></section>`;
+    // 1. One thing to do at home.
+    const t = homeTask();
+    const recs = `<section class="section">${sectionHead('Recommendation', '<button class="link" data-a="tab" data-tab="plan">More ideas</button>')}<div class="list"><button class="row home-row" data-a="tab" data-tab="plan"><span class="chip-icon ${t.tone}">${ic(t.icon)}</span><div class="row-main"><div class="row-title">${esc(t.title)}</div><div class="row-sub">${esc(t.sub)}</div></div>${ic('ChevronRight', 'sm muted')}</button></div></section>`;
     // 2. Up to two active goals, one line and a bar each.
     const active = s.goals.filter((g) => g.status === 'active').slice(0, 2);
-    const goalLine = (g) => { const p = P.goalProgress(s, g); return `<button class="home-goal" data-a="goal-detail" data-id="${g.id}" aria-label="${esc(P.goalLabel(g))}: see how it's going">
-        <div class="hg-top"><span class="chip-icon brand sm">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target', 'sm')}</span><span class="row-title">${esc(P.goalLabel(g))}</span><span class="hg-status ${p.onTrack ? 'good' : 'warn'}">${goalStatus(g, p).split(' · ')[0]}</span></div>
-        <div class="target-bar" aria-hidden="true"><i style="width:${goalRatio(g, p) * 100}%;background:${p.onTrack ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:50%"></b></div></button>`; };
+    const goalLine = (g) => { const p = P.goalProgress(s, g), st = goalState(g, p); return `<button class="home-goal" data-a="goal-detail" data-id="${g.id}" aria-label="${esc(P.goalLabel(g))}: see how it's going">
+        <div class="hg-top"><span class="chip-icon brand sm">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target', 'sm')}</span><span class="row-title">${esc(P.goalLabel(g))}</span><span class="hg-status ${st.tone}">${esc(st.short)}</span></div>
+        ${goalBar(g, p)}</button>`; };
     const goals = `<section class="section">${sectionHead('Goals', `<button class="link" data-a="tab" data-tab="goals">${active.length ? 'All goals' : 'Goals'}</button>`)}<div class="list">${active.length ? active.map(goalLine).join('')
-      : `<div class="row home-row"><span class="chip-icon">${ic('Target')}</span><div class="row-main"><div class="row-title">No goal running</div><div class="row-sub">Cut back or keep it steady in ${H.monthName(m)}.</div></div><button class="btn primary small" data-a="goal">Set a goal</button></div>`}</div></section>`;
-    // 3. Live prices, not live usage: prices are public, while usage only reaches us later.
+      : `<div class="row home-row"><span class="chip-icon">${ic('Target')}</span><div class="row-main"><div class="row-title">No goal running</div><div class="row-sub">Cut back, or keep it steady.</div></div><button class="btn primary small" data-a="goal">Set a goal</button></div>`}</div></section>`;
+    // 3. Live prices, not live usage: prices are public, while usage only comes in once a month.
     const list = P.prices(s, P.today(s)), h = n.getHours(), green = P.greenHours(list), level = P.priceLevel(list[h], list), up = P.upcomingPrices(s);
     const day = (ts) => (H.ymd(new Date(ts)) === P.today(s) ? '' : ' tomorrow'), slot = `${String(h).padStart(2, '0')}:00–${String((h + 1) % 24).padStart(2, '0')}:00`;
     const live = `<section class="section">${sectionHead('Live price', '<button class="link" data-a="tab" data-tab="plan">Plan</button>')}<button class="card live ${s.live ? '' : 'paused'}" data-a="tab" data-tab="plan" aria-label="Electricity price right now. Open Plan for the whole day.">
@@ -2204,30 +1862,35 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const parts = [r.saveE ? `${fmt(r.saveE, r.saveE < 10 ? 1 : 0)} kWh` : '', r.saveW ? `${fmt(Math.round(r.saveW * 100) * 10)} litres` : ''].filter(Boolean);
     return `About ${parts.join(' and ')} a month, worth ${kr(r.saveKr)}.`;
   }
-  /* Goals come in two kinds: cut (use X% less than usual) and keep (stay at or under your usual, or under similar homes). */
+  /* Goals come in two kinds: cut (use X% less than usual in a month within the time frame) and keep (stay at
+     or under your usual, or under similar homes, over the time frame). Both are judged on entered months only. */
   const goalBenchName = (g) => (g.bench === 'typical' ? 'similar homes' : 'your usual');
-  /* Fill of the progress bar; the marker in the middle is the target. */
-  const goalRatio = (g, p) => H.clamp(g.kind === 'keep' ? 0.5 + p.reduction / 20 : p.reduction / (g.target * 2), 0, 1);
-  function goalStatus(g, p) {
-    if (g.kind === 'keep') return `${p.onTrack ? 'On track' : 'Over for now'} · ${fmt(Math.abs(p.reduction), 1)}% ${p.reduction >= 0 ? 'under' : 'over'} ${goalBenchName(g)}`;
-    return `${p.onTrack ? 'On track' : 'Behind for now'} · ${p.reduction >= 0 ? '−' : '+'}${fmt(Math.abs(p.reduction), 1)}% so far`;
+  const monthShort = (m) => H.monthName(m, 'short');
+  const timeFrame = (g) => (g.start === g.end ? `${H.monthName(g.start)} ${g.start.slice(0, 4)}` : `${monthShort(g.start)} – ${monthShort(g.end)} ${g.end.slice(0, 4)}`);
+  /* Fill of the progress bar; the marker in the middle is the target. Empty until a month's numbers are in. */
+  const goalRatio = (g, p) => (p.reduction === null ? 0 : H.clamp(g.kind === 'keep' ? 0.5 + p.reduction / 20 : p.reduction / (g.target * 2), 0, 1));
+  const goalBar = (g, p) => `<div class="target-bar" aria-hidden="true"><i style="width:${goalRatio(g, p) * 100}%;background:${p.onTrack ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:50%"></b></div>`;
+  /* Where a goal stands, in words: short for Home, long for the Goals tab. */
+  function goalState(g, p) {
+    const cur = P.thisMonth(s);
+    if (p.reduction === null) {
+      if (p.waiting.length) return { tone: 'muted', short: `Waiting for ${monthShort(p.waiting[0])}`, long: `Waiting for ${H.monthName(p.waiting[0])}'s numbers` };
+      return { tone: 'muted', short: `First result after ${monthShort(cur)}`, long: `First result when ${H.monthName(cur)}'s numbers are in` };
+    }
+    const latest = p.results[p.results.length - 1].m, more = p.waiting.length ? ` · waiting for ${H.monthName(p.waiting[0])}` : '';
+    if (g.kind === 'keep') {
+      const word = p.reduction >= 0 ? 'under' : 'over';
+      return { tone: p.onTrack ? 'good' : 'warn', short: `${fmt(Math.abs(p.reduction), 1)}% ${word}`, long: `${p.onTrack ? 'On track' : 'Over for now'} · ${fmt(Math.abs(p.reduction), 1)}% ${word} ${goalBenchName(g)}${p.results.length > 1 ? ' on average' : ` in ${H.monthName(latest)}`}${more}` };
+    }
+    const best = p.results.reduce((a, b) => (b.under > a.under ? b : a));
+    return { tone: 'warn', short: `Best ${signed(-p.reduction, 1)}`, long: `Best month so far: ${signed(-p.reduction, 1)} in ${H.monthName(best.m)}${more}` };
   }
   function goalRow(g) {
-    const p = P.goalProgress(s, g), ratio = goalRatio(g, p);
-    const ends = H.monthName(g.end) + ' ' + g.end.slice(0, 4);
+    const p = P.goalProgress(s, g), st = goalState(g, p);
     return `<button class="prog-row" data-a="goal-detail" data-id="${g.id}" style="width:100%;border:0;background:none;text-align:left;display:block" aria-label="${esc(P.goalLabel(g))}: see how it's going">
-      <div class="prog-top"><span class="chip-icon brand">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${goalStatus(g, p)}</div></div><span class="pts">${g.est} pts</span>${ic('ChevronRight', 'sm muted')}</div>
-      <div class="target-bar" aria-hidden="true"><i style="width:${ratio * 100}%;background:${p.onTrack ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:50%"></b></div>
-      <div class="prog-meta"><span>${g.kind === 'keep' ? `At ${goalBenchName(g)} at the marker` : `Target −${g.target}% at the marker`}</span><span>Ends ${esc(ends)}</span></div></button>`;
-  }
-  function challengeRow(c) {
-    const t = P.tplOf(c), p = P.challengeProgress(s, c), can = P.canCheckIn(s, c);
-    const dots = ['habit', 'quick', 'offpeak'].includes(t.kind) && t.goal <= 8;
-    return `<div class="prog-row">
-      <div class="prog-top"><span class="chip-icon">${ic(t.icon)}</span><button class="row-main" data-a="challenge" data-id="${c.id}" style="border:0;background:none;text-align:left;padding:0"><div class="row-title">${esc(t.title)}</div><div class="row-sub">${esc(p.label)} · ends ${dateShort(c.end)}</div></button>
-      ${can ? `<button class="btn primary small" data-a="checkin" data-id="${c.id}">Check in</button>` : `<span class="pts">${t.points} pts</span>`}</div>
-      ${dots ? `<div class="dots" aria-hidden="true">${Array.from({ length: t.goal }, (_, i) => `<i class="${i < p.value ? 'on' : ''}"></i>`).join('')}</div>` : `<div class="bar" aria-hidden="true"><i style="width:${p.ratio * 100}%"></i></div>`}
-    </div>`;
+      <div class="prog-top"><span class="chip-icon brand">${ic(g.kind === 'keep' ? 'ShieldCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${esc(st.long)}</div></div><span class="pts">${g.est} pts</span>${ic('ChevronRight', 'sm muted')}</div>
+      ${goalBar(g, p)}
+      <div class="prog-meta"><span>${g.kind === 'keep' ? `At ${goalBenchName(g)} at the marker` : `Target −${g.target}% at the marker`}</span><span>${esc(timeFrame(g))}</span></div></button>`;
   }
 
   /* ---------- charts ---------- */
@@ -2317,17 +1980,17 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
 
   /* ---------- usage ---------- */
-  /* Months are entered by hand, so Usage shows months: the last 12, and this one so far. */
+  /* Months are entered by hand once they're over, so Usage shows the last 12 finished months. */
   function viewUsage() {
-    const r = ui.usageRes, cls = r === 'water' ? 'bar-w' : 'bar-e', m = P.thisMonth(s), k = r === 'water' ? 'w' : 'e';
+    const r = ui.usageRes, cls = r === 'water' ? 'bar-w' : 'bar-e', m = P.thisMonth(s);
     const bars = [], typs = [];
-    for (let i = 12; i >= 0; i--) {
-      const mm = H.addMonths(m, -i), v = s.months[mm] ? s.months[mm][k] : null, isCur = i === 0, typ = P.typicalMonth(s.profile, r, mm);
+    for (let i = 12; i >= 1; i--) {
+      const mm = H.addMonths(m, -i), v = P.monthValue(s, r, mm), typ = P.typicalMonth(s.profile, r, mm);
       typs.push(typ);
-      bars.push({ value: isCur ? P.monthSoFar(s, r) : v, proj: isCur ? P.projected(s, r) : null, cls, missing: !isCur && v === null, label: i % 3 === 0 ? H.monthName(mm, 'short') : '',
-        tip: isCur ? `${H.monthName(mm)} (so far)|${fmtRes(r, P.monthSoFar(s, r))} ${unit(r)}, heading for ${fmtRes(r, P.projected(s, r))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` : v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not entered yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${kr(P.cost(s, r, v))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
+      bars.push({ value: v, cls, missing: v === null, label: i % 3 === 1 ? H.monthName(mm, 'short') : '',
+        tip: v === null ? `${H.monthName(mm)} ${mm.slice(0, 4)}|Not entered yet` : `${H.monthName(mm)} ${mm.slice(0, 4)}|${fmtRes(r, v)} ${unit(r)} · ${kr(P.cost(s, r, v))}|Typical: ${fmtRes(r, typ)} ${unit(r)}` });
     }
-    const logged = bars.slice(0, 12).filter((b) => b.value !== null && !b.missing).map((b) => b.value), total = H.sum(logged);
+    const logged = bars.filter((b) => !b.missing).map((b) => b.value), total = H.sum(logged);
     const stats = [['Last 12 months', `${fmtRes(r, total)} ${unit(r)}`], ['Average month', `${fmtRes(r, logged.length ? total / logged.length : 0)} ${unit(r)}`], ['Cost', kr(P.cost(s, r, total))]];
     const miss = missingMonths().filter((x) => !s.months[x]);
     const est = P.estimate(s.profile)[r];
@@ -2408,7 +2071,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const recCard = (r) => `<div class="rec"><div class="ch-head"><span class="chip-icon ${r.resource === 'water' ? 'water' : 'elec'}">${ic(r.icon)}</span><div style="flex:1"><h3>${esc(r.title)}</h3><p>${esc(r.detail)}</p></div></div>
       <div class="saving"><span class="tag brand">≈ ${kr(r.saveKr)} / month</span>${r.saveE ? `<span class="tag">${fmt(r.saveE, r.saveE < 10 ? 1 : 0)} kWh</span>` : ''}${r.saveW ? `<span class="tag">${fmt(Math.round(r.saveW * 100) * 10)} L</span>` : ''}${r.costOnly ? '<span class="tag">Saves money, not energy</span>' : ''}</div>
       <div class="btn-row"><button class="btn primary small" data-a="rec-accept" data-id="${r.id}">We'll do this</button><button class="btn secondary small" data-a="rec-dismiss" data-id="${r.id}">Not for us</button></div></div>`;
-    const doingRow = (r) => { const since = s.recs[r.id].at, days = Math.max(0, (P.now(s) - new Date(since)) / 864e5); const saved = r.costOnly ? `${kr(r.saveKr / 30 * days)} saved` : r.saveE ? `${fmt(r.saveE / 30 * days, 1)} kWh saved` : `${fmt(r.saveW / 30 * days * 1000)} L saved`; return `<div class="row"><span class="chip-icon brand">${ic('Check')}</span><div class="row-main"><div class="row-title">${esc(r.title)}</div><div class="row-sub">Since ${dateShort(since)} · about ${saved}</div></div>${r.goal && !s.goals.some((g) => g.status === 'active' && g.source === r.id) ? `<button class="btn secondary small" data-a="goal" data-rec="${r.id}">Make goal</button>` : `<button class="btn ghost small" data-a="rec-stop" data-id="${r.id}">Stop</button>`}</div>`; };
+    const doingRow = (r) => { const since = s.recs[r.id].at, worth = r.costOnly ? kr(r.saveKr) : r.saveE ? `${fmt(r.saveE, r.saveE < 10 ? 1 : 0)} kWh` : `${fmt(Math.round(r.saveW * 100) * 10)} L`; return `<div class="row"><span class="chip-icon brand">${ic('Check')}</span><div class="row-main"><div class="row-title">${esc(r.title)}</div><div class="row-sub">Since ${dateShort(since)} · worth about ${worth} a month</div></div>${r.goal && !s.goals.some((g) => g.status === 'active' && g.source === r.id) ? `<button class="btn secondary small" data-a="goal" data-rec="${r.id}">Make goal</button>` : `<button class="btn ghost small" data-a="rec-stop" data-id="${r.id}">Stop</button>`}</div>`; };
     return `<section class="section">${sectionHead('Electricity price', 'Illustrative prices')}${seg('planDay', [['today', 'Today'], ['tomorrow', 'Tomorrow'], ['history', 'Past months']], 'small')}<div style="margin-top:12px">${priceBlock}</div></section>
       <section class="section">${sectionHead('Plan a run', 'Cheapest start')}${planner}${planList}</section>
       ${doing.length ? `<section class="section">${sectionHead("What you're doing", `${doing.length}`)}<div class="list">${doing.map(doingRow).join('')}</div></section>` : ''}
@@ -2417,34 +2080,22 @@ if (typeof module !== 'undefined') module.exports = PBD;
 
   /* ---------- goals ---------- */
   function viewGoals() {
-    const m = P.thisMonth(s), tickets = s.tickets.filter((t) => t.month === m).length;
-    const wallet = `<section class="section"><div class="card wallet"><div class="main"><span>Available</span><b class="num">${fmt(P.available(s))}</b></div><div><span>Earned</span><b class="num">${fmt(P.lifetime(s))}</b></div><div><span>Draw tickets</span><b class="num">${tickets}</b></div></div></section>`;
-    const tabsHtml = `<section class="section">${seg('goalsSeg', [['goals', 'Goals'], ['challenges', 'Challenges'], ['rewards', 'Rewards']])}</section>`;
+    const wallet = `<section class="section"><div class="card wallet">
+        <div class="main"><span>Points to spend</span><b class="num">${fmt(P.available(s))}<small>pts</small></b></div>
+        <div><span>Points earned in total</span><b class="num">${fmt(P.lifetime(s))}<small>pts</small></b></div>
+        <p class="wallet-note">You earn points by logging a month (+10) and reaching goals. Spend them on partner rewards: that lowers points to spend, never your total earned.</p>
+      </div></section>`;
+    const tabsHtml = `<section class="section">${seg('goalsSeg', [['goals', 'Goals'], ['rewards', 'Rewards']])}</section>`;
     let body = '';
     if (ui.goalsSeg === 'goals') {
       const active = s.goals.filter((g) => g.status === 'active'), past = s.goals.filter((g) => g.status !== 'active');
+      const pastSub = (g) => `${timeFrame(g)} · ${g.kind === 'keep' ? `${fmt(Math.abs(g.result), 1)}% ${g.result >= 0 ? 'under' : 'over'} ${goalBenchName(g)}` : g.status === 'reached' ? `reached in ${H.monthName(g.settledFor || g.end)}, ${signed(-g.result, 1)}` : g.result > 0 ? `best month ${signed(-g.result, 1)}, not quite` : 'not this time'}`;
       body = `<section class="section">${sectionHead('Active', `<button class="link" data-a="goal">${ic('Plus', 'sm')}New goal</button>`)}
-        ${active.length ? `<div class="list">${active.map(goalRow).join('')}</div>` : `<div class="card empty">No goal running. Set one for ${H.monthName(m)}: cut back, or keep things steady, and we'll show what it's worth.<div class="btn-row" style="justify-content:center"><button class="btn primary small" data-a="goal" style="flex:none">New goal</button></div></div>`}
-        <p class="hint">Goals are measured against your usual: your last three logged months, adjusted for the season. Tap a goal to see how it's going.</p></section>
-        ${past.length ? `<section class="section">${sectionHead('Earlier')}<div class="list">${past.map((g) => `<div class="row"><span class="chip-icon ${g.status === 'reached' ? 'brand' : ''}">${ic(g.status === 'reached' ? 'CircleCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${H.monthName(g.start)}${g.end !== g.start ? ' – ' + H.monthName(g.end) : ''} ${g.end.slice(0, 4)} · ${g.kind === 'keep' ? `${fmt(Math.abs(g.result), 1)}% ${g.result >= 0 ? 'under' : 'over'} ${goalBenchName(g)}` : g.status === 'reached' ? `cut ${fmt(g.result, 1)}%` : g.result > 0 ? `cut ${fmt(g.result, 1)}%, not quite` : 'not this time'}</div></div>${g.status === 'reached' ? `<span class="pts">+${g.est}</span>` : ''}</div>`).join('')}</div></section>` : ''}`;
-    } else if (ui.goalsSeg === 'challenges') {
-      const joined = s.ch.filter((c) => c.joined && P.isActive(s, c)), open = s.ch.filter((c) => !c.joined && P.isActive(s, c)), done = s.ch.filter((c) => c.status === 'done' || c.status === 'missed').slice(-6).reverse();
-      body = `${joined.length ? `<section class="section">${sectionHead('Joined', `${joined.length}`)}<div class="list">${joined.map(challengeRow).join('')}</div></section>` : ''}
-        <section class="section">${sectionHead('Open to join', `${open.length}`)}${open.length ? `<div class="list">${open.map((c) => { const t = P.tplOf(c), who = P.participants(c).filter((id) => P.mutualFriends(s).some((f) => f.id === id)); return `<button class="row" data-a="challenge" data-id="${c.id}"><span class="chip-icon">${ic(t.icon)}</span><div class="row-main"><div class="row-title">${esc(t.title)}</div><div class="row-sub">${esc(t.blurb)}</div>${who.length ? `<div class="faces" style="margin-top:6px">${who.slice(0, 3).map((id) => avatar(id, 'sm')).join('')}<em>${who.length} friend${who.length > 1 ? 's' : ''} in</em></div>` : ''}</div><div class="row-end"><span class="pts">${t.points}</span>${t.ticket ? `<div>${ic('Ticket', 'xs')}</div>` : ''}</div></button>`; }).join('')}</div>` : '<div class="card empty">You have joined everything running right now.</div>'}
-        <p class="hint">${ic('Ticket', 'xs')} Monthly challenges also give a ticket for the Green draw. Joining is free and gives no points by itself.</p></section>
-        ${done.length ? `<section class="section">${sectionHead('Finished')}<div class="list">${done.map((c) => `<div class="row"><span class="chip-icon ${c.status === 'done' ? 'brand' : ''}">${ic(c.status === 'done' ? 'CircleCheck' : P.tplOf(c).icon)}</span><div class="row-main"><div class="row-title">${esc(P.tplOf(c).title)}</div><div class="row-sub">${c.status === 'done' ? 'Completed' : 'Ended before the target'} · ${dateShort(c.end)}</div></div>${c.status === 'done' ? `<span class="pts">+${P.tplOf(c).points}</span>` : ''}</div>`).join('')}</div></section>` : ''}`;
+        ${active.length ? `<div class="list">${active.map(goalRow).join('')}</div>` : `<div class="card empty">No goal running. Cut back, or keep things steady, and we'll show what it's worth.<div class="btn-row" style="justify-content:center"><button class="btn primary small" data-a="goal" style="flex:none">New goal</button></div></div>`}</section>
+        ${past.length ? `<section class="section">${sectionHead('Earlier')}<div class="list">${past.map((g) => `<div class="row"><span class="chip-icon ${g.status === 'reached' ? 'brand' : ''}">${ic(g.status === 'reached' ? 'CircleCheck' : 'Target')}</span><div class="row-main"><div class="row-title">${esc(P.goalLabel(g))}</div><div class="row-sub">${esc(pastSub(g))}</div></div>${g.status === 'reached' ? `<span class="pts">+${g.est}</span>` : ''}</div>`).join('')}</div></section>` : ''}`;
     } else {
-      const next = new Date(P.now(s).getFullYear(), P.now(s).getMonth() + 1, 1), last = s.draws[0];
       const redeemed = new Set(s.redemptions.map((v) => v.rewardId));
-      // This month's draw, the challenges that give a ticket for it, and last month's result, each labelled so it's clear which is which.
-      const ticketCh = s.ch.filter((c) => P.tplOf(c).ticket && c.start.slice(0, 7) === m);
-      const chStatus = (c) => (c.status === 'done' ? `<span class="tag low">${ic('Ticket', 'xs')}Ticket earned</span>` : c.joined && P.isActive(s, c) ? `<span class="small muted">${esc(P.challengeProgress(s, c).label)}</span>` : P.isActive(s, c) ? '<span class="small muted">Not joined</span>' : '<span class="small muted">Ended</span>');
-      body = `<section class="section"><div class="card draw"><div class="ch-head"><span class="chip-icon gold">${ic('Ticket')}</span><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><h3>The ${H.monthName(m)} Green draw</h3><span class="tag brand">This month</span></div><p class="small muted">Open now, drawn ${dateShort(next)}. You have ${tickets} ticket${tickets === 1 ? '' : 's'}. Tickets come only from finishing this month's challenges; they can't be bought.</p></div></div>
-          <p class="small draw-label">Prizes in this draw (one is drawn)</p>
-          <div class="prize-list">${P.PRIZES.map((p) => `<span class="tag gold">${ic(p.icon, 'xs')}${esc(p.name)}</span>`).join('')}</div>
-          ${ticketCh.length ? `<p class="small draw-label">Challenges that give a ticket in ${H.monthName(m)}</p><div class="draw-ch">${ticketCh.map((c) => `<button class="draw-ch-row" data-a="challenge" data-id="${c.id}"><span class="chip-icon sm">${ic(P.tplOf(c).icon, 'sm')}</span><span class="row-main row-title">${esc(P.tplOf(c).title)}</span>${chStatus(c)}${ic('ChevronRight', 'sm muted')}</button>`).join('')}</div>` : ''}
-          ${last ? `<p class="small" style="margin-top:12px">${ic('Trophy', 'xs')} Last draw, ${H.monthName(last.month)}: <b>${esc(P.friendName(last.winner))}</b> won ${esc(last.prize.toLowerCase())}.</p>` : ''}</div></section>
-        <section class="section">${sectionHead('Partner rewards', `${fmt(P.available(s))} pts to spend`)}
+      body = `<section class="section">${sectionHead('Partner rewards', `${fmt(P.available(s))} pts to spend`)}
           <p class="hint" style="margin:-4px 0 10px">Every partner has to cut consumption, make things last, or be a lower-impact swap. No fast fashion, no gadgets.</p>
           <div class="list">${P.REWARDS.map((r) => { const short = r.cost - P.available(s); return `<button class="row" data-a="reward" data-id="${r.id}"><span class="chip-icon brand">${ic(r.icon)}</span><div class="row-main"><div class="row-title">${esc(r.name)}</div><div class="row-sub">${esc(r.partner)} · ${P.PARTNER_TEST[r.cat]}</div></div><div class="row-end">${redeemed.has(r.id) ? '<span class="tag low">Redeemed</span>' : `<span class="pts">${r.cost}</span>${short > 0 ? `<div class="small muted">${short} to go</div>` : ''}`}</div></button>`; }).join('')}</div></section>
         ${s.redemptions.length ? `<section class="section">${sectionHead('Your codes')}<div class="list">${s.redemptions.map((v) => { const r = P.REWARDS.find((x) => x.id === v.rewardId); return `<button class="row" data-a="reward" data-id="${r.id}"><div class="row-main"><div class="row-title">${esc(r.name)}</div><div class="row-sub">${esc(r.partner)} · ${dateShort(v.at)}</div></div><code class="num" style="font-size:13px">${esc(v.code)}</code></button>`; }).join('')}</div></section>` : ''}`;
@@ -2452,59 +2103,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     return wallet + tabsHtml + body;
   }
 
-  /* ---------- friends ---------- */
-  /* The challenge a feed item names: this month's run if there is one, otherwise the latest. */
-  function challengeByTitle(title) {
-    const all = s.ch.filter((c) => P.tplOf(c) && P.tplOf(c).title === title);
-    return all.find((c) => P.isActive(s, c)) || all.sort((a, b) => b.start.localeCompare(a.start))[0] || null;
-  }
-  function visibleFeed() {
-    const mutual = new Set(P.mutualFriends(s).map((f) => f.id));
-    return s.feed.filter((f) => f.actor === 'me' || mutual.has(f.actor));
-  }
-  /* In the feed itself, challenge and badge names open their details. Toasts and the bell list get plain text. */
-  function feedText(f, linked = false) {
-    const who = f.actor === 'me' ? 'You' : P.friendName(f.actor);
-    const target = !linked ? null : ['join', 'challenge', 'team'].includes(f.kind) && challengeByTitle(f.title) ? 'feed-challenge' : f.kind === 'badge' && P.BADGES.some((b) => b.name === f.title) ? 'feed-badge' : null;
-    const t = target ? `<button class="feed-link" data-a="${target}" data-title="${esc(f.title)}">${esc(f.title)}</button>` : `<b>${esc(f.title)}</b>`;
-    const withNames = (f.with || []).map((id) => esc(P.friendName(id))).join(', ');
-    const text = {
-      join: `joined ${t}`, challenge: `completed ${t}${f.detail ? ` at ${esc(f.detail)}` : ''}`, badge: `earned the ${t} badge`, goal: `reached a goal: ${t}`,
-      streak: `is on a ${t}`, team: `teamed up for ${t}${withNames ? ` with ${withNames}` : ''}`, draw: `won the ${t}${f.detail ? `: ${esc(f.detail.toLowerCase())}` : ''}`,
-      reading: f.actor === 'me' ? `logged ${t}` : 'logged a meter reading'
-    }[f.kind] || esc(f.title);
-    return `<b>${esc(who)}</b> ${text}`;
-  }
-  function feedItem(f) {
-    const mine = f.actor === 'me';
-    const cheer = mine
-      ? `<span class="cheer static" title="${esc((f.by || []).map(P.friendName).join(', '))}">${ic('Heart', 'xs')}${f.cheers}</span>`
-      : `<button class="cheer" data-a="cheer" data-id="${f.id}" aria-pressed="${!!f.cheered}" aria-label="Cheer ${esc(P.friendName(f.actor))}, ${f.cheers} cheers">${ic('Heart', 'xs')}${f.cheers}</button>`;
-    return `<div class="feed-item${ui.fresh.has(f.id) ? ' new' : ''}">${mine ? avatar('me') : `<button data-a="friend" data-id="${f.actor}" style="border:0;background:none;padding:0" aria-label="Compare with ${esc(P.friendName(f.actor))}">${avatar(f.actor)}</button>`}
-      <div class="feed-text">${feedText(f, true)}<div class="feed-meta"><span>${ago(f.at)}</span>${f.pts ? `<span class="pts">+${f.pts} pts</span>` : ''}</div></div>${cheer}</div>`;
-  }
-  function viewFriends() {
-    const incoming = s.friends.filter((f) => f.status === 'incoming'), outgoing = s.friends.filter((f) => f.status === 'outgoing');
-    const requests = incoming.map((f) => { const p = P.person(f.id); return `<div class="card"><div class="ch-head">${avatar(f.id)}<div style="flex:1"><h3 style="font-size:15px;font-weight:650">${esc(p.name)} wants to be friends</h3><p class="small muted">${esc(p.home)} · ${esc(p.city)}. You'll see each other's progress in the feed, never bills or exact usage.</p></div></div><div class="btn-row"><button class="btn primary small" data-a="friend-accept" data-id="${f.id}">Accept</button><button class="btn secondary small" data-a="friend-decline" data-id="${f.id}">Not now</button></div></div>`; }).join('');
-    const pending = outgoing.map((f) => `<div class="row">${avatar(f.id)}<div class="row-main"><div class="row-title">${esc(P.friendName(f.id))}</div><div class="row-sub">Request sent · waiting for them to accept</div></div><span class="tag warn">Pending</span></div>`).join('');
-    let body;
-    if (ui.friendsSeg === 'feed') {
-      const items = visibleFeed();
-      body = items.length ? `<div class="list">${items.map(feedItem).join('')}</div>` : '<div class="card empty">Nothing yet. Add a friend to see their progress here.</div>';
-    } else {
-      const rows = P.ranking(s, ui.rankRes), maxAbs = Math.max(5, ...rows.map((r) => Math.abs(r.pct)));
-      body = `${seg('rankRes', [['electricity', 'Electricity'], ['water', 'Water']], 'small')}
-        <p class="hint" style="margin:10px 0">This month, each person against their own usual, so household size doesn't matter. <button class="link" data-a="rank-info" style="padding:0;font-size:13px">How it's worked out</button></p>
-        <div class="list">${rows.map((r, i) => `<button class="rank-row${r.id === 'me' ? ' me' : ''}" data-a="${r.id === 'me' ? 'profile' : 'friend'}" data-id="${r.id}"><span class="rank-n">${i + 1}</span>${avatar(r.id)}<div style="min-width:0"><div class="row-title">${esc(r.name)}</div><div class="rank-bar"><i style="width:${Math.abs(r.pct) / maxAbs * 100}%;background:${r.pct <= 0 ? 'var(--good)' : 'var(--bad)'}"></i></div></div><span class="num" style="text-align:right;font-weight:650;color:${r.pct <= 0 ? 'var(--good)' : 'var(--bad)'}">${signed(r.pct, 1)}</span></button>`).join('')}</div>`;
-    }
-    return `${incoming.length ? `<section class="section">${requests}</section>` : ''}
-      <section class="section"><div class="btn-row" style="margin:0"><button class="btn secondary" data-a="add-friend">${ic('UserPlus', 'sm')}Add a friend</button><button class="btn secondary" data-a="share">${ic('Share2', 'sm')}Share my code</button></div>${pending ? `<div class="list" style="margin-top:10px">${pending}</div>` : ''}</section>
-      <section class="section">${seg('friendsSeg', [['feed', 'Feed'], ['ranking', 'Ranking']])}</section>
-      <section class="section" style="margin-top:12px">${body}</section>`;
-  }
-
   /* ---------- profile ---------- */
-  function challengesDone() { return s.ledger.filter((l) => l.id.startsWith('ch-')).length; }
   function badgeTile(b) {
     const got = s.badges[b.id];
     return `<button class="badge${got ? '' : ' locked'}" data-a="badge" data-id="${b.id}" aria-label="${esc(b.name)}${got ? '' : ', locked'}"><span class="medal">${ic(got ? b.icon : 'Lock')}${got && got.pinned ? `<span class="pin">${ic('Pin')}</span>` : ''}</span>${esc(b.name)}</button>`;
@@ -2512,32 +2111,25 @@ if (typeof module !== 'undefined') module.exports = PBD;
   function viewProfile() {
     const pinned = P.BADGES.filter((b) => s.badges[b.id] && s.badges[b.id].pinned);
     const earned = Object.keys(s.badges).length;
-    return `<div class="profile-head">${avatar('me', 'lg')}<h2>${esc(s.profile.name)}</h2><p>${esc(P.describeHome(s.profile))}</p>
+    return `<div class="profile-head">${avatar('lg')}<h2>${esc(s.profile.name)}</h2><p>${esc(P.describeHome(s.profile))}</p>
         ${pinned.length ? `<div class="pinned">${pinned.map((b) => `<span class="medal" title="${esc(b.name)}">${ic(b.icon)}</span>`).join('')}</div>` : ''}</div>
-      <section class="section"><div class="card"><div class="share"><div style="flex:1"><span class="small muted">Your friend code</span><div class="num" style="font-size:22px;font-weight:700;letter-spacing:.04em">${esc(s.profile.code)}</div><p class="hint">Friends add you with this code. Friendship is mutual: nothing is shared until you both accept.</p></div></div><div class="btn-row"><button class="btn secondary small" data-a="copy-code">${ic('Copy', 'sm')}Copy</button><button class="btn secondary small" data-a="share">${ic('QrCode', 'sm')}Show QR</button></div></div></section>
-      <section class="section"><div class="stats"><div><span>Points earned</span><b class="num">${fmt(P.lifetime(s))}</b></div><div><span>Months logged</span><b class="num">${Object.keys(s.months).length}</b></div><div><span>Goals reached</span><b class="num">${s.goals.filter((g) => g.status === 'reached').length}</b></div><div><span>Challenges done</span><b class="num">${challengesDone()}</b></div></div></section>
+      <section class="section"><div class="stats"><div><span>Points earned</span><b class="num">${fmt(P.lifetime(s))}</b></div><div><span>Months logged</span><b class="num">${Object.keys(s.months).length}</b></div><div><span>Goals reached</span><b class="num">${s.goals.filter((g) => g.status === 'reached').length}</b></div><div><span>Rewards redeemed</span><b class="num">${s.redemptions.length}</b></div></div></section>
       <section class="section">${sectionHead('Badges', `${earned} of ${P.BADGES.length}`)}<div class="card"><div class="badges">${[...P.BADGES].sort((a, b) => !!s.badges[b.id] - !!s.badges[a.id]).map(badgeTile).join('')}</div><p class="hint" style="margin-top:8px">Tap a badge to see how it's earned. Pin up to three to the top of your profile.</p></div></section>
       <section class="section">${sectionHead('Household', `<button class="link" data-a="household">Edit</button>`)}<div class="list"><div class="row"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">${esc(P.HOUSING.find((h) => h.id === s.profile.housing).name)}, ${s.profile.area} m²</div><div class="row-sub">${esc(P.APPLIANCES.filter((a) => s.profile.appliances.includes(a.id)).map((a) => (a.id === 'other' ? s.profile.otherNote || 'Something else' : a.name)).join(', ') || 'No appliances listed')}</div></div></div></div></section>
-      <section class="section"><div class="list"><button class="row" data-a="settings"><span class="chip-icon">${ic('Settings')}</span><div class="row-main"><div class="row-title">Settings</div><div class="row-sub">Notifications, privacy, sounds and household</div></div>${ic('ChevronRight')}</button></div></section>
-      <section class="section">${sectionHead('Points history', `${fmt(P.available(s))} available`)}<div class="list">${s.ledger.slice(-12).reverse().map((l) => `<div class="ledger-row"><span>${esc(l.reason)}<span class="muted"> · ${dateShort(l.at)}</span></span><b class="num ${l.amount < 0 ? 'neg' : 'pts'}">${l.amount > 0 ? '+' : '−'}${Math.abs(l.amount)}</b></div>`).join('')}</div></section>`;
+      <section class="section"><div class="list"><button class="row" data-a="settings"><span class="chip-icon">${ic('Settings')}</span><div class="row-main"><div class="row-title">Settings</div><div class="row-sub">Notifications, sounds and household</div></div>${ic('ChevronRight')}</button></div></section>
+      <section class="section">${sectionHead('Points history', `${fmt(P.available(s))} to spend`)}<div class="list">${s.ledger.slice(-12).reverse().map((l) => `<div class="ledger-row"><span>${esc(l.reason)}<span class="muted"> · ${dateShort(l.at)}</span></span><b class="num ${l.amount < 0 ? 'neg' : 'pts'}">${l.amount > 0 ? '+' : '−'}${Math.abs(l.amount)}</b></div>`).join('')}</div></section>`;
   }
 
   /* ---------- settings ---------- */
   const switchBtn = (on, label, attrs) => `<button class="switch" role="switch" aria-checked="${!!on}" aria-label="${esc(label)}" ${attrs}></button>`;
   const toggleRow = (title, sub, on, attrs, lead = '') => `<div class="toggle-row">${lead}<div class="row-main"><div class="row-title" style="font-size:14.5px">${title}</div>${sub ? `<div class="row-sub">${sub}</div>` : ''}</div>${switchBtn(on, stripTags(title), attrs)}</div>`;
   function viewSettings() {
-    const n = s.notify, friends = P.mutualFriends(s), muted = friends.filter((f) => !P.wantsFriend(s, f.id)).length;
-    const priv = [['feed', 'Show my activity in friends\' feeds', 'Goals, challenges and badges. Never numbers.'], ['percent', 'Share % change with friends', 'Used for the ranking and comparisons.'], ['exact', 'Share exact usage per person', 'Only shown to friends who share theirs too.'], ['league', "Appear in Friends' league invites", 'Friends can add you to their team.']];
+    const n = s.notify;
     return `<section class="section">${sectionHead('Notifications')}<div class="list">
-        ${toggleRow('Price and saving tips', 'Cheap hours, price peaks and how your month is going', n.tips, 'data-a="notify" data-key="tips"', `<span class="chip-icon elec">${ic('Moon', 'sm')}</span>`)}
+        ${toggleRow('Price and saving tips', 'Cheap hours, price peaks and small things to try at home', n.tips, 'data-a="notify" data-key="tips"', `<span class="chip-icon elec">${ic('Moon', 'sm')}</span>`)}
         ${toggleRow('Reminders for planned runs', 'When it\'s time to start something you planned in Plan', n.plans !== false, 'data-a="notify" data-key="plans"', `<span class="chip-icon">${ic('CalendarClock', 'sm')}</span>`)}
-        ${toggleRow('Cheers on your posts', 'When a friend cheers something you did', n.cheers, 'data-a="notify" data-key="cheers"', `<span class="chip-icon">${ic('Heart', 'sm')}</span>`)}
       </div></section>
-      <section class="section">${sectionHead('From friends', friends.length ? `<button class="link" data-a="notify-all" data-on="${muted ? 1 : 0}">${muted ? 'Turn all on' : 'Turn all off'}</button>` : '')}
-        ${friends.length ? `<div class="list">${friends.map((f) => toggleRow(esc(f.name), P.wantsFriend(s, f.id) ? '' : 'Muted · still shown in your feed', P.wantsFriend(s, f.id), `data-a="notify-friend" data-id="${f.id}"`, avatar(f.id, 'sm'))).join('')}</div>` : '<div class="card empty">Add a friend to choose their notifications.</div>'}
-        <p class="hint">Muting a friend only stops their notifications. Their updates stay in your feed.</p></section>
       <section class="section">${sectionHead('Sound')}<div class="list">${toggleRow('Sound effects', 'Taps, notifications and calls. Vibration where the phone supports it.', window.PBFX ? PBFX.enabled() : false, 'data-a="sound"', `<span class="chip-icon">${ic('Volume2', 'sm')}</span>`)}</div></section>
-      <section class="section">${sectionHead('Privacy')}<div class="list">${priv.map(([k, t, d]) => toggleRow(t, d, s.privacy[k], `data-a="privacy" data-key="${k}"`)).join('')}</div><p class="hint">Bills, kroner amounts and your address are never shared.</p></section>
       <section class="section">${sectionHead('Household')}<div class="list"><button class="row" data-a="household"><span class="chip-icon">${ic(P.HOUSING.find((h) => h.id === s.profile.housing).icon)}</span><div class="row-main"><div class="row-title">Edit your household</div><div class="row-sub">${esc(P.describeHome(s.profile))}</div></div>${ic('ChevronRight')}</button></div><p class="hint">Changing this updates the "homes like yours" comparison.</p></section>`;
   }
 
@@ -2552,8 +2144,6 @@ if (typeof module !== 'undefined') module.exports = PBD;
     if (!s) return;
     const n = P.now(s), set = (k, v) => { for (const el of $$(`[data-live="${k}"]`)) if (el.textContent !== v) el.textContent = v; };
     set('price', fmt(P.priceAt(s, n), 2));
-    set('so-electricity', fmt(P.monthSoFar(s, 'electricity')));
-    set('so-water', fmt(P.monthSoFar(s, 'water'), 1));
     $('#clock').textContent = clock(n);
   }
   const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -2570,15 +2160,9 @@ if (typeof module !== 'undefined') module.exports = PBD;
     remindRuns();
     const t = Date.now();
     if (s.live) {
-      // One stream of incoming notifications, paused while a call is on screen.
+      // Household tips now and then, paused while a call is on screen.
       if (callBusy()) ui.nextNotify = Math.max(ui.nextNotify, t + 15000); // quiet during a call and just after it
-      else if (t > ui.nextNotify) { ui.nextNotify = t + NOTIFY_GAP[0] + Math.random() * (NOTIFY_GAP[1] - NOTIFY_GAP[0]); pushNotification(NOTIFY_PATTERN[ui.notifySeq++ % NOTIFY_PATTERN.length]); }
-      for (const f of s.friends.filter((x) => x.status === 'outgoing' && P.now(s).getTime() - new Date(x.at).getTime() > 7000)) {
-        const res = P.acceptFriend(s, f.id);
-        toast({ who: f.id, text: `<b>${esc(P.friendName(f.id))}</b> accepted your request`, sub: 'You can now compare progress', go: 'friends', sound: 'notify' });
-        if (res.length) celebrate(res);
-        softRender(); save();
-      }
+      else if (t > ui.nextNotify) { ui.nextNotify = t + NOTIFY_GAP[0] + Math.random() * (NOTIFY_GAP[1] - NOTIFY_GAP[0]); pushTip(); }
     }
     updateLive();
     if (t - (ui.lastSave || 0) > 10000) { save(); ui.lastSave = t; }
@@ -2596,11 +2180,8 @@ if (typeof module !== 'undefined') module.exports = PBD;
     }
   }
   /* ---------- incoming notifications ----------
-     One every 40-64 s (~52 s on average): 35% fewer than the previous 26-42 s gap, which was already
-     35% fewer than the first builds. The second is always a household tip, so it isn't only friends.
-     Each one also lands in the bell's list. */
-  const NOTIFY_GAP = [40000, 64000];
-  const NOTIFY_PATTERN = ['friend', 'tip', 'cheer', 'friend', 'friend', 'tip', 'cheer', 'friend'];
+     A household tip every 2.5-4 minutes. Each one also lands in the bell's list. */
+  const NOTIFY_GAP = [150000, 240000];
   const callBusy = () => !!(window.PBCall && PBCall.busy()) || !!(window.PBFeedback && PBFeedback.isBusy());
   function ringBell() { const b = $('[data-a="notes"]'); if (b) { b.classList.remove('ring'); void b.offsetWidth; b.classList.add('ring'); } }
   function addNote(n, toastOpts) {
@@ -2609,37 +2190,17 @@ if (typeof module !== 'undefined') module.exports = PBD;
     softRender(); ringBell(); save();
     return item;
   }
-  function pushNotification(kind, force = false) {
-    if (!s) return;
-    if (kind === 'friend') {
-      const ev = P.friendEvent(s, Math.random);
-      if (!ev) return;
-      ui.fresh.add(ev.id);
-      if (!force && !P.wantsFriend(s, ev.actor)) { softRender(); save(); return; } // muted: feed only
-      addNote({ kind: 'friend', actor: ev.actor, feedId: ev.id, icon: 'Users', go: 'friends' }, { who: ev.actor, text: feedText(ev), sub: 'Just now · tap to open the feed', go: 'friends' });
-    } else if (kind === 'cheer') {
-      if (!force && !s.notify.cheers) return;
-      const c = P.friendCheers(s, Math.random);
-      if (!c) return;
-      if (!force && !P.wantsFriend(s, c.friend.id)) { save(); return; }
-      addNote({ kind: 'cheer', actor: c.friend.id, icon: 'Heart', title: `${c.friend.name} cheered you`, body: stripTags(feedText(c.item)), go: 'friends' }, { who: c.friend.id, text: `<b>${esc(c.friend.name)}</b> cheered you`, sub: stripTags(feedText(c.item)), go: 'friends' });
-    } else if (kind === 'tip') {
-      if (!force && !s.notify.tips) return;
-      const tip = P.nextTip(s);
-      addNote(tip, { icon: tip.icon, text: `<b>${esc(tip.title)}</b>`, sub: tip.body, go: tip.go, tone: 'tip' });
-    }
-  }
-  /* Notification text for the bell list. Friend notes are worded from their feed item. */
-  function noteText(n) {
-    if (n.kind === 'friend') { const f = s.feed.find((x) => x.id === n.feedId); return { title: f ? stripTags(feedText(f)) : `${P.friendName(n.actor)} has an update`, body: '' }; }
-    return { title: n.title || '', body: n.body || '' };
+  function pushTip(force = false) {
+    if (!s || (!force && !s.notify.tips)) return;
+    const tip = P.nextTip(s);
+    addNote(tip, { icon: tip.icon, text: `<b>${esc(tip.title)}</b>`, sub: tip.body, go: tip.go, tone: 'tip' });
   }
   /* Re-render only when it won't disturb typing or an open sheet. */
   function softRender() {
     if (ui.sheet) return;
     const a = document.activeElement;
     if (a && /INPUT|SELECT|TEXTAREA/.test(a.tagName) && $('#app').contains(a)) return;
-    if (['home', 'friends', 'goals'].includes(ui.tab) || ui.page) render(); else { const h = $('.top'); if (h) h.outerHTML = header(); }
+    if (['home', 'goals'].includes(ui.tab) || ui.page) render(); else { const h = $('.top'); if (h) h.outerHTML = header(); }
   }
 
   /* ---------- toast ---------- */
@@ -2660,13 +2221,13 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const el = $('#toast'), t = ui.toasts.shift();
     if (!t) { el.hidden = true; ui.toastOn = false; return; }
     ui.toastOn = true;
-    el.innerHTML = `${t.who ? avatar(t.who) : `<span class="toast-icon${t.tone === 'tip' ? ' tip' : ''}">${ic(t.icon || 'Check', 'sm')}</span>`}<div class="toast-text"><span class="toast-app">PowerBuddy<em>now</em></span>${t.text}${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div>`;
+    el.innerHTML = `<span class="toast-icon${t.tone === 'tip' ? ' tip' : ''}">${ic(t.icon || 'Check', 'sm')}</span><div class="toast-text"><span class="toast-app">PowerBuddy<em>now</em></span>${t.text}${t.sub ? `<small>${esc(t.sub)}</small>` : ''}</div>`;
     el.hidden = false; el.classList.remove('out'); el.style.transform = ''; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
     if (t.sound && window.PBFX) { PBFX.play(t.sound); PBFX.vibrate(t.sound === 'notify' || t.sound === 'tip' ? [12, 60, 12] : 8); }
     el.onclick = () => {
       if (ui.toastSwiped) { ui.toastSwiped = false; return; }
       if (t.onTap) { hideToast(nextToast); t.onTap(); return; }
-      if (t.go && s) { ui.page = null; ui.tab = t.go; if (t.go === 'friends') ui.friendsSeg = 'feed'; closeSheet(true); render(); }
+      if (t.go && s) { ui.page = null; ui.tab = t.go; closeSheet(true); render(); }
       hideToast(nextToast);
     };
     clearTimeout(ui.toastTimer); ui.toastTimer = setTimeout(() => hideToast(nextToast), 4600);
@@ -2742,13 +2303,13 @@ if (typeof module !== 'undefined') module.exports = PBD;
     for (const h of handle) { if (!h) continue; h.addEventListener('pointerdown', down); h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up); }
   }
   function field(label, html, error) { return `<label class="field"><span>${label}</span>${html}${error ? `<span class="field-error">${esc(error)}</span>` : ''}</label>`; }
-  function missingMonths() { const out = []; for (let i = 1; i <= 12; i++) { const m = H.addMonths(P.thisMonth(s), -i); if (!s.months[m] || s.months[m].src !== 'meter') out.push(m); } return out; }
+  function missingMonths() { const out = []; for (let i = 1; i <= 12; i++) { const m = H.addMonths(P.thisMonth(s), -i); out.push(m); } return out; }
   const SHEETS = {
     notes() {
       const items = s.notes;
       const row = (n) => {
-        const { title, body } = noteText(n), isNew = !n.read;
-        const lead = n.actor ? avatar(n.actor) : `<span class="chip-icon ${n.kind === 'tip' ? 'elec' : n.kind === 'call' ? 'bad' : isNew ? 'brand' : ''}">${ic(n.icon || 'Bell')}</span>`;
+        const title = n.title || '', body = n.body || '', isNew = !n.read;
+        const lead = `<span class="chip-icon ${n.kind === 'tip' ? 'elec' : n.kind === 'call' ? 'bad' : isNew ? 'brand' : ''}">${ic(n.icon || 'Bell')}</span>`;
         const inner = `${lead}<div class="row-main"><div class="row-title note-title">${esc(title)}</div>${body ? `<div class="row-sub">${esc(body)}</div>` : ''}<div class="row-sub note-when">${ago(n.at)}</div></div>`;
         const dot = isNew ? '<span class="dot" aria-label="New"></span>' : '';
         if (n.action === 'callback') return `<div class="row note${isNew ? ' unread' : ''}">${inner}<button class="btn primary small" data-a="callback" data-id="${n.id}">${ic('Phone', 'sm')}Call back</button></div>`;
@@ -2771,12 +2332,12 @@ if (typeof module !== 'undefined') module.exports = PBD;
       const opts = missingMonths(), m = sh.month || opts.find((x) => !s.months[x]) || opts[0], e = sh.errors || {}, v = sh.values || {}, cur = s.months[m];
       const te = P.typicalMonth(s.profile, 'electricity', m), tw = P.typicalMonth(s.profile, 'water', m);
       // The months entered so far sit under the form: tap one to correct it, or a missing one to add it.
-      const SRC = { bill: 'Entered', manual: 'Entered', meter: 'Meter', sample: 'Sample' };
+      const SRC = { bill: 'Entered', manual: 'Entered', sample: 'Sample' };
       const history = Array.from({ length: 12 }, (_, i) => H.addMonths(P.thisMonth(s), -1 - i)).map((mm) => {
-        const x = s.months[mm], editable = !x || x.src !== 'meter', sel = mm === m;
+        const x = s.months[mm], sel = mm === m;
         const inner = `<div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${x ? `${fmt(x.e)} kWh · ${fmt(x.w, 1)} m³` : 'Not entered yet'}</div></div>`;
         const end = sel ? '<span class="tag brand">Editing</span>' : x ? `<span class="tag">${SRC[x.src] || x.src}</span>` : '<span class="tag warn">Add</span>';
-        return editable ? `<button type="button" class="row month-row${sel ? ' on' : ''}" data-a="reading-pick" data-month="${mm}" aria-pressed="${sel}">${inner}${end}</button>` : `<div class="row month-row">${inner}${end}</div>`;
+        return `<button type="button" class="row month-row${sel ? ' on' : ''}" data-a="reading-pick" data-month="${mm}" aria-pressed="${sel}">${inner}${end}</button>`;
       }).join('');
       return [cur ? 'Correct a month' : 'Add monthly data', `<form data-form="reading" novalidate>
         <p class="small muted">Type in what you used in the month. Homes like yours use about ${fmt(te)} kWh and ${fmt(tw, 1)} m³ in ${H.monthName(m)}.</p>
@@ -2790,33 +2351,21 @@ if (typeof module !== 'undefined') module.exports = PBD;
         <div class="list">${history}</div>`];
     },
     goal(sh) {
-      const r = sh.resource || 'electricity', keep = sh.kind === 'keep';
+      const r = sh.resource || 'electricity', keep = sh.kind === 'keep', months = sh.months || 1;
+      const times = P.GOAL_TIMES.map((v) => [v, v === 1 ? 'This month' : `${v} months`]);
       return ['New goal', `<form data-form="goal">
-        <p class="small muted">Starts ${H.monthName(P.thisMonth(s))}. Measured against your usual, adjusted for the season.</p>
+        <p class="small muted">Goals are checked against the monthly numbers you enter, compared with your usual for that time of year.</p>
         <div class="field"><span>Your aim</span><div class="seg" role="group">${[['cut', 'Use less'], ['keep', 'Keep it steady']].map(([v, l]) => `<button type="button" data-a="goal-kind" data-val="${v}" aria-pressed="${(sh.kind || 'cut') === v}">${l}</button>`).join('')}</div>
           <p class="hint">${keep ? 'Already where you want to be? Stay there: at or under your usual, or under what similar homes use.' : 'Cut back by a set percentage compared with your usual.'}</p></div>
         <div class="field"><span>${keep ? 'What to keep steady' : 'What to cut'}</span><div class="seg" role="group">${[['electricity', 'Electricity'], ['water', 'Water'], ['both', 'Both']].map(([v, l]) => `<button type="button" data-a="goal-res" data-val="${v}" aria-pressed="${r === v}">${l}</button>`).join('')}</div></div>
         ${keep ? `<div class="field"><span>Stay at or under</span><div class="seg" role="group">${[['usual', 'Your usual'], ['typical', 'Similar homes']].map(([v, l]) => `<button type="button" data-a="goal-bench" data-val="${v}" aria-pressed="${(sh.bench || 'usual') === v}">${l}</button>`).join('')}</div></div>`
           : `<label class="field"><span>By how much: <b data-bind="target">${sh.target || 5}%</b></span><input class="range" type="range" name="target" min="3" max="30" step="1" value="${sh.target || 5}" data-input="goal"></label>`}
-        <div class="field"><span>For how long</span><div class="seg" role="group">${goalDurations(sh.kind).map((v) => `<button type="button" data-a="goal-months" data-val="${v}" aria-pressed="${(sh.months || 1) === v}">${v} month${v > 1 ? 's' : ''}</button>`).join('')}</div></div>
+        <div class="field"><span>${keep ? 'How long to keep it up' : 'How long you\'ll give it'}</span><div class="seg" role="group">${times.map(([v, l]) => `<button type="button" data-a="goal-months" data-val="${v}" aria-pressed="${months === v}">${l}</button>`).join('')}</div>
+          <p class="hint" data-bind="time"></p></div>
         <div data-bind="baseline" class="small" style="margin-top:14px;color:var(--ink-2)"></div>
         <div class="estimate"><div><p>Estimated reward</p><p class="small muted" data-bind="why"></p></div><b class="num" data-bind="points">–</b></div>
         <div data-bind="warn"></div>
         <div class="btn-row"><button class="btn primary" type="submit">Start goal</button></div></form>`];
-    },
-    challenge(sh) {
-      const c = s.ch.find((x) => x.id === sh.id), t = P.tplOf(c), p = P.challengeProgress(s, c), who = P.participants(c).filter((id) => P.mutualFriends(s).some((f) => f.id === id));
-      const period = `${dateShort(c.start)} – ${dateShort(c.end)}`;
-      let action;
-      if (!c.joined && !P.isActive(s, c)) action = `<div class="alert info">${ic('Clock', 'sm')}<span>This round has ended. A new one starts next month.</span></div>`;
-      else if (c.joined) action = `<div class="card" style="margin-top:14px"><div class="row-title">${esc(p.label)}</div><div class="bar" style="margin-top:10px"><i style="width:${p.ratio * 100}%"></i></div>${c.team.length ? `<p class="small muted" style="margin-top:8px">Team: you, ${c.team.map((id) => esc(P.friendName(id))).join(', ')}</p>` : ''}</div>${P.canCheckIn(s, c) ? `<div class="btn-row"><button class="btn primary" data-a="checkin" data-id="${c.id}">Check in for today</button></div>` : ''}`;
-      else if (t.kind === 'team') { const sel = sh.team || []; action = `<div class="field"><span>Pick 1-3 teammates</span></div><div class="check-list">${P.mutualFriends(s).map((f) => `<button type="button" class="choice" data-a="team-pick" data-id="${f.id}" aria-pressed="${sel.includes(f.id)}">${avatar(f.id, 'sm')}${esc(f.name)}</button>`).join('')}</div><div class="btn-row"><button class="btn primary" data-a="join" data-id="${c.id}"${sel.length ? '' : ' disabled'}>Start the league${sel.length ? ` with ${sel.length}` : ''}</button></div>`; }
-      else action = `<div class="btn-row"><button class="btn primary" data-a="join" data-id="${c.id}">Join challenge</button></div>`;
-      return [esc(t.title), `<div class="ch-head"><span class="chip-icon">${ic(t.icon)}</span><div><p>${esc(t.blurb)}</p><p class="small muted" style="margin-top:4px">${period}</p></div></div>
-        <div class="list" style="margin-top:14px"><div class="row"><div class="row-main"><div class="row-title">Reward</div><div class="row-sub">${t.points} points${t.per ? `, including ${t.per} per check-in` : ''}${t.ticket ? ' + a Green draw ticket' : ''}</div></div>${ic('Gift')}</div>
-        <div class="row"><div class="row-main"><div class="row-title">How it's measured</div><div class="row-sub">${esc(t.how)}</div></div>${ic('Gauge')}</div>
-        ${who.length ? `<div class="row"><div class="faces">${who.map((id) => avatar(id, 'sm')).join('')}</div><div class="row-main"><div class="row-sub">${who.map((id) => esc(P.friendName(id))).join(', ')} ${who.length > 1 ? 'are' : 'is'} in</div></div></div>` : ''}</div>${action}
-        ${ui.page || ui.tab !== 'goals' || ui.goalsSeg !== 'challenges' ? `<div style="text-align:center;margin-top:10px"><button class="link" data-a="goto-challenges">See all challenges${ic('ChevronRight', 'sm')}</button></div>` : ''}`];
     },
     reward(sh) {
       const r = P.REWARDS.find((x) => x.id === sh.id), v = s.redemptions.find((x) => x.rewardId === r.id), short = r.cost - P.available(s);
@@ -2825,153 +2374,95 @@ if (typeof module !== 'undefined') module.exports = PBD;
         ${v ? `<p class="small muted" style="margin-top:14px">Your code, redeemed ${dateShort(v.at)}. Show it in the shop or enter it online. It works once.</p><div class="code">${esc(v.code)}</div><div class="btn-row"><button class="btn secondary" data-a="copy" data-text="${esc(v.code)}">${ic('Copy', 'sm')}Copy code</button></div>`
           : `<div class="btn-row"><button class="btn primary" data-a="redeem" data-id="${r.id}"${short > 0 ? ' disabled' : ''}>${short > 0 ? `${short} more points needed` : `Redeem for ${r.cost} points`}</button></div><p class="hint" style="text-align:center">Codes are single-use and tied to your account.</p>`}`];
     },
-    friend(sh) {
-      const f = P.person(sh.id), m = P.thisMonth(s), me = { e: P.change(s, 'electricity', m), w: P.change(s, 'water', m), streak: P.loggedStreak(s, H.addMonths(m, -1)) || P.loggedStreak(s, H.addMonths(m, -2)), pts: P.lifetime(s), done: challengesDone(), badges: Object.keys(s.badges).length };
-      const row = (label, a, b, lowerWins, f2 = (x) => fmt(x)) => `<tr><td>${label}</td><td class="num ${(lowerWins ? a < b : a > b) ? 'win' : ''}">${f2(a)}</td><td class="num ${(lowerWins ? b < a : b > a) ? 'win' : ''}">${f2(b)}</td></tr>`;
-      const exact = s.privacy.exact && f.share;
-      const isFriend = P.mutualFriends(s).some((x) => x.id === f.id);
-      return [`You and ${esc(f.name)}`, `<div class="ch-head">${avatar(f.id, 'lg')}<div><div class="row-title" style="font-size:18px">${esc(f.name)}</div><p class="small muted">${esc(f.home)} · ${esc(f.city)}</p><div class="faces" style="margin-top:8px">${f.badges.slice(0, 5).map((id) => { const b = P.BADGES.find((x) => x.id === id); return `<span class="medal" style="width:28px;height:28px;margin-right:4px" title="${esc(b.name)}">${ic(b.icon, 'xs')}</span>`; }).join('')}</div></div></div>
-        <table class="compare-table"><thead><tr><th>This month</th><th>You</th><th>${esc(f.name)}</th></tr></thead><tbody>
-        ${row('Electricity vs usual', H.round(me.e, 1), f.e, true, (x) => signed(x, 1))}
-        ${row('Water vs usual', H.round(me.w, 1), f.w, true, (x) => signed(x, 1))}
-        ${row('Logging streak', me.streak, f.streak, false, (x) => `${x} mo`)}
-        ${row('Challenges done', me.done, f.done, false)}
-        ${row('Points earned', me.pts, f.pts, false)}
-        ${row('Badges', me.badges, f.badges.length, false)}
-        ${exact ? row('kWh per person', H.round(P.projected(s, 'electricity') / P.persons(s.profile)), f.perE, true) : ''}
-        </tbody></table>
-        ${exact ? '' : `<div class="alert info">${ic('EyeOff', 'sm')}<span>Exact usage is hidden. It's only shown when you both turn on <b>Share exact usage</b>${f.share ? ` (${esc(f.name)} has)` : ''}.</span></div>`}
-        ${isFriend ? `<div class="list" style="margin-top:14px">${toggleRow(`Notifications from ${esc(f.name)}`, 'Their goals, challenges and badges. The feed always shows them.', P.wantsFriend(s, f.id), `data-a="notify-friend" data-id="${f.id}"`, `<span class="chip-icon">${ic('Bell', 'sm')}</span>`)}</div>` : ''}
-        ${isFriend ? `<div class="btn-row"><button class="btn secondary" data-a="league-with" data-id="${f.id}">${ic('Users', 'sm')}Start a Friends' league</button></div>` : ''}`];
-    },
-    addFriend(sh) {
-      return ['Add a friend', `<form data-form="add-friend" novalidate><p class="small muted">Ask your friend for their code. It's on their profile.</p>
-        ${field('Friend code', `<input class="input" name="code" placeholder="NAME-1234" autocapitalize="characters" autocomplete="off" value="${esc(sh.value || '')}" aria-invalid="${!!sh.error}">`, sh.error)}
-        <div class="btn-row"><button class="btn primary" type="submit">Send request</button></div>
-        <p class="hint">Prototype: try <b>SIGNE-3307</b> or <b>JONAS-5120</b>.</p></form>`];
-    },
-    share() {
-      return ['Your code', `<div class="share" style="flex-direction:column;text-align:center">${qr(s.profile.code)}<div><div class="num" style="font-size:24px;font-weight:700;letter-spacing:.05em">${esc(s.profile.code)}</div><p class="hint">Friends scan this or type the code in <b>Add a friend</b>. Mock code for the prototype.</p></div></div>
-        <div class="btn-row"><button class="btn primary" data-a="copy-code">${ic('Copy', 'sm')}Copy code</button><button class="btn secondary" data-a="copy" data-text="https://powerbuddy.example/add/${esc(s.profile.code)}">${ic('Share2', 'sm')}Copy link</button></div>`];
-    },
     badge(sh) {
       const b = P.BADGES.find((x) => x.id === sh.id), got = s.badges[b.id];
-      const friendsWith = P.mutualFriends(s).filter((f) => f.badges.includes(b.id));
       return [esc(b.name), `<div class="celebrate"><span class="medal xl" style="margin:0 auto;${got ? '' : 'background:var(--sunken);color:var(--faint);box-shadow:inset 0 0 0 2px var(--line-2)'}">${ic(got ? b.icon : 'Lock')}</span>
-        <p style="margin-top:14px">${esc(b.how)}</p><p class="small muted" style="margin-top:6px">${got ? `Earned ${dateShort(got.at)}` : 'Not earned yet'}${friendsWith.length ? ` · ${friendsWith.length} of your friends have it` : ''}</p></div>
+        <p style="margin-top:14px">${esc(b.how)}</p><p class="small muted" style="margin-top:6px">${got ? `Earned ${dateShort(got.at)}` : 'Not earned yet'}</p></div>
         ${got ? `<div class="btn-row"><button class="btn ${got.pinned ? 'secondary' : 'primary'}" data-a="pin" data-id="${b.id}">${ic('Pin', 'sm')}${got.pinned ? 'Unpin from profile' : 'Pin to profile'}</button></div>` : badgeHelp(b)}
         ${sh.error ? `<div class="alert warn">${esc(sh.error)}</div>` : ''}`];
     },
-    /* How an active goal is holding up: this month's budget, the pace needed, and what to do about it. */
+    /* How an active goal is holding up, month by month: each month's aim, and the result once its numbers are in. */
     goalDetail(sh) {
       const g = s.goals.find((x) => x.id === sh.id);
       if (!g) return ['Goal', '<div class="empty">This goal has ended.</div>'];
-      const p = P.goalProgress(s, g), m = P.thisMonth(s), n = P.now(s), dim = H.daysIn(m), keep = g.kind === 'keep';
-      const months = P.goalMonths(g), period = months.length > 1 ? `${H.monthName(g.start)} – ${H.monthName(g.end)} ${g.end.slice(0, 4)}` : `${H.monthName(g.start)} ${g.start.slice(0, 4)}`;
-      const benchLabel = g.bench === 'typical' ? 'Similar homes' : 'Your usual';
-      const cards = P.goalResources(g).map((r) => {
-        const bench = g.bench === 'typical' ? P.typicalMonth(s.profile, r, m) : P.usual(s, r, m), aim = bench * (1 - (keep ? 0 : g.target) / 100);
-        const so = P.monthSoFar(s, r), pr = P.projected(s, r), left = dim - n.getDate() + (1 - P.cumShare(r, H.hourOf(n)));
-        const perDay = (aim - so) / left, pace = (pr - so) / left, through = (n.getDate() - 1 + P.cumShare(r, H.hourOf(n))) / dim;
-        const day = (v) => (r === 'water' ? `${fmt(Math.max(0, v) * 1000)} litres` : `${fmt(Math.max(0, v), 1)} kWh`);
-        const ok = pr <= aim;
-        const advice = so >= aim ? `This month's budget of ${fmtRes(r, aim)} ${unit(r)} is used up. Using less for the rest of the month still helps the next one.`
-          : `To make it, keep to about <b>${day(perDay)} a day</b> for the rest of ${H.monthName(m)}. Lately it's been ${day(pace)} a day${ok ? ', so you\'re on pace' : ''}.`;
-        return `<div class="card" style="margin-top:12px"><div class="row-title" style="display:flex;align-items:center;gap:8px"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}" style="width:28px;height:28px">${ic(r === 'water' ? 'Droplet' : 'Zap', 'sm')}</span>${resName(r)} in ${H.monthName(m)}${delta(-(P.underBy(s, g, r, m) || 0), 1)}</div>
-          <div class="headline-stat" style="margin-top:10px"><div><span>${benchLabel}</span><b class="num">${fmtRes(r, bench)} ${unit(r)}</b></div><div><span>Aim</span><b class="num">≤ ${fmtRes(r, aim)}</b></div><div><span>Heading for</span><b class="num" style="color:${ok ? 'var(--good)' : 'var(--gold)'}">${fmtRes(r, pr)}</b></div></div>
-          <div class="target-bar" aria-hidden="true"><i style="width:${H.clamp(so / aim, 0, 1) * 100}%;background:${so / aim <= through + 0.02 ? 'var(--good)' : 'var(--gold)'}"></i><b style="left:${through * 100}%"></b></div>
-          <div class="prog-meta"><span>${fmtRes(r, so)} of ${fmtRes(r, aim)} ${unit(r)} used</span><span>Marker: day ${n.getDate()} of ${dim}</span></div>
-          <p class="small" style="margin-top:10px;color:var(--ink-2)">${advice}</p></div>`;
+      const p = P.goalProgress(s, g), keep = g.kind === 'keep', cur = P.thisMonth(s), res = P.goalResources(g);
+      const head = p.reduction === null ? 'No result yet' : keep ? (p.onTrack ? 'On track' : 'Over for now') : 'Not there yet';
+      const rows = P.goalMonths(g).map((mm) => {
+        const aim = (r) => (g.bench === 'typical' ? P.typicalMonth(s.profile, r, mm) : P.usual(s, r, mm)) * (1 - (keep ? 0 : g.target) / 100);
+        const parts = res.map((r) => { const v = P.monthValue(s, r, mm); return `${res.length > 1 ? resName(r) + ': ' : ''}${v === null ? `aim ≤ ${fmtRes(r, aim(r))} ${unit(r)}` : `${fmtRes(r, v)} ${unit(r)}, aim ≤ ${fmtRes(r, aim(r))}`}`; }).join(' · ');
+        const result = p.results.find((x) => x.m === mm);
+        const end = result ? `<span class="tag ${result.under >= (keep ? 0 : g.target) ? 'low' : 'warn'}">${signed(-result.under, 1)}</span>`
+          : mm < cur ? `<button class="btn secondary small" data-a="reading" data-month="${mm}">Add numbers</button>`
+          : mm === cur ? '<span class="tag">This month</span>' : '<span class="tag">Later</span>';
+        return `<div class="row"><div class="row-main"><div class="row-title">${H.monthName(mm)} ${mm.slice(0, 4)}</div><div class="row-sub">${parts}</div></div>${end}</div>`;
       }).join('');
-      const history = months.length > 1 ? `<div class="list" style="margin-top:12px">${months.map((mm) => { const u = mm > m ? null : Math.min(...P.goalResources(g).map((r) => P.underBy(s, g, r, mm) ?? 0)); return `<div class="row"><div class="row-main"><div class="row-title">${H.monthName(mm)}</div><div class="row-sub">${u === null ? 'Not started' : `${fmt(Math.abs(u), 1)}% ${u >= 0 ? 'under' : 'over'} ${goalBenchName(g)}${mm === m ? ' so far' : ''}`}</div></div>${u === null ? '' : ic(u >= (keep ? 0 : g.target) ? 'CircleCheck' : 'Clock', 'sm')}</div>`; }).join('')}</div>` : '';
-      const res = g.resource === 'both' ? 'electricity' : g.resource;
-      return [esc(P.goalLabel(g)), `<div class="ch-head"><span class="chip-icon brand">${ic(keep ? 'ShieldCheck' : 'Target')}</span><div style="flex:1"><div class="row-title">${p.onTrack ? 'On track' : keep ? 'Over for now' : 'Behind for now'}</div><p class="small muted">${period} · worth ${g.est} points · ${keep ? `stay at or under ${goalBenchName(g)}` : `${g.target}% under your usual`}</p></div><span class="tag ${p.onTrack ? 'low' : 'warn'}">${goalStatus(g, p).split(' · ')[1]}</span></div>
-        ${cards}${history}
-        <p class="hint">The bar is what you've used of this month's aim. The marker is how far through the month we are: staying left of it keeps you on pace.</p>
-        <div class="btn-row"><button class="btn primary" data-a="go" data-tab="plan">${ic('Lightbulb', 'sm')}Ideas to cut back</button><button class="btn secondary" data-a="go" data-tab="usage" data-res="${res}">${ic('ChartColumn', 'sm')}See usage</button></div>`];
-    },
-    /* Akshi asked how the ranking is calculated: worked through with the visitor's own numbers. */
-    rankInfo() {
-      const m = P.thisMonth(s), r = ui.rankRes, u = P.usual(s, r, m), pr = P.projected(s, r), c = P.change(s, r, m);
-      const row = (icon, title, text) => `<div class="row"><span class="chip-icon">${ic(icon, 'sm')}</span><div class="row-main"><div class="row-title">${title}</div><div class="row-sub">${text}</div></div></div>`;
-      return ['How the ranking works', `<p class="small" style="color:var(--ink-2)">Everyone is ranked by how this month compares with <b>their own usual</b>, in percent. The lowest number comes first.</p>
-        <div class="list" style="margin-top:14px">
-          ${row('CalendarDays', 'Your usual', `The average of your last three logged months, adjusted for the season. For ${H.monthName(m)} that's ${fmtRes(r, u)} ${unit(r)} of ${r === 'water' ? 'water' : 'electricity'}.`)}
-          ${row('Activity', 'This month', `What you've used so far, plus the rest of the month at your pace over the last 7 days. You're heading for ${fmtRes(r, pr)} ${unit(r)}.`)}
-          ${row('TrendingDown', 'Your number', `${fmtRes(r, pr)} against ${fmtRes(r, u)} is ${signed(c, 1)}. Under your usual shows green, over shows red.`)}
-        </div>
-        <div class="alert info">${ic('Users', 'sm')}<span>A family of four will always use more than a student. Comparing each home with itself means the same effort counts the same in any home.</span></div>
-        <p class="hint">Numbers settle as the month goes on. Only friends who share their % change are ranked, and nobody sees anyone's kWh or bills here.</p>
-        <div class="btn-row"><button class="btn secondary" data-a="settings">${ic('EyeOff', 'sm')}Privacy settings</button></div>`];
+      const how = keep ? `On average over the time frame, stay at or under ${goalBenchName(g)}. Each month counts once its numbers are in, after the month ends.`
+        : `One month at ${signed(-g.target)} or better against your usual and the goal is reached. Each month counts once its numbers are in, after the month ends.`;
+      const r0 = g.resource === 'both' ? 'electricity' : g.resource;
+      return [esc(P.goalLabel(g)), `<div class="ch-head"><span class="chip-icon brand">${ic(keep ? 'ShieldCheck' : 'Target')}</span><div style="flex:1"><div class="row-title">${head}</div><p class="small muted">${esc(timeFrame(g))} · worth ${g.est} points</p></div></div>
+        <div class="list" style="margin-top:14px">${rows}</div>
+        <p class="hint">${how}</p>
+        <div class="btn-row"><button class="btn primary" data-a="go" data-tab="plan">${ic('Lightbulb', 'sm')}Ideas to cut back</button><button class="btn secondary" data-a="go" data-tab="usage" data-res="${r0}">${ic('ChartColumn', 'sm')}See usage</button></div>`];
     },
     household(sh) {
       const d = sh.d;
       return ['Your household', `<form data-form="household">${householdFields(d)}<p class="hint">Changing this updates the "homes like yours" estimate. Your logged months stay as they are.</p><div class="btn-row"><button class="btn primary" type="submit">Save</button></div></form>`];
     },
     celebrate(sh) {
-      const main = sh.items.find((x) => x.type === 'challenge' || x.type === 'goal') || sh.items[0];
-      const badges = sh.items.filter((x) => x.type === 'badge'), pts = H.sum(sh.items.map((x) => x.points || 0)), ticket = sh.items.some((x) => x.ticket);
-      const title = main.type === 'badge' ? 'New badge' : main.type === 'goal' ? 'Goal reached' : 'Challenge complete';
-      return [title, `<div class="celebrate"><div class="burst">${ic(main.type === 'badge' ? P.BADGES.find((b) => b.id === main.id).icon : main.type === 'goal' ? 'Target' : 'Trophy')}</div>
-        <h3>${esc(main.title)}</h3>${pts ? `<div class="gain">+${pts}</div><p>points</p>` : ''}${ticket ? `<p style="margin-top:8px">${ic('Ticket', 'sm')} You're in the Green draw</p>` : ''}
-        ${badges.length && main.type !== 'badge' ? `<p style="margin-top:8px">${ic('Award', 'sm')} New badge: ${badges.map((b) => esc(b.title)).join(', ')}</p>` : badges.length > 1 ? `<p style="margin-top:8px">Also: ${badges.slice(1).map((b) => esc(b.title)).join(', ')}</p>` : ''}
-        <p class="small muted" style="margin-top:12px">${s.privacy.feed ? 'Your friends will see this in their feed.' : 'Your activity is hidden from friends.'}</p></div>
+      const main = sh.items.find((x) => x.type === 'goal') || sh.items[0];
+      const badges = sh.items.filter((x) => x.type === 'badge'), pts = H.sum(sh.items.map((x) => x.points || 0));
+      const moreGoals = sh.items.filter((x) => x.type === 'goal' && x !== main);
+      return [main.type === 'badge' ? 'New badge' : moreGoals.length ? 'Goals reached' : 'Goal reached', `<div class="celebrate"><div class="burst">${ic(main.type === 'badge' ? P.BADGES.find((b) => b.id === main.id).icon : 'Target')}</div>
+        <h3>${esc(main.title)}</h3>${moreGoals.length ? `<p style="margin-top:4px">Also reached: ${moreGoals.map((x) => esc(x.title)).join(', ')}</p>` : ''}${pts ? `<div class="gain">+${pts}</div><p>points</p>` : ''}
+        ${badges.length && main.type !== 'badge' ? `<p style="margin-top:8px">${ic('Award', 'sm')} New badge: ${badges.map((b) => esc(b.title)).join(', ')}</p>` : badges.length > 1 ? `<p style="margin-top:8px">Also: ${badges.slice(1).map((b) => esc(b.title)).join(', ')}</p>` : ''}</div>
         <div class="btn-row"><button class="btn primary" data-a="close">Done</button></div>`];
     }
   };
-  function qr(code) {
-    const n = 21, r = H.rng('qr' + code), cells = [];
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
-      const inF = [[0, 0], [n - 7, 0], [0, n - 7]].find(([fx, fy]) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7);
-      let on;
-      if (inF) { const dx = x - inF[0], dy = y - inF[1]; on = dx === 0 || dx === 6 || dy === 0 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4); }
-      else on = r() < 0.48;
-      if (on) cells.push(`<rect x="${x}" y="${y}" width="1.02" height="1.02"/>`);
-    }
-    return `<svg class="qr" viewBox="-1 -1 ${n + 2} ${n + 2}" role="img" aria-label="Mock QR code for ${esc(code)}" fill="#16211B">${cells.join('')}</svg>`;
-  }
-  /* Keeping steady is a longer habit than a one-off cut, so it runs for longer. */
-  const goalDurations = (kind) => (kind === 'keep' ? [1, 3, 6] : [1, 2, 3]);
   function updateGoalSheet() {
     const sh = ui.sheet; if (!sh || sh.type !== 'goal') return;
     const r = sh.resource || 'electricity', target = sh.target || 5, months = sh.months || 1, m = P.thisMonth(s), keep = sh.kind === 'keep', typical = keep && sh.bench === 'typical';
-    const eff = P.efficient(s, r), pts = P.goalPoints({ kind: sh.kind, target, months, resource: r, efficient: eff });
+    const eff = P.efficient(s, r), pts = P.goalPoints({ kind: sh.kind, target, months, resource: r, efficient: eff }), end = H.addMonths(m, months - 1), last = P.lastEntered(s);
     const set = (k, html) => { const el = $(`[data-bind="${k}"]`); if (el) el.innerHTML = html; };
     set('target', `${target}%`); set('points', `≈ ${pts} pts`);
-    set('why', `${keep ? '25' : `8 × ${target}%`} × ${months} month${months > 1 ? 's' : ''}${r === 'both' ? ' × 1.5 for both' : ''}${eff ? ' × 1.25 because you already use less than similar homes' : ''}`);
+    const speed = { 1: ' × 1.5 for one month', 3: ' × 1.2 for three months' }[months] || '';
+    set('why', `${keep ? `25 × ${months} month${months > 1 ? 's' : ''}` : `8 × ${target}%${speed}`}${r === 'both' ? ' × 1.5 for both' : ''}${eff ? ' × 1.25 because you already use less than similar homes' : ''}`);
+    set('time', keep
+      ? `On average, stay at or under ${typical ? 'similar homes' : 'your usual'} ${months > 1 ? `from ${H.monthName(m)} to the end of ${H.monthName(end)}` : `in ${H.monthName(m)}`}. Judged once every month's numbers are in.`
+      : months > 1 ? `Get ${target}% under your usual in any month up to the end of ${H.monthName(end)}. As soon as one month's numbers show it, the goal is reached.`
+        : `Get ${target}% under your usual in ${H.monthName(m)}. You'll see if you made it when you enter its numbers.`);
     const res = r === 'both' ? ['electricity', 'water'] : [r];
     const over = [];
     set('baseline', res.map((x) => {
-      const u = typical ? P.typicalMonth(s.profile, x, m) : P.usual(s, x, m), pr = P.projected(s, x), aim = u * (1 - (keep ? 0 : target) / 100);
-      if (keep && pr > u * 1.05) over.push(Math.round((pr / u - 1) * 100));
-      return `<div style="margin-top:4px">${ic(x === 'water' ? 'Droplet' : 'Zap', 'xs')} ${typical ? 'Similar homes' : 'Usual'} ${H.monthName(m)}: <b>${fmtRes(x, u)} ${unit(x)}</b> → ${keep ? 'stay at or under it' : `aim for <b>${fmtRes(x, aim)} ${unit(x)}</b>`}. Heading for ${fmtRes(x, pr)}.</div>`;
+      const u = typical ? P.typicalMonth(s.profile, x, m) : P.usual(s, x, m), aim = u * (1 - (keep ? 0 : target) / 100);
+      const lv = last && P.monthValue(s, x, last), lu = last && (typical ? P.typicalMonth(s.profile, x, last) : P.usual(s, x, last));
+      if (keep && lv && lv > lu * 1.05) over.push(Math.round((lv / lu - 1) * 100));
+      return `<div style="margin-top:4px">${ic(x === 'water' ? 'Droplet' : 'Zap', 'xs')} ${typical ? 'Similar homes' : 'Your usual'} in ${H.monthName(m)}: <b>${fmtRes(x, u)} ${unit(x)}</b> → ${keep ? 'stay at or under it' : `aim for <b>${fmtRes(x, aim)} ${unit(x)}</b>`}.${lv ? ` ${H.monthName(last)} was ${fmt(Math.abs(lv / lu - 1) * 100)}% ${lv <= lu ? 'under' : 'over'} ${typical ? 'similar homes' : 'its usual'}.` : ''}</div>`;
     }).join(''));
     set('warn', !keep && target > 15 ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>Over 15% is a big change in one go. It's worth more points, but a smaller step you keep is better than a big one you don't.</span></div>`
-      : over.length ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>You're heading about ${Math.max(...over)}% over this month. Cutting back a little first might be the easier start.</span></div>` : '');
+      : over.length ? `<div class="alert warn">${ic('CircleAlert', 'sm')}<span>${H.monthName(last)} was about ${Math.max(...over)}% over. Cutting back a little first might be the easier start.</span></div>` : '');
   }
-  /* For a badge not earned yet: where you stand and what to do next. */
+  /* For a badge not earned yet: where you stand and what to do next. Uses the latest month entered. */
   function badgeHelp(b) {
-    const m = P.thisMonth(s), prev = H.addMonths(m, -1);
+    const last = P.lastEntered(s);
     const go = (label, attrs, primary = true) => `<button class="btn ${primary ? 'primary' : 'secondary'}" ${attrs}>${label}</button>`;
-    const resRow = (r, cut) => { const u = P.usual(s, r, m), pr = P.projected(s, r); return `<div class="row"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span><div class="row-main"><div class="row-title">${resName(r)} this month</div><div class="row-sub">Heading for ${fmtRes(r, pr)} ${unit(r)}. ${cut ? `${cut}% under your usual is ${fmtRes(r, u * (1 - cut / 100))}.` : `Your usual is ${fmtRes(r, u)}.`}</div></div>${delta(P.change(s, r, m), 1)}</div>`; };
+    const resRow = (r, cut) => { if (!last) return ''; const v = P.monthValue(s, r, last), u = P.usual(s, r, last); return `<div class="row"><span class="chip-icon ${r === 'water' ? 'water' : 'elec'}">${ic(r === 'water' ? 'Droplet' : 'Zap')}</span><div class="row-main"><div class="row-title">${resName(r)} in ${H.monthName(last)}</div><div class="row-sub">${fmtRes(r, v)} ${unit(r)}. ${cut ? `${cut}% under your usual would be ${fmtRes(r, u * (1 - cut / 100))}.` : `Your usual was ${fmtRes(r, u)}.`}</div></div>${delta(P.change(s, r, last), 1)}</div>`; };
     const usageBtns = (r = 'electricity') => go(`${ic('ChartColumn', 'sm')}See usage`, `data-a="go" data-tab="usage" data-res="${r}"`, false) + go(`${ic('Lightbulb', 'sm')}Ideas to cut back`, 'data-a="go" data-tab="plan"');
+    const latest = last ? ' Your latest month:' : ' Enter a month to see where you stand.';
     let text = '', rows = '', btns = '';
     const active = s.goals.find((g) => g.status === 'active');
     switch (b.id) {
       case 'first-reading': text = 'Type in one month of electricity and water. It takes a minute.'; btns = go('Add monthly data', 'data-a="reading"'); break;
-      case 'steady': { const n = P.loggedStreak(s, prev); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add monthly data', 'data-a="reading"'); break; }
-      case 'goal-getter': text = active ? `${P.goalLabel(active)} is running. ${P.goalProgress(s, active).onTrack ? "It's on track." : "It's behind for now."}` : 'Set a goal for this month and reach it.'; btns = active ? go('See your goal', `data-a="goal-detail" data-id="${active.id}"`) : go('Set a goal', 'data-a="goal"'); break;
-      case 'ten-club': text = 'Finish this month 10% under your usual on either one:'; rows = resRow('electricity', 10) + resRow('water', 10); btns = usageBtns(); break;
-      case 'water-wise': text = 'Finish this month with water 10% under your usual:'; rows = resRow('water', 10); btns = usageBtns('water'); break;
-      case 'balance': text = 'Finish this month under your usual on both:'; rows = resRow('electricity') + resRow('water'); btns = usageBtns(); break;
+      case 'steady': { const n = P.loggedStreak(s, H.addMonths(P.thisMonth(s), -1)); text = `You have ${n} month${n === 1 ? '' : 's'} in a row logged. Three earns it. Sample months don't count.`; btns = go('Add monthly data', 'data-a="reading"'); break; }
+      case 'goal-getter': text = active ? `${P.goalLabel(active)} is running. ${goalState(active, P.goalProgress(s, active)).long}.` : 'Set a goal and reach it.'; btns = active ? go('See your goal', `data-a="goal-detail" data-id="${active.id}"`) : go('Set a goal', 'data-a="goal"'); break;
+      case 'ten-club': text = 'Log a month 10% under your usual on either one.' + latest; rows = resRow('electricity', 10) + resRow('water', 10); btns = usageBtns(); break;
+      case 'water-wise': text = 'Log a month with water 10% under your usual.' + latest; rows = resRow('water', 10); btns = usageBtns('water'); break;
+      case 'balance': text = 'Log a month under your usual on both.' + latest; rows = resRow('electricity') + resRow('water'); btns = usageBtns(); break;
       case 'comeback': {
-        const last = P.change(s, 'electricity', prev);
-        text = last !== null && last > 0 ? `${H.monthName(prev)} was ${signed(last, 1)} on electricity. Finish ${H.monthName(m)} under your usual to earn it:` : `This one is for bouncing back after a month over your usual. ${H.monthName(prev)} wasn't over, so there's nothing to win back right now.`;
+        const c = last ? P.change(s, 'electricity', last) : null;
+        text = c !== null && c > 0 ? `${H.monthName(last)} was ${signed(c, 1)} on electricity. Log a month back under your usual to earn it.` : `This one is for bouncing back after a month over your usual. ${last ? `${H.monthName(last)} wasn't over` : 'Nothing is entered yet'}, so there's nothing to win back right now.`;
         rows = resRow('electricity'); btns = usageBtns(); break;
       }
       case 'off-peak': text = `${s.greenRuns} of 10 loads run in green hours so far.`; rows = `<div class="bar" style="margin-top:10px"><i style="width:${Math.min(1, s.greenRuns / 10) * 100}%"></i></div>`; btns = go('Plan a run', 'data-a="go" data-tab="plan"'); break;
-      case 'company': text = 'Add a friend, and once they accept, it\'s yours.'; btns = go('Add a friend', 'data-a="add-friend"'); break;
-      case 'team': text = "Team up with friends in this month's Friends' league and hit the team target."; btns = go("See Friends' league", 'data-a="goto-challenges"'); break;
       default: return '';
     }
     return `<div class="badge-help"><p class="small" style="font-weight:600">How to get there</p><p class="small" style="color:var(--ink-2);margin-top:4px">${esc(text)}</p>${rows && rows.startsWith('<div class="row') ? `<div class="list" style="margin-top:10px">${rows}</div>` : rows}<div class="btn-row">${btns}</div></div>`;
@@ -3005,13 +2496,13 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
   function viewOnboarding() {
     const ob = ui.ob, d = ob.d, step = OB_STEPS[ob.step], e = ob.errors || {};
-    if (step === 'welcome') return `<div class="welcome">${MARK}<h1>Know what your home uses.</h1><p>PowerBuddy shows your electricity and water next to homes like yours, and helps you cut back with friends.</p>
-      <ul><li><span class="chip-icon elec">${ic('Gauge', 'sm')}</span>See usage and cost, month by month</li><li><span class="chip-icon water">${ic('Clock', 'sm')}</span>Run the washing machine when power is cheapest</li><li><span class="chip-icon brand">${ic('Users', 'sm')}</span>Set goals, join challenges, earn rewards from sustainable partners</li></ul>
+    if (step === 'welcome') return `<div class="welcome">${MARK}<h1>Know what your home uses.</h1><p>PowerBuddy shows your electricity and water next to homes like yours, and helps you cut back.</p>
+      <ul><li><span class="chip-icon elec">${ic('Gauge', 'sm')}</span>See usage and cost, month by month</li><li><span class="chip-icon water">${ic('Clock', 'sm')}</span>Run the washing machine when power is cheapest</li><li><span class="chip-icon brand">${ic('Target', 'sm')}</span>Set goals and earn rewards from sustainable partners</li></ul>
       <div class="actions"><button class="btn primary block" data-a="ob-next">Set up my home</button><button class="btn secondary block" data-a="ob-demo">Explore a demo home</button></div></div>`;
     const showEstimate = ['home', 'heat', 'appliances', 'bills'].includes(step);
     const progress = OB_STEPS.slice(1, -1).map((_, i) => `<i class="${i < ob.step ? 'on' : ''}"></i>`).join('');
     const bodies = {
-      name: `<h1>What should we call you?</h1><p class="lead">Your first name is shown to friends you add. Nothing else is, unless you choose to share it.</p>${field('First name', `<input class="input" data-input="ob" data-field="name" value="${esc(d.name)}" maxlength="30" autocomplete="given-name" aria-invalid="${!!e.name}">`, e.name)}`,
+      name: `<h1>What should we call you?</h1><p class="lead">We use it to greet you in the app. Your household details stay in this browser in the prototype.</p>${field('First name', `<input class="input" data-input="ob" data-field="name" value="${esc(d.name)}" maxlength="30" autocomplete="given-name" aria-invalid="${!!e.name}">`, e.name)}`,
       place: `<h1>Where do you live?</h1><p class="lead">PowerBuddy covers Denmark. Prices and water rates depend on where you are.</p>${field('Country', '<select class="select" disabled><option>Denmark</option></select>')}${householdFields(d, 'place')}`,
       home: `<h1>Tell us about your home</h1><p class="lead">This is what we compare you with. A family house and a one-room flat use very different amounts.</p>${householdFields(d, 'home')}${e.people ? `<span class="field-error">${esc(e.people)}</span>` : ''}`,
       heat: `<h1>How is it heated?</h1><p class="lead">Heating is the biggest swing in electricity use. If you're unsure, district heating is the most common in Danish cities.</p>${householdFields(d, 'heat')}`,
@@ -3023,8 +2514,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
       consent: `<h1>Before we start</h1><p class="lead">Your household data stays in this browser in the prototype.</p>
         <label class="consent"><input type="checkbox" data-check="terms"${d.terms ? ' checked' : ''}><span>I accept the terms of use.</span></label>
         <label class="consent"><input type="checkbox" data-check="data"${d.data ? ' checked' : ''}><span>PowerBuddy may use my household details and readings to estimate usage and give suggestions. I can delete them at any time.</span></label>
-        ${e.consent ? `<span class="field-error">${esc(e.consent)}</span>` : ''}
-        <p class="hint" style="margin-top:14px">Friends only see your name, badges and goals. You can change this in the settings.</p>`,
+        ${e.consent ? `<span class="field-error">${esc(e.consent)}</span>` : ''}`,
       result: (() => { const p = obProfile(d), m = H.mkey(new Date()), est = P.estimate(p); return `<div class="result-hero">${MARK.replace('class="mark"', 'class="mark" style="width:44px;height:44px;color:var(--brand)"')}<h1 style="margin-top:12px">Homes like yours</h1><p class="lead" style="margin-top:6px">${esc(P.describeHome(p))}</p>
         <div class="pair"><div><b class="num">${fmt(P.typicalMonth(p, 'electricity', m))}</b><span>kWh in ${H.monthName(m)}</span></div><div><b class="num">${fmt(P.typicalMonth(p, 'water', m), 1)}</b><span>m³ water in ${H.monthName(m)}</span></div></div></div>
         <p class="small" style="font-weight:600;margin-top:18px">Where electricity usually goes</p><div class="breakdown" style="margin-top:10px">${est.electricity.parts.slice(0, 4).map((x) => `<div class="bd-row"><span>${esc(x.name)}</span><span class="num muted">${fmt(x.kwh / est.electricity.year * 100)}%</span><div class="bar thin elec"><i style="width:${x.kwh / est.electricity.parts[0].kwh * 100}%"></i></div></div>`).join('')}</div>
@@ -3054,15 +2544,14 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const bill = d.payment === 'bills' && d.billE !== '' ? { month: m, e: Number(d.billE), w: Number(d.billW) } : null;
     s = P.create(obProfile(d), { sample: d.sample, bill });
     ui.ob = null; ui.tab = 'home'; ui.page = null; save(); render();
-    toast({ icon: 'House', text: `<b>Welcome, ${esc(s.profile.name)}</b>`, sub: '+20 points to start. The GreenBuddies team are your demo friends.' });
+    toast({ icon: 'House', text: `<b>Welcome, ${esc(s.profile.name)}</b>`, sub: '+20 points to start.' });
   }
 
   /* ---------- results → UI ---------- */
   function celebrate(results) {
-    const big = results.filter((r) => r.type !== 'checkin');
-    const pts = H.sum(results.filter((r) => r.type === 'checkin').map((r) => r.points || 0));
-    if (big.length) { openSheet('celebrate', { items: big, noFocus: false }); if (window.PBFX) { setTimeout(() => PBFX.play('success'), 120); PBFX.vibrate([10, 40, 18]); } }
-    else if (pts) toast({ icon: 'Check', text: `<b>+${pts} points</b>`, sub: 'Checked in. Keep it going.', sound: 'success' });
+    if (!results.length) return;
+    openSheet('celebrate', { items: results, noFocus: false });
+    if (window.PBFX) { setTimeout(() => PBFX.play('success'), 120); PBFX.vibrate([10, 40, 18]); }
   }
 
   /* ---------- actions ---------- */
@@ -3080,7 +2569,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     back() { ui.page = ui.page === 'settings' ? ui.backTo || null : null; ui.backTo = null; render(); },
     /* Opening the list doesn't clear it: a notification is read when it's tapped, or with Read all. */
     notes() { openSheet('notes'); },
-    'note-go'(el) { markRead(el.dataset.id); closeSheet(true); ui.page = null; ui.tab = el.dataset.go; if (ui.tab === 'friends') ui.friendsSeg = 'feed'; render(); },
+    'note-go'(el) { markRead(el.dataset.id); closeSheet(true); ui.page = null; ui.tab = el.dataset.go; render(); },
     'note-read'(el) { if (markRead(el.dataset.id)) readAllAnimated([el]); },
     'notes-read'() {
       const rows = $$('#sheet .row.note.unread');
@@ -3090,17 +2579,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     },
     callback(el) { markRead(el.dataset.id); closeSheet(true); if (window.PBCall) PBCall.callBack(); },
     notify(el) { s.notify[el.dataset.key] = !s.notify[el.dataset.key]; save(); el.setAttribute('aria-checked', s.notify[el.dataset.key]); },
-    'notify-friend'(el) {
-      const on = !P.wantsFriend(s, el.dataset.id); P.setFriendMuted(s, el.dataset.id, !on); save(); el.setAttribute('aria-checked', on);
-      if (ui.page === 'settings' && !ui.sheet) {
-        const main = el.closest('.toggle-row').querySelector('.row-main'); let sub = main.querySelector('.row-sub');
-        if (on && sub) sub.remove();
-        else if (!on && !sub) { sub = document.createElement('div'); sub.className = 'row-sub'; sub.textContent = 'Muted · still shown in your feed'; main.appendChild(sub); }
-        const all = $('[data-a="notify-all"]'), muted = P.mutualFriends(s).some((f) => !P.wantsFriend(s, f.id));
-        if (all) { all.dataset.on = muted ? 1 : 0; all.textContent = muted ? 'Turn all on' : 'Turn all off'; }
-      }
-    },
-    'notify-all'(el) { const on = el.dataset.on === '1'; for (const f of P.mutualFriends(s)) P.setFriendMuted(s, f.id, !on); save(); render(); },
+
     sound(el) { if (!window.PBFX) return; PBFX.setEnabled(!PBFX.enabled()); el.setAttribute('aria-checked', PBFX.enabled()); },
     estimate() { openSheet('estimate'); },
     close() { closeSheet(); },
@@ -3117,23 +2596,14 @@ if (typeof module !== 'undefined') module.exports = PBD;
     'goal-res'(el) { ui.sheet.resource = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
     'goal-kind'(el) {
       if (ui.sheet.kind === el.dataset.val) return;
-      ui.sheet.kind = el.dataset.val; if (!goalDurations(ui.sheet.kind).includes(ui.sheet.months)) ui.sheet.months = 1;
+      ui.sheet.kind = el.dataset.val;
       ui.sheet.noFocus = true; renderSheet();
     },
     'goal-bench'(el) { ui.sheet.bench = el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
     'goal-detail'(el) { openSheet('goalDetail', { id: el.dataset.id }); },
-    'rank-info'() { openSheet('rankInfo'); },
     /* Navigate from inside a sheet: close it, then go to the tab. */
     go(el) { closeSheet(true); A.tab(el); },
     'goal-months'(el) { ui.sheet.months = +el.dataset.val; segSelect(el.closest('.seg'), el); updateGoalSheet(); },
-    challenge(el) { openSheet('challenge', { id: el.dataset.id }); },
-    'feed-challenge'(el) { const c = challengeByTitle(el.dataset.title); if (c) openSheet('challenge', { id: c.id }); else A['goto-challenges'](); },
-    'feed-badge'(el) { const b = P.BADGES.find((x) => x.name === el.dataset.title); if (b) openSheet('badge', { id: b.id }); },
-    'goto-challenges'() { closeSheet(true); ui.page = null; ui.tab = 'goals'; ui.goalsSeg = 'challenges'; render(); $('#content').scrollTop = 0; },
-    'team-pick'(el) { const t = ui.sheet.team || (ui.sheet.team = []), id = el.dataset.id; if (t.includes(id)) t.splice(t.indexOf(id), 1); else if (t.length < 3) t.push(id); renderSheet(); },
-    'league-with'(el) { const c = s.ch.find((x) => x.tpl === 'league' && P.isActive(s, x)); if (!c) return; openSheet('challenge', { id: c.id, team: c.joined ? [] : [el.dataset.id] }); },
-    join(el) { const c = s.ch.find((x) => x.id === el.dataset.id); P.joinChallenge(s, c.id, ui.sheet && ui.sheet.team ? [...ui.sheet.team] : []); save(); toast({ icon: P.tplOf(c).icon, text: `<b>Joined ${esc(P.tplOf(c).title)}</b>`, sub: P.tplOf(c).how }); renderSheet(); render(); },
-    checkin(el) { const res = P.checkIn(s, el.dataset.id); if (!res) return; save(); if (ui.sheet && ui.sheet.type === 'challenge') closeSheet(); celebrate([res, ...P.evalBadges(s)]); render(); },
     reward(el) { openSheet('reward', { id: el.dataset.id }); },
     redeem(el) { try { P.redeem(s, el.dataset.id); save(); renderSheet(); render(); toast({ icon: 'Gift', text: '<b>Code ready</b>', sub: 'Saved under Your codes and on your profile' }); } catch (err) { toast({ icon: 'CircleAlert', text: esc(err.message) }); } },
     'rec-accept'(el) { P.setRec(s, el.dataset.id, 'accepted'); save(); const r = P.recommendations(s).find((x) => x.id === el.dataset.id); toast({ icon: 'Check', text: `<b>${esc(r.title)}</b>`, sub: r.goal ? 'Added to what you\'re doing. Make it a goal to earn points.' : 'Added to what you\'re doing' }); render(); },
@@ -3142,17 +2612,9 @@ if (typeof module !== 'undefined') module.exports = PBD;
     'plan-app'(el) { ui.planApp = el.dataset.id; render(); },
     'plan-make'(el) { const p = P.planRun(s, ui.planApp, +el.dataset.start); save(); toast({ icon: 'CalendarClock', text: `<b>Planned for ${clock(p.start)}</b>`, sub: `${p.green ? 'In green hours. ' : ''}${s.notify.plans !== false ? `We'll remind you at ${clock(p.start)}.` : 'Mark it done when it has run.'}` }); render(); },
     'plan-done'(el) { const res = P.markDone(s, el.dataset.id); save(); if (res.length) celebrate(res); render(); },
-    friend(el) { if (el.dataset.id === 'me') return A.profile(); openSheet('friend', { id: el.dataset.id }); },
-    'friend-accept'(el) { const res = P.acceptFriend(s, el.dataset.id); save(); toast({ who: el.dataset.id, text: `<b>You and ${esc(P.friendName(el.dataset.id))} are friends</b>`, sub: 'Compare progress from the ranking' }); if (res.length) celebrate(res); render(); },
-    'friend-decline'(el) { P.declineFriend(s, el.dataset.id); save(); render(); },
-    'add-friend'() { openSheet('addFriend'); },
-    share() { openSheet('share'); },
-    'copy-code'() { copy(s.profile.code); },
     copy(el) { copy(el.dataset.text); },
-    cheer(el) { P.cheer(s, el.dataset.id); save(); const f = s.feed.find((x) => x.id === el.dataset.id); el.setAttribute('aria-pressed', f.cheered); el.innerHTML = `${ic('Heart', 'xs')}${f.cheers}`; },
     badge(el) { openSheet('badge', { id: el.dataset.id }); },
     pin(el) { try { P.togglePin(s, el.dataset.id); ui.sheet.error = null; save(); renderSheet(); render(); } catch (err) { ui.sheet.error = err.message; renderSheet(); } },
-    privacy(el) { s.privacy[el.dataset.key] = !s.privacy[el.dataset.key]; save(); el.setAttribute('aria-checked', s.privacy[el.dataset.key]); },
     household() { const p = s.profile; openSheet('household', { d: { region: p.region, housing: p.housing, area: p.area, adults: p.adults, children: p.children, heating: p.heating, hotWater: p.hotWater, appliances: [...p.appliances], otherNote: p.otherNote || '' } }); },
     choose(el) { const d = currentDraft(); d[el.dataset.field] = el.dataset.val; rerenderDraft(); },
     'toggle-app'(el) { const d = currentDraft(), id = el.dataset.id; d.appliances = d.appliances.includes(id) ? d.appliances.filter((x) => x !== id) : [...d.appliances, id]; el.setAttribute('aria-checked', d.appliances.includes(id)); if (id === 'other') rerenderDraft(); updateObEstimate(); },
@@ -3201,11 +2663,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
       save(); closeSheet(); ui.tab = 'goals'; ui.goalsSeg = 'goals'; render();
       toast({ icon: 'Target', text: `<b>${esc(P.goalLabel(g))} started</b>`, sub: `Worth about ${g.est} points if you make it` });
     },
-    'add-friend'(form) {
-      const code = new FormData(form).get('code');
-      try { const r = P.addByCode(s, code); save(); closeSheet(); render(); toast({ who: r.person.id, text: r.status === 'mutual' ? `<b>You and ${esc(r.person.name)} are friends</b>` : `<b>Request sent to ${esc(r.person.name)}</b>`, sub: r.status === 'mutual' ? '' : 'You\'ll be friends once they accept' }); }
-      catch (err) { ui.sheet.error = err.message; ui.sheet.value = code; renderSheet(); }
-    },
+
     household() { Object.assign(s.profile, ui.sheet.d); s.profile.area = +s.profile.area; save(); closeSheet(); render(); toast({ icon: 'House', text: '<b>Household updated</b>', sub: 'The comparison now uses your new details' }); }
   };
 
@@ -3222,7 +2680,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
   function feedback(el) {
     if (!window.PBFX) return;
     if (el.classList.contains('switch')) { PBFX.play('toggle', el.getAttribute('aria-checked') !== 'true'); PBFX.vibrate(10); return; }
-    if (el.matches('.tab, .seg button, .btn, .choice, .app-chips button, .icon-btn, .cheer, .row, .rank-row, .badge, .link, .feed-link')) { PBFX.play('tap'); PBFX.vibrate(6); }
+    if (el.matches('.tab, .seg button, .btn, .choice, .app-chips button, .icon-btn, .row, .badge, .link')) { PBFX.play('tap'); PBFX.vibrate(6); }
   }
   document.addEventListener('submit', (e) => { const f = e.target.closest('[data-form]'); if (!f) return; e.preventDefault(); FORMS[f.dataset.form](f); });
   document.addEventListener('input', (e) => {
@@ -3254,11 +2712,10 @@ if (typeof module !== 'undefined') module.exports = PBD;
     actions() {
       if (!s) return [{ label: 'Skip to the demo home', run: () => A['ob-demo']() }];
       return [
-        { label: 'Jump to next month', hint: 'Closes this month: goals, challenges and the Green draw settle', run: () => { closeSheet(); const res = P.advanceToNextMonth(s); save(); render(); celebrate(res); toast({ icon: 'CalendarDays', text: `<b>It's now ${P.now(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b>`, sub: `${H.monthName(H.addMonths(P.thisMonth(s), -1))} is closed. Check your notifications.` }); } },
-        { label: 'Skip ahead 6 hours', hint: 'Prices, live meter and today\'s total move on', run: () => { P.advanceHours(s, 6); save(); render(); } },
-        { label: 'Show a friend update now', run: () => pushNotification('friend', true) },
-        { label: 'Show a price tip now', run: () => pushNotification('tip', true) },
-        { label: s.live ? 'Pause live updates' : 'Resume live updates', hint: 'Friend updates and tips', run: () => { s.live = !s.live; save(); render(); } },
+        { label: 'Jump to next month', hint: 'Moves to the 1st. Enter the month that just ended under Usage to settle goals', run: () => { closeSheet(); const res = P.advanceToNextMonth(s); save(); render(); celebrate(res); toast({ icon: 'CalendarDays', text: `<b>It's now ${P.now(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</b>`, sub: `${H.monthName(H.addMonths(P.thisMonth(s), -1))} has ended. Enter its numbers under Usage.` }); } },
+        { label: 'Skip ahead 6 hours', hint: 'Prices and the clock move on', run: () => { P.advanceHours(s, 6); save(); render(); } },
+        { label: 'Show a price tip now', run: () => pushTip(true) },
+        { label: s.live ? 'Pause live updates' : 'Resume live updates', hint: 'Price tips', run: () => { s.live = !s.live; save(); render(); } },
         { label: 'Reset app', hint: 'Back to onboarding, where you can set up a home or skip to the demo. Feedback comments are kept.', run: resetApp }
       ];
     }
@@ -3273,14 +2730,14 @@ if (typeof module !== 'undefined') module.exports = PBD;
   }
 
   /* Where the visitor is, as a stable key and a readable label. The feedback tool files comments under it. */
-  const SHEET_NAMES = { goalDetail: 'Goal', rankInfo: 'How the ranking works', notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add monthly data', goal: 'New goal', challenge: 'Challenge', reward: 'Reward', friend: 'Compare with a friend', addFriend: 'Add a friend', share: 'Your code', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
-  const SEG_NAMES = { goals: 'Goals', challenges: 'Challenges', rewards: 'Rewards', feed: 'Feed', ranking: 'Ranking' };
+  const SHEET_NAMES = { goalDetail: 'Goal', notes: 'Notifications', estimate: 'Homes like yours', reading: 'Add monthly data', goal: 'New goal', reward: 'Reward', badge: 'Badge', household: 'Your household', celebrate: 'Celebration' };
+  const SEG_NAMES = { goals: 'Goals', rewards: 'Rewards' };
   function pageInfo() {
     if (!s) { const step = ui.ob ? OB_STEPS[ui.ob.step] : 'welcome'; return { key: 'onboarding/' + step, label: 'Onboarding · ' + step.charAt(0).toUpperCase() + step.slice(1) }; }
     let key, label;
     if (ui.page) { key = ui.page; label = ui.page === 'profile' ? 'Profile' : 'Settings'; }
     else {
-      const seg = ui.tab === 'goals' ? ui.goalsSeg : ui.tab === 'friends' ? ui.friendsSeg : null;
+      const seg = ui.tab === 'goals' ? ui.goalsSeg : null;
       key = ui.tab + (seg ? '/' + seg : ''); label = ui.tab.charAt(0).toUpperCase() + ui.tab.slice(1) + (seg ? ' · ' + SEG_NAMES[seg] : '');
     }
     if (ui.sheet) return { key: 'sheet/' + ui.sheet.type, label: 'Sheet · ' + (SHEET_NAMES[ui.sheet.type] || ui.sheet.type), base: key };
@@ -3292,7 +2749,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
     const [a, b] = key.split('/');
     closeSheet(true);
     if (a === 'profile' || a === 'settings') ui.page = a;
-    else if (TAB_ORDER.includes(a)) { ui.page = null; ui.tab = a; if (a === 'goals' && b) ui.goalsSeg = b; if (a === 'friends' && b) ui.friendsSeg = b; }
+    else if (TAB_ORDER.includes(a)) { ui.page = null; ui.tab = a; if (a === 'goals' && SEG_NAMES[b]) ui.goalsSeg = b; }
     else return false;
     render(); return true;
   }
@@ -4224,7 +3681,7 @@ if (typeof module !== 'undefined') module.exports = PBD;
 (() => {
   const VERSIONS = [
     { id: '1', label: 'V1', name: 'Original prototype', href: 'powerbuddy-v1.html' },
-    { id: '2', label: 'V2', name: 'Overhaul with friends & challenges', href: 'powerbuddy.html' }
+    { id: '2', label: 'V2', name: 'Overhaul with goals & rewards', href: 'powerbuddy.html' }
   ];
   const current = document.documentElement.dataset.pbVersion || '2';
   const svg = (inner) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
